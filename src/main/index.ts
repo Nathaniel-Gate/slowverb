@@ -42,9 +42,14 @@ function createWindow() {
   return win
 }
 
+// ONE copy of the app: launching again just brings the open window forward (no stack of identical icons in the Dock).
+if (app.isPackaged && !process.env.SLOWVERB_ROOT && !app.requestSingleInstanceLock()) app.quit()
+app.on('second-instance', () => { const w = BrowserWindow.getAllWindows()[0]; if (w) { if (w.isMinimized()) w.restore(); w.focus() } })
+
 app.whenReady().then(() => {
   // The live dev window runs inside Electron's own app bundle, so give it our icon in the Dock too (the packaged app already has it).
-  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
+  // Test runs (SLOWVERB_ROOT) must not add Dock icons; the live dev window gets our icon.
+  if (process.platform === 'darwin') { if (process.env.SLOWVERB_ROOT) app.dock?.hide(); else if (!app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png')) }
   // Serve the file ourselves with proper Range support: without 206 + Content-Range + Content-Length, Chromium cannot seek inside
   // m4a/mp3 (a seek jumps back to the start and the duration reads as Infinity).
   protocol.handle('media', async (req) => {
