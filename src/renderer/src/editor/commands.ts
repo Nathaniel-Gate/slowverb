@@ -55,7 +55,8 @@ export const COMMANDS: Command[] = [
   cmd('trim.tailRipple', 'Ripple trim end to playhead', 'Edit', (s) => s.trimToPlayhead('prevTail', true)),
   cmd('trim.head', 'Trim start to playhead', 'Edit', (s) => s.trimToPlayhead('nextHead', false)),
   cmd('trim.tail', 'Trim end to playhead', 'Edit', (s) => s.trimToPlayhead('prevTail', false)),
-  cmd('delete', 'Delete', 'Edit', (s) => s.deleteSelection(false), { when: hasSel }),
+  // D / Delete: clips -> delete them (leaves a gap); a selected GAP -> close it (ripple), so "C then D" or "click gap then D" removes dead air.
+  cmd('delete', 'Delete / close selected gap', 'Edit', (s) => (hasSel(s) ? s.deleteSelection(false) : s.closeGapAtSelection()), { when: (s) => hasSel(s) || !!s.gap }),
   cmd('rippleDelete', 'Ripple delete / close gap', 'Edit', (s) => (s.gap ? s.closeGapAtSelection() : s.deleteSelection(true)), { when: (s) => hasSel(s) || !!s.gap }),
   cmd('lift', 'Lift range', 'Edit', (s) => s.liftRangeSel(), { when: hasRangeAny }),
   cmd('extract', 'Extract range', 'Edit', (s) => s.extractRangeSel(), { when: hasRangeAny }),

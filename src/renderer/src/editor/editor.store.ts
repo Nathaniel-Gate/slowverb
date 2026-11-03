@@ -20,7 +20,7 @@ import { projectActions } from './storeProject'
 import { rangeActions } from './storeRange'
 import { autoActions } from './storeAuto'
 import type { Ctx, RenderOpts, S } from './storeTypes'
-import { fmtTime } from './timefmt'
+import { fmtDur, fmtTime } from './timefmt'
 import { editorTransport } from './transport'
 
 export type { S, DockTab, Gap, ClipPatch, RenderOpts } from './storeTypes'
@@ -232,7 +232,14 @@ export const useEditor = create<S>((set, get) => {
     selectAtPlayhead() {
       const p = get().project; if (!p) return
       const t = get().now(), ids = p.clips.filter((c) => c.start <= t + 1e-6 && t < clipEnd(c) - 1e-6).map((c) => c.id)
-      set({ selection: ids, gap: null }); toast(ids.length ? `Selected ${ids.length} clip${ids.length === 1 ? '' : 's'} at the playhead` : 'No clips at the playhead')
+      if (ids.length) { set({ selection: ids, gap: null }); toast(`Selected ${ids.length} clip${ids.length === 1 ? '' : 's'} at the playhead`); return }
+      // nothing under the playhead: select the gap there instead (targeted tracks first), ready for D to close it
+      const targeted = p.tracks.filter((tr) => tr.target), order = [...targeted, ...p.tracks.filter((tr) => !tr.target)]
+      for (const tr of order) {
+        const g = ops.gapsOf(p, tr.id).find((x) => x.start <= t + 1e-6 && t < x.end - 1e-6)
+        if (g) { set({ gap: { track: tr.id, start: g.start, end: g.end }, selection: [] }); toast(`Gap ${fmtDur(g.end - g.start)} selected: press D to close it`); return }
+      }
+      set({ selection: [], gap: null }); toast('Nothing at the playhead')
     },
     selectAll() { const n = get().project?.clips.length ?? 0; set({ selection: get().project?.clips.map((c) => c.id) ?? [], gap: null }); toast(`Selected ${n} clip${n === 1 ? '' : 's'}`) },
     copy() {
