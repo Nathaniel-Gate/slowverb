@@ -3,6 +3,7 @@ import { clipDur, clipEnd, type Project } from '../model'
 import { clipsForward, patchClips, splitAt } from '../ops'
 import { TL } from '../../config/timeline'
 import { cancelGlide, envOf, layOf, st, type Pt, type View, type ViewRefs } from './dragRunner'
+import { easeDrag } from './dragSmooth'
 import { hideHud, showHud } from './hud'
 import { clampTrackShift, hudText, previewOf, snapMove, snapOne, type Drag } from './timelineDrags'
 import { clamp, clipBox, clipsInRect, findCut, gapAt, laneAt, slipDelta } from './timelineMath'
@@ -21,12 +22,25 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
   function dragClips(e: RPointerEvent, kind: string, make: (pt: Pt, base: Project) => Made, onClick?: () => void) {
     const base = st().project!
     let final: Project | null = null, lastD: Drag | null = null
+    // Pointer events can arrive faster than frames. We only record the target here and draw once per animation frame,
+    // easing continuous values (fades, gain, envelope) toward it so the grab feels smooth instead of jolting.
+    let shown: Drag | null = null, raf = 0, at: number | null = null, snapAt: number | null = null
+    const frame = () => {
+      raf = 0
+      if (!lastD) return
+      const r = easeDrag(shown, lastD, TL.dragSmooth, TL.dragSmoothEps)
+      shown = r.d; ui.setPreview(previewOf(base, r.d))
+      if (snapAt !== at) { snapAt = at; ui.setSnapAt(at) }
+      if (!r.done) raf = requestAnimationFrame(frame)
+    }
     runDrag(e, kind, { auto: true }, pt => {
-      const { d, at } = make(pt, base)
-      lastD = d
-      final = previewOf(base, d); ui.setPreview(final); ui.setSnapAt(at)
-      showHud(guides.hud, root.current, hudText(d, final), pt.cx, pt.cy)
+      const m = make(pt, base)
+      lastD = m.d; at = m.at
+      if (!raf) raf = requestAnimationFrame(frame)
+      showHud(guides.hud, root.current, hudText(m.d, previewOf(base, m.d)), pt.cx, pt.cy)
     }, (moved, cancel) => {
+      if (raf) cancelAnimationFrame(raf)
+      final = lastD ? previewOf(base, lastD) : null
       ui.setPreview(null); ui.setSnapAt(null); hideHud(guides.hud)
       if (!moved && !cancel) onClick?.()
       if (!moved || cancel || !final || final === base) return

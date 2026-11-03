@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react'
+import { memo, useLayoutEffect, useRef } from 'react'
 import { clipDur, clipSpeed, type Clip } from '../model'
 import type { Peaks } from '../peaks'
 import { TL, labelColor } from '../../config/timeline'
@@ -21,7 +21,7 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
   const w = Math.max(1, xR - xL)
   const vx0 = Math.max(0, xL), vx1 = Math.min(viewW, xR), cw = Math.max(0, vx1 - vx0), cl = vx0 - xL
 
-  useEffect(() => {
+  useLayoutEffect(() => {   // draw in the same frame as the DOM change so handles and waveform never disagree
     const c = cv.current
     if (!c || cw <= 0) return
     const dpr = window.devicePixelRatio || 1

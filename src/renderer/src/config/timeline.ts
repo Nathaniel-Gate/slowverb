@@ -4,6 +4,8 @@ export const TL = {
   laneH: 84,             // px, height of one track lane (TrackHeaders must use the same value)
   clipPadY: 4,           // px, gap above/below a clip inside its lane
   edgePx: 9,             // px, width of a trim handle (capped at a third of the clip width, see timeline.css)
+  dragSmooth: 0.4,       // 0..1 how fast fade/gain/envelope drags glide to the pointer each frame (1 = no smoothing)
+  dragSmoothEps: 0.0005, // seconds: stop animating when this close to the pointer
   dragStartPx: 3,        // px the pointer must travel before a click becomes a drag
   snapThresholdPx: 9,    // px, snap magnetism
   minPps: 0.5,           // px per second, furthest zoom out
