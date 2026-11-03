@@ -1,0 +1,35 @@
+/* PHONE SHELL. Safe-area insets come from env(); ?safe=1 (dev) overrides them to a notched iPhone. */
+:root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+  --tap: 44px; --bar-h: 54px; --mini-h: 60px; --gut: 20px; }
+* { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; }
+html { background: var(--ink-950); }
+body { background: var(--ink-950); color: var(--stone-100); font-family: var(--font-sans); font-size: 15px; overflow: hidden; overscroll-behavior: none; -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
+input { -webkit-user-select: text; user-select: text; font: inherit; color: inherit; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; }
+button:disabled { opacity: .4; }
+.mono { font-size: 11px; }
+.phone { height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; padding-left: var(--sal); padding-right: var(--sar); }
+.screen { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding: calc(var(--sat) + 14px) var(--gut) 18px; }
+.head { display: flex; justify-content: space-between; align-items: center; min-height: var(--tap); }
+.h1 { font-size: 30px; font-weight: 500; letter-spacing: -.02em; line-height: 1.1; margin-top: 10px; }
+.sub { margin-top: 8px; }
+
+.btn { min-height: var(--tap); min-width: var(--tap); padding: 0 16px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--white); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.solid { background: var(--white); color: var(--ink-950); border-color: var(--white); }
+.btn.danger { border-color: var(--white); }
+.icon-btn { width: var(--tap); height: var(--tap); display: grid; place-items: center; border-radius: var(--radius); color: var(--stone-100); }
+
+.bar-nav { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--hairline); background: rgb(15 15 15 / .96); padding-bottom: var(--sab); position: relative; z-index: 3; }
+.tab { height: var(--bar-h); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--steel-500); font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.tab.on { color: var(--white); }
+.tab:disabled { opacity: .35; }
+
+.mini { flex: none; position: relative; display: grid; grid-template-columns: 1fr var(--tap); align-items: center; gap: 8px; min-height: var(--mini-h); padding: 0 8px 0 var(--gut); border-top: 1px solid var(--hairline-strong); background: var(--ink-850); z-index: 3; text-align: left; width: 100%; }
+.mini .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.mini .a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--steel-400); margin-top: 2px; }
+.mini-text { min-width: 0; padding: 8px 0; }
+.mini-prog { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: transparent; overflow: hidden; }
+.mini-prog i { display: block; height: 100%; width: 100%; background: var(--white); transform-origin: left; will-change: transform; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--bar-h) + var(--sab) + var(--mini-h) + 14px); z-index: 4; background: var(--white); color: var(--ink-950); padding: 8px 14px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; animation: rise var(--t) var(--ease) both; pointer-events: none; }
