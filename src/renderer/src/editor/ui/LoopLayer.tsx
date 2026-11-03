@@ -8,7 +8,7 @@ type Props = {
   project: Project; groups: Map<string, Clip[]>; layout: Layout; pps: number; scrollX: number; viewW: number
   selectedId: string | null; handles: boolean; onHandle: (e: RPointerEvent, which: LoopHandle, loopId: string) => void
 }
-const TITLE: Record<LoopHandle, string> = { in: 'Loop start point', out: 'Loop end point', xfade: 'Loop crossfade', count: 'Repeats' }
+const TITLE: Record<LoopHandle, string> = { in: 'Loop start point', out: 'Loop end point', xfade: 'Loop crossfade', count: 'Drag to add or remove repeats', tail: 'Drag to extend or shorten the last repeat' }
 
 /** Visual group for every live loop: outline, badge, soft dividers in the crossfade zones; plus the drag handles of the selected loop. */
 function LoopLayerImpl({ project, groups, layout, pps, scrollX, viewW, selectedId, handles, onHandle }: Props) {
@@ -52,7 +52,7 @@ function LoopLayerImpl({ project, groups, layout, pps, scrollX, viewW, selectedI
             {d && <svg className="tl-loop-div" width={viewW} height={b.h} style={{ transform: `translateY(${b.y}px)`, '--stripe': trackColor(lane) } as CSSProperties}><path d={d} /></svg>}
             {showH && <>
               {H('in', x(g.start))}{H('out', x(clipEnd(g.first)))}
-              {g.second && H('xfade', x(g.second.start))}{H('count', x(g.end))}
+              {g.second && H('xfade', x(g.second.start))}{H('tail', x(g.end))}{H('count', x(g.end))}
             </>}
           </div>
         )

@@ -9,7 +9,7 @@ export function validateLoops(p: Project): string[] {
   if (byId.size !== loops.length) bad.push('duplicate loop id')
   const tracks = new Set(p.tracks.map(t => t.id))
   for (const l of loops) {
-    const nums = [l.srcIn, l.srcOut, l.start, l.count, l.xfade, l.gain]
+    const nums = [l.srcIn, l.srcOut, l.start, l.count, l.xfade, l.gain, l.tail ?? 0]
     if (!nums.every(finite)) { bad.push(`loop ${l.id} has non-finite number`); continue }
     if (!tracks.has(l.track)) bad.push(`loop ${l.id} on missing track ${l.track}`)
     const src = p.sources[l.src]

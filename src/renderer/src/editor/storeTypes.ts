@@ -59,7 +59,7 @@ export type S = {
   nudgeLoop(which: 'in' | 'out' | 'both', dt: number): void
   loopFillToPlayhead(): void; detachLastRepeat(): void; unloopSelection(): void; selectedLoop(): Loop | undefined
 }
-export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain'>>
+export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain' | 'tail'>>
 
 export type EditKeys = 'patchSelected' | 'toggleDisable' | 'liftRange' | 'extractRange' | 'closeGapAtSelection' | 'closeAllGaps' | 'trimToPlayhead' | 'rollEdit' | 'rateStretch'
   | 'repeatSelection' | 'crossfadeSelection' | 'uncrossfadeSelection' | 'nudge' | 'selectForward' | 'selectBackward' | 'selectGap' | 'targetTrack' | 'toggleSyncLock' | 'toggleAutoDelete' | 'markerAt' | 'renameMarker' | 'removeMarker'

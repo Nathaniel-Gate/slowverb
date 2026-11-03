@@ -23,7 +23,7 @@ export type Clip = {
 }
 /** A loop of one source slice, repeated `count` times on ONE track, each repeat overlapping the next by `xfade` seconds (equal-power
  *  crossfade). Timeline length = count * (len - xfade) + xfade where len = srcOut - srcIn. Edit the numbers, the clips follow. */
-export type Loop = { id: string; track: string; src: string; srcIn: number; srcOut: number; start: number; count: number; xfade: number; gain: number }
+export type Loop = { id: string; track: string; src: string; srcIn: number; srcOut: number; start: number; count: number; xfade: number; gain: number; tail?: number /* seconds added to (or taken off) the LAST repeat's end, so the end can be extended like a normal clip while every other repeat stays a live loop repeat */ }
 export type FadeCurve = 'lin' | 'pow' | 'log' | 's'
 export type EnvPoint = { t: number; g: number }
 export type Marker = { id: string; t: number; name: string; color?: string }

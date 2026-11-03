@@ -54,14 +54,15 @@ export function loopGeom(cs: Clip[] | undefined): LoopGeom | null {
 /** Badge text parts: "LOOP x6" and "40 ms". */
 export const loopBadge = (l: Pick<Loop, 'count' | 'xfade'>) => ({ name: `LOOP x${l.count}`, fade: `${Math.round(l.xfade * 1000)} ms` })
 
-export type LoopHandle = 'in' | 'out' | 'xfade' | 'count'
+export type LoopHandle = 'in' | 'out' | 'xfade' | 'count' | 'tail'
 /** The Loop patch for dragging a handle `d` timeline seconds (to the right is positive) from the loop as it was. */
-export function handlePatch(which: LoopHandle, l: Loop, d: number): Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade'>> {
+export function handlePatch(which: LoopHandle, l: Loop, d: number): Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'tail'>> {
   const len = l.srcOut - l.srcIn
   switch (which) {
     case 'in': return { srcIn: l.srcIn + d }
     case 'out': return { srcOut: l.srcOut + d }
     case 'xfade': return { xfade: Math.max(0, l.xfade - d) }                         // the overlap grows as its left edge moves left
+    case 'tail': return { tail: (l.tail ?? 0) + d }                                  // drag the loop's right end: lengthen / shorten only the LAST repeat
     case 'count': return { count: Math.max(1, l.count + Math.round(d / Math.max(1e-6, len - l.xfade))) }
   }
 }

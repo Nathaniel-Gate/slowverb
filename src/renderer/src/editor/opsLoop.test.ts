@@ -198,3 +198,23 @@ describe('detachLastRepeat', () => {
     expect(ops.detachLastRepeat(p, L0(p).id).loops ?? []).toHaveLength(0)
   })
 })
+
+describe('loop tail (extend the last repeat like a normal clip)', () => {
+  it('lengthens only the last repeat; the others stay live repeats and nothing jumps', () => {
+    const lp = looped(4, 0.2), l = L0(lp), before = ops.loopClips(lp, l.id)
+    const out = ops.updateLoop(lp, l.id, { tail: 1.5 }), after = ops.loopClips(out, l.id)
+    expect(after).toHaveLength(4); expect(L0(out).count).toBe(4)
+    after.slice(0, 3).forEach((c, i) => { expect(c.start).toBeCloseTo(before[i].start); expect(c.srcOut).toBeCloseTo(before[i].srcOut) })
+    expect(after[3].start).toBeCloseTo(before[3].start)                                   // the last repeat stays where it was
+    expect(after[3].srcOut - after[3].srcIn).toBeCloseTo(before[3].srcOut - before[3].srcIn + 1.5)
+    expect(ops.loopSpan(L0(out))).toBeCloseTo(ops.loopSpan(l) + 1.5)
+    expect(ops.validate(out)).toEqual([])
+  })
+  it('can shorten the last repeat, is clamped, and survives other loop edits', () => {
+    const lp = looped(3, 0.2), l = L0(lp)
+    const short = ops.updateLoop(lp, l.id, { tail: -0.5 }); expect(ops.validate(short)).toEqual([])
+    expect(ops.updateLoop(lp, l.id, { tail: -999 }).loops![0].tail!).toBeGreaterThan(-(l.srcOut - l.srcIn))
+    const more = ops.updateLoop(ops.updateLoop(lp, l.id, { tail: 1 }), l.id, { count: 5 })   // add repeats: the tail stays on the new last one
+    expect(ops.loopClips(more, l.id)).toHaveLength(5); expect(ops.validate(more)).toEqual([])
+  })
+})

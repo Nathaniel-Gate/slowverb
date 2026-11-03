@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_TAILDRAG || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -50,6 +50,29 @@ export function runShot(win: BrowserWindow) {
         return out })()`)
       console.log('SCRUB_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
+    if (process.env.SLOWVERB_TAILDRAG) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_TAILDRAG)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        for (const t of [10, 12]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        const mid = E.getState().project.clips.find(c => Math.abs(c.start - 10) < 0.01)
+        E.getState().select([mid.id]); E.getState().makeLoopFromSelection(4, 0.05)
+        E.getState().select(E.getState().project.clips.filter(c => c.loop).map(c => c.id))
+        E.getState().setZoom(60, 9.5); E.getState().setScroll(9.5 * 60) })()`)
+      await wait(900)
+      const spans = `(() => { const p = window.__sv.useEditor.getState().project; const l = p.loops && p.loops[0]; return { count: l && l.count, tail: l && l.tail, repeats: p.clips.filter(c => c.loop).map(c => [+c.start.toFixed(2), +(c.start + c.srcOut - c.srcIn).toFixed(2)]) } })()`
+      const before = await win.webContents.executeJavaScript(spans)
+      const pos = await win.webContents.executeJavaScript(`(() => { const h = document.querySelector('[data-loop-handle="tail"]'); if (!h) return null; const b = h.getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } })()`)
+      if (!pos) { console.log('TAILDRAG_RESULT ' + JSON.stringify({ error: 'no tail handle', before })); app.quit(); return }
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: pos.x, y: pos.y })
+      win.webContents.sendInputEvent({ type: 'mouseDown', x: pos.x, y: pos.y, button: 'left', clickCount: 1 })
+      for (let i = 1; i <= 20; i++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: pos.x + i * 6, y: pos.y, button: 'left', modifiers: ['leftbuttondown'] }); await wait(16) }
+      win.webContents.sendInputEvent({ type: 'mouseUp', x: pos.x + 120, y: pos.y, button: 'left', clickCount: 1 })
+      await wait(500)
+      const after = await win.webContents.executeJavaScript(spans)
+      const valid = await win.webContents.executeJavaScript(`window.__sv.ops.validate(window.__sv.useEditor.getState().project)`)
+      console.log('TAILDRAG_RESULT ' + JSON.stringify({ before, after, valid })); app.quit(); return
+    }
     if (process.env.SLOWVERB_DETACHKEY) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
       await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_DETACHKEY)})
@@ -59,6 +82,8 @@ export function runShot(win: BrowserWindow) {
         E.getState().select([mid.id]); E.getState().makeLoopFromSelection(4, 0.05)
         E.getState().select(E.getState().project.clips.filter(c => c.loop).map(c => c.id)) })()`)
       await wait(500)
+      const spans = `(() => { const p = window.__sv.useEditor.getState().project; return p.clips.map(c => [c.loop ? 'L' : 'plain', +c.start.toFixed(3), +(c.start + c.srcOut - c.srcIn).toFixed(3), c.fadeIn, c.fadeOut]) })()`
+      const spansBefore = await win.webContents.executeJavaScript(spans)
       const snap = `(() => { const p = window.__sv.useEditor.getState().project; return { count: p.loops && p.loops[0] && p.loops[0].count, tagged: p.clips.filter(c => c.loop).length, plainAfter10: p.clips.filter(c => !c.loop && c.start >= 10 && c.start < 20).length, sel: window.__sv.useEditor.getState().selection.length, open: window.__sv.useEditor.getState().open, focus: document.activeElement && document.activeElement.tagName } })()`
       const before = await win.webContents.executeJavaScript(snap)
       win.webContents.focus()
@@ -67,7 +92,7 @@ export function runShot(win: BrowserWindow) {
       await wait(500)
       const after = await win.webContents.executeJavaScript(snap)
       const toast = await win.webContents.executeJavaScript(`JSON.stringify(window.__sv.useEditor.getState().toast)`)
-      console.log('DETACHKEY_RESULT ' + JSON.stringify({ before, after, toast })); app.quit(); return
+      console.log('DETACHKEY_SPANS ' + JSON.stringify({ spansBefore, spansAfter: await win.webContents.executeJavaScript(spans) })); console.log('DETACHKEY_RESULT ' + JSON.stringify({ before, after, toast })); app.quit(); return
     }
     if (process.env.SLOWVERB_AUTOPLAY) {
       const r = await win.webContents.executeJavaScript(`(async () => {

@@ -9,7 +9,7 @@ import { formatTimecode } from './timelineMath'
 import { snapOne } from './timelineDrags'
 import type { Guides, TimelineUi } from './timelineUi'
 
-const KEYS = ['srcIn', 'srcOut', 'count', 'xfade'] as const
+const KEYS = ['srcIn', 'srcOut', 'count', 'xfade', 'tail'] as const
 const SELECTING = new Set(['select', 'ripple', 'slip', 'rate'])
 let gesture = 0
 
@@ -19,6 +19,7 @@ function hudOf(which: LoopHandle, l: Loop): string {
     case 'in': return `LOOP START ${formatTimecode(l.srcIn)}  LEN ${Math.round(len * 1000)} ms`
     case 'out': return `LOOP END ${formatTimecode(l.srcOut)}  LEN ${Math.round(len * 1000)} ms`
     case 'xfade': return `CROSSFADE ${Math.round(l.xfade * 1000)} ms`
+    case 'tail': return `LAST REPEAT ${(l.tail ?? 0) >= 0 ? '+' : ''}${Math.round((l.tail ?? 0) * 1000)} ms`
     case 'count': return `LOOP x${l.count}`
   }
 }
@@ -66,7 +67,7 @@ export function useLoopInput(view: View, { root }: ViewRefs, guides: Guides, ui:
       hideHud(guides.hud); ui.setPreview(null)
       if (!moved || cancel || !final || !finalLoop) return
       const patch: Record<string, number> = {}
-      for (const k of KEYS) if (finalLoop[k] !== L0[k]) patch[k] = finalLoop[k]
+      for (const k of KEYS) if ((finalLoop[k] ?? 0) !== (L0[k] ?? 0)) patch[k] = finalLoop[k] ?? 0
       if (Object.keys(patch).length) st().updateLoopLive(loopId, patch, key)
     })
   }, [view, root, guides, ui])

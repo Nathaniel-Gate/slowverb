@@ -15,10 +15,10 @@ export const LOOP_XFADE_FRAC = 0.1
 const NUDGE_GRID = 1e6                      // nudged points land on whole microseconds (no float drift over many nudges)
 const FILL_EPS = 1e-9
 
-export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain'>>
+export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain' | 'tail'>>
 
 export const loopLen = (l: Loop): number => l.srcOut - l.srcIn
-export const loopSpan = (l: Loop): number => l.count * (loopLen(l) - l.xfade) + l.xfade
+export const loopSpan = (l: Loop): number => l.count * (loopLen(l) - l.xfade) + l.xfade + (l.tail ?? 0)
 
 const findLoop = (p: Project, id: string) => p.loops?.find(l => l.id === id)
 
@@ -33,12 +33,14 @@ export function loopClips(p: Project, loopId: string): Clip[] {
 }
 
 /** The clips a loop expands to, using `ids` in order; name/label come from `look`. */
-function expand(l: Loop, ids: string[], look: Clip | undefined): Clip[] {
+function expand(l: Loop, ids: string[], look: Clip | undefined, dur: number): Clip[] {
   const step = loopLen(l) - l.xfade, extra: Partial<Clip> = {}
   if (look?.name !== undefined) extra.name = look.name
   if (look?.label !== undefined) extra.label = look.label
   return ids.map((id, i) => ({
-    id, src: l.src, track: l.track, start: l.start + i * step, srcIn: l.srcIn, srcOut: l.srcOut,
+    id, src: l.src, track: l.track, start: l.start + i * step, srcIn: l.srcIn,
+    // the LAST repeat can run longer or shorter (tail): that is how the end of a loop is extended like a normal clip
+    srcOut: i === ids.length - 1 && l.tail ? clamp(l.srcOut + l.tail, l.srcIn + LOOP_MIN_LEN, finite(dur) ? dur : l.srcOut + l.tail) : l.srcOut,
     gain: l.gain, fadeIn: l.xfade, fadeOut: l.xfade, ...extra, loop: l.id,
   }))
 }
@@ -49,7 +51,7 @@ function place(p: Project, l: Loop, prev: Clip[]): Project {
   while (ids.length < l.count) { const id = uid('c', taken); taken.add(id); ids.push(id) }
   const gone = new Set(prev.map(c => c.id)), loops = p.loops ?? []
   const nextLoops = loops.some(x => x.id === l.id) ? loops.map(x => (x.id === l.id ? l : x)) : [...loops, l]
-  const clips = placeAll(p.clips.filter(c => !gone.has(c.id)), expand(l, ids, prev[0]))
+  const clips = placeAll(p.clips.filter(c => !gone.has(c.id)), expand(l, ids, prev[0], p.sources[l.src]?.duration ?? Infinity))
   return syncLoops(p, withLoops({ ...p, clips }, nextLoops), l.id)
 }
 
@@ -63,8 +65,9 @@ function fit(l: Loop, patch: LoopPatch, dur: number): Loop | null {
   else if (pin !== undefined) srcIn = clamp(pin, 0, srcOut - M)
   else if (pout !== undefined) srcOut = clamp(pout, srcIn + M, dur)
   const len = srcOut - srcIn
+  const tail = clamp(num('tail') ?? l.tail ?? 0, -(len - M), dur - srcOut)   // the last repeat may be shortened down to a sliver or extended to the end of the source
   return {
-    ...l, srcIn, srcOut,
+    ...l, srcIn, srcOut, tail,
     xfade: clamp(num('xfade') ?? l.xfade, 0, len / 2),
     count: clamp(Math.round(num('count') ?? l.count), 1, LOOP_MAX),
     start: Math.max(0, num('start') ?? l.start),
@@ -72,14 +75,14 @@ function fit(l: Loop, patch: LoopPatch, dur: number): Loop | null {
   }
 }
 
-const KEYS = ['srcIn', 'srcOut', 'count', 'xfade', 'start', 'gain'] as const
+const KEYS = ['srcIn', 'srcOut', 'count', 'xfade', 'start', 'gain', 'tail'] as const
 
 /** Change a loop's numbers (clamped) and regenerate its repeats. Same p if nothing changes or the track is locked. */
 export function updateLoop(p: Project, loopId: string, patch: LoopPatch): Project {
   const l = findLoop(p, loopId), src = l && p.sources[l.src]
   if (!l || !src || !patch || lockedIds(p).has(l.track) || !p.tracks.some(t => t.id === l.track)) return p
   const next = fit(l, patch, src.duration)
-  if (!next || KEYS.every(k => next[k] === l[k])) return p
+  if (!next || KEYS.every(k => (next[k] ?? 0) === (l[k] ?? 0))) return p
   return place(p, next, loopClips(p, loopId))
 }
 
