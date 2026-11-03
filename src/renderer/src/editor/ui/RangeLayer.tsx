@@ -22,13 +22,13 @@ function cutOut(a: number, b: number, tracks: string[] | null) {
 }
 
 const BUTTONS: { label: string; tip: string; run: (r: { a: number; b: number; tracks: string[] | null }) => void }[] = [
-  { label: 'Mute', tip: 'Silence the range (Alt+M)', run: () => st().muteRange() },
-  { label: 'Fade in', tip: 'Fade the range in from silence (Alt+F)', run: () => st().fadeRangeEdge('in') },
-  { label: 'Fade out', tip: 'Fade the range out to silence (Alt+Shift+F)', run: () => st().fadeRangeEdge('out') },
-  { label: 'Gain -', tip: 'Range down 1 dB (Alt+Down)', run: () => st().gainRangeDb(-TL.rangeGainStepDb) },
-  { label: 'Gain +', tip: 'Range up 1 dB (Alt+Up)', run: () => st().gainRangeDb(TL.rangeGainStepDb) },
+  { label: 'Mute', tip: 'Silence the range (⌥M)', run: () => st().muteRange() },
+  { label: 'Fade in', tip: 'Fade the range in from silence (⌥F)', run: () => st().fadeRangeEdge('in') },
+  { label: 'Fade out', tip: 'Fade the range out to silence (⌥⇧F)', run: () => st().fadeRangeEdge('out') },
+  { label: 'Gain -', tip: 'Range down 1 dB (⌥↓)', run: () => st().gainRangeDb(-TL.rangeGainStepDb) },
+  { label: 'Gain +', tip: 'Range up 1 dB (⌥↑)', run: () => st().gainRangeDb(TL.rangeGainStepDb) },
   { label: 'Lift', tip: 'Remove the range, leave a gap (Delete)', run: () => st().liftRangeSel() },
-  { label: 'Extract', tip: 'Remove the range and close the gap (Shift+Delete)', run: () => st().extractRangeSel() },
+  { label: 'Extract', tip: 'Remove the range and close the gap (⇧⌫)', run: () => st().extractRangeSel() },
   { label: 'Cut out', tip: 'Split at both edges so the range is its own clips', run: r => cutOut(r.a, r.b, r.tracks) }
 ]
 

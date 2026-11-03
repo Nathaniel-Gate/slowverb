@@ -102,7 +102,7 @@ export function LoopWave({ loop, peaks, buf, duration }: { loop: Loop; peaks: Pe
   return (
     <div className="dk-mini">
       <div className="dk-mini-wave dk-lw" ref={box} style={{ height: PANELS.miniWaveH }} onDoubleClick={() => setView(fit(loop, duration))}
-        title="Drag the handles. Alt while dragging = fine. Alt + wheel zooms, double-click fits the loop">
+        title="Drag the handles. Option while dragging = fine. Option + wheel zooms, double-click fits the loop">
         <canvas ref={cv} style={{ height: PANELS.miniWaveH }} />
         {xf > 0 && <>
           <div className="dk-xf" style={{ left: pct(loop.srcIn), width: `${(clamp(pos(loop.srcIn + xf), 0, 1) - clamp(pos(loop.srcIn), 0, 1)) * 100}%` }} />
@@ -122,7 +122,7 @@ export function LoopWave({ loop, peaks, buf, duration }: { loop: Loop; peaks: Pe
         <span className="dk-lz-gap" />
         <button className="chip" onClick={() => z(1 / L.zoomStep)} title="Zoom out" aria-label="Zoom out">-</button>
         <span className="mono dk-dim dk-lz-w">{winLabel(span)}</span>
-        <button className="chip" onClick={() => z(L.zoomStep)} title="Zoom in (Alt + wheel)" aria-label="Zoom in">+</button>
+        <button className="chip" onClick={() => z(L.zoomStep)} title="Zoom in (Option + wheel)" aria-label="Zoom in">+</button>
       </div>
       <div className="dk-mini-t mono"><span>IN {fmtTime(loop.srcIn)}</span><span>{fmtTime(lenSec)}</span><span>OUT {fmtTime(loop.srcOut)}</span></div>
     </div>

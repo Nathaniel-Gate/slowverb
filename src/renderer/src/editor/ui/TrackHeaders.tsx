@@ -96,7 +96,7 @@ export function TrackHeaders() {
                 <TrackName track={t} />
               </div>
               <div className="ed-flags">
-                <button className={`ed-flag mono ${t.target ? 'on target' : ''}`} title="Target track for inserts and ripple (Alt-click: only this track)" onPointerUp={blurOnUp}
+                <button className={`ed-flag mono ${t.target ? 'on target' : ''}`} title="Target track for inserts and ripple (Option-click: only this track)" onPointerUp={blurOnUp}
                   onClick={(e) => useEditor.getState().targetTrack(t.id, e.altKey)}>T</button>
                 {flag(t, 'mute', 'M', 'Mute')}{flag(t, 'solo', 'S', 'Solo')}{flag(t, 'lock', 'L', 'Lock')}<TrackFxButton track={t} />
               </div>

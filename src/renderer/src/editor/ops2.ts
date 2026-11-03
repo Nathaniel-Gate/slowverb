@@ -16,7 +16,7 @@ export function clipsInRange(p: Project, a: number, b: number, tracks?: string[]
 export function clipsForward(p: Project, t: number, tracks?: string[]): string[] {
   return p.clips.filter(inTracks(tracks)).filter(c => clipEnd(c) > t + EPS).map(c => c.id)
 }
-/** Track select backward (Shift+A): clips under t or before it. */
+/** Track select backward (⇧A): clips under t or before it. */
 export function clipsBackward(p: Project, t: number, tracks?: string[]): string[] {
   return p.clips.filter(inTracks(tracks)).filter(c => c.start < t - EPS).map(c => c.id)
 }

@@ -52,7 +52,7 @@ export function extendEdit(p: Project, t: number, tracks?: string[]): Project {
 }
 
 /**
- * Shift+[ / Shift+]: on each selected clip that t falls inside, cut its start ('start') or end ('end') to t. ripple: later
+ * ⇧[ / ⇧]: on each selected clip that t falls inside, cut its start ('start') or end ('end') to t. ripple: later
  * material follows (sync-lock aware for one clip; with several clips each ripples only its own track, so tracks are not
  * shifted twice). Clips t is not inside are skipped.
  */

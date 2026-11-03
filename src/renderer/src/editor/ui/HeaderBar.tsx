@@ -108,7 +108,7 @@ export function HeaderBar() {
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
       </span>
-      <button className={`ghost ed-mini ${dockOpen ? 'on' : ''}`} onClick={() => setDock(dockOpen ? null : useEditor.getState().dockTab)} title="Show or hide the side panels (Alt+0 hides)">PANELS</button>
+      <button className={`ghost ed-mini ${dockOpen ? 'on' : ''}`} onClick={() => setDock(dockOpen ? null : useEditor.getState().dockTab)} title="Show or hide the side panels (⌥0 hides)">PANELS</button>
       <div className={`ed-busy ${busy ? 'on' : ''}`}><div className="bar-ind" /></div>
       <RenderOptions anchor={renRef} open={renOpen} onClose={() => setRenOpen(false)} />
       <HistoryPopover anchor={histRef} />

@@ -31,7 +31,7 @@ export function fadeDown({ e, pt, base, clip, dragClips }: Ctx, fadeEl: HTMLElem
   }, () => { if (!side) openFadePopover(clip.id, edge, fadeEl) })
 }
 
-/** Rubber band: drag a point, drag the line to add one, Cmd-drag a segment (or the whole level when there is no envelope), Alt-click a point to remove it. */
+/** Rubber band: drag a point, drag the line to add one, Cmd-drag a segment (or the whole level when there is no envelope), Option-click a point to remove it. */
 export function envDown({ e, pt, base, clip, el, box, dragClips }: Ctx) {
   const s = st(), dur = clipDur(clip), env = clipEnv(clip), h = box.h
   const tc = (p: Pt) => clamp(p.t - clip.start, 0, dur)

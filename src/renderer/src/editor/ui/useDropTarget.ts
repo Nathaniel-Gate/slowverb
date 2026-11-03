@@ -9,7 +9,7 @@ import { clamp, clipBox, laneAt, layoutOf } from './timelineMath'
 export const SOURCE_MIME = 'application/x-slowverb-source'   // JSON { path, in?, out? }, written by the source bin (agent G2)
 const has = (e: RDragEvent) => Array.from(e.dataTransfer.types).includes(SOURCE_MIME)
 
-/** Drop a source-bin row onto the lanes: ghost clip while hovering, insertSource() on drop (overwrite; Alt = insert). */
+/** Drop a source-bin row onto the lanes: ghost clip while hovering, insertSource() on drop (overwrite; Option = insert). */
 export function useDropTarget(view: View, ghost: RefObject<HTMLDivElement | null>) {
   const where = (e: RDragEvent) => {
     const s = st(), p = s.project!, pt = view.point(e.clientX, e.clientY)

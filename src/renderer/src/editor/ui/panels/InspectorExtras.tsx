@@ -59,10 +59,10 @@ export function RangeSection() {
         <span className="mono dk-dim">{fmtTime(r.b - r.a)} / {r.tracks ? `${r.tracks.length} track${r.tracks.length === 1 ? '' : 's'}` : 'all tracks'}</span></div>
       <div className="dk-btns">
         <button className="chip" onClick={() => ed.muteRange()} title="Silence the range without cutting (M)">MUTE</button>
-        <button className="chip" onClick={() => ed.gainRangeDb(-db)} title={`Lower the range by ${db} dB (Alt+Down)`}>GAIN -{db}</button>
-        <button className="chip" onClick={() => ed.gainRangeDb(db)} title={`Raise the range by ${db} dB (Alt+Up)`}>GAIN +{db}</button>
-        <button className="chip" onClick={() => ed.fadeRangeEdge('in')} title="Fade in from silence across the range (Alt+F)">FADE IN</button>
-        <button className="chip" onClick={() => ed.fadeRangeEdge('out')} title="Fade out to silence across the range (Alt+Shift+F)">FADE OUT</button>
+        <button className="chip" onClick={() => ed.gainRangeDb(-db)} title={`Lower the range by ${db} dB (⌥↓)`}>GAIN -{db}</button>
+        <button className="chip" onClick={() => ed.gainRangeDb(db)} title={`Raise the range by ${db} dB (⌥↑)`}>GAIN +{db}</button>
+        <button className="chip" onClick={() => ed.fadeRangeEdge('in')} title="Fade in from silence across the range (⌥F)">FADE IN</button>
+        <button className="chip" onClick={() => ed.fadeRangeEdge('out')} title="Fade out to silence across the range (⌥⇧F)">FADE OUT</button>
         <button className="chip" onClick={() => ed.liftRangeSel()} title="Remove the range and leave a gap">LIFT</button>
         <button className="chip" onClick={() => ed.extractRangeSel()} title="Remove the range and close the gap">EXTRACT</button>
       </div>

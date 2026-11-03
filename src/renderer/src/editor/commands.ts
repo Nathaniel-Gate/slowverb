@@ -16,7 +16,7 @@ const cmd = (id: string, label: string, group: string, run: Command['run'], extr
 const hasRange = (s: S) => s.markIn !== null && s.markOut !== null && s.markOut > s.markIn
 const hasRangeAny = (s: S) => hasRange(s) || (s.range !== null && s.range.b > s.range.a)
 const hasSel = (s: S) => s.selection.length > 0
-/** Alt+Up/Down: a drawn range wins, then the selected clips, then In/Out. */
+/** ⌥↑/Down: a drawn range wins, then the selected clips, then In/Out. */
 const gain = (s: S, db: number) => (!s.range && hasSel(s) ? s.gainSelectedDb(db) : s.gainRangeDb(db))
 const edge = (s: S, dir: 1 | -1) => {
   if (!s.project) return

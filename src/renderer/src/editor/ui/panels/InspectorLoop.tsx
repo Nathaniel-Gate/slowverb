@@ -71,7 +71,7 @@ function LoopEditor({ loop }: { loop: Loop }) {
       <p className="dk-note mono">Plays {fmtTime(span)} on the timeline from {fmtTime(loop.start)}.</p>
       <div className="dk-btns">
         <button className="chip" onClick={() => ed.loopFillToPlayhead()} title="Add repeats until the loop reaches the playhead">LOOP TO PLAYHEAD</button>
-        <button className="chip" onClick={() => ed.unloopSelection()} title="Keep the repeats as plain clips (Alt+Shift+L)">UNLOOP</button>
+        <button className="chip" onClick={() => ed.unloopSelection()} title="Keep the repeats as plain clips (⌥⇧L)">UNLOOP</button>
       </div>
     </div>
   )
@@ -86,7 +86,7 @@ export function InspectorLoop() {
   return (
     <div className="dk-sec dk-pop">
       <div className="row"><span className="mono">LOOP</span>
-        <button className="chip" onClick={() => useEditor.getState().makeLoopFromSelection()} title="Repeat this clip with an equal-power crossfade (Alt+L)">MAKE LOOP</button></div>
+        <button className="chip" onClick={() => useEditor.getState().makeLoopFromSelection()} title="Repeat this clip with an equal-power crossfade (⌥L)">MAKE LOOP</button></div>
       <p className="dk-note mono">Repeats the clip x{L.defaultCount} on this track. Then nudge the start and end points to the millisecond and set the crossfade.</p>
     </div>
   )

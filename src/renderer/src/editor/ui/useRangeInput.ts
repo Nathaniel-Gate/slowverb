@@ -13,7 +13,7 @@ import type { Guides } from './timelineUi'
 
 const text = (r: RangeSel) => `RANGE ${formatTimecode(r.a)} - ${formatTimecode(r.b)}  ${(r.b - r.a).toFixed(3)}s`
 
-/** The Range tool: draw a rectangle across lanes (Alt-drag does it from the select tool), resize it from its side handles. */
+/** The Range tool: draw a rectangle across lanes (Option-drag does it from the select tool), resize it from its side handles. */
 export function useRangeInput(view: View, { root }: ViewRefs, guides: Guides) {
   const snap = (t: number) => { const s = st(); return Math.max(0, s.snap && s.project ? snapOne(s.project, t, envOf()).t : t) }
 
@@ -51,7 +51,7 @@ export function useRangeInput(view: View, { root }: ViewRefs, guides: Guides) {
   return { rangeDown, edgeDown }
 }
 
-// Delete / Shift+Delete act on the range (lift / extract). Registered once at load, in the capture phase, so it runs before the
+// Delete / ⇧⌫ act on the range (lift / extract). Registered once at load, in the capture phase, so it runs before the
 // editor's own key handler (which would delete the selected clips instead) and stops it. Does nothing without a range.
 const KEY = '__svRangeKeys'
 const w = window as unknown as Record<string, ((e: KeyboardEvent) => void) | undefined>

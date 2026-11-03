@@ -30,7 +30,7 @@ export function loopActions({ get, set, toast, edit, coalesce }: Ctx): Pick<S, L
     const ids = ops.loopClips(p, id).map((c) => c.id)
     if (ids.length && !sameIds(ids, get().selection)) set({ selection: ids })
   }
-  const need = (): Loop | undefined => { const l = selected(); if (!l) get().showToast('Select a loop first (Alt+L makes one from a clip)'); return l }
+  const need = (): Loop | undefined => { const l = selected(); if (!l) get().showToast('Select a loop first (⌥L makes one from a clip)'); return l }
 
   return {
     selectedLoop: selected,

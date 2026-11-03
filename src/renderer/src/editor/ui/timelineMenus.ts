@@ -13,11 +13,11 @@ const openMenu = openContextMenu
 // Loop entries: on a repeat, the loop's own actions; on a plain clip, Loop clip.
 function loopItems(clip: Clip, locked: boolean): MenuItem[] {
   const s = st()
-  if (!clip.loop) return [{ label: 'Loop clip', keys: 'Alt+L', run: () => s.makeLoopFromSelection(), disabled: locked }, SEP]
+  if (!clip.loop) return [{ label: 'Loop clip', keys: '⌥L', run: () => s.makeLoopFromSelection(), disabled: locked }, SEP]
   return [
     { label: 'Loop settings', run: () => s.setDock('inspector') },
     { label: 'Loop to playhead', run: () => s.loopFillToPlayhead(), disabled: locked },
-    { label: 'Unloop', keys: 'Alt+Shift+L', run: () => s.unloopSelection(), disabled: locked }, SEP
+    { label: 'Unloop', keys: '⌥⇧L', run: () => s.unloopSelection(), disabled: locked }, SEP
   ]
 }
 
@@ -25,11 +25,11 @@ export function clipMenu(x: number, y: number, clip: Clip, p: Project) {
   const s = st(), tr = p.tracks.find(t => t.id === clip.track)
   openMenu(x, y, [
     ...loopItems(clip, !!tr?.lock),
-    { label: 'Cut', keys: 'Cmd+X', run: s.cut }, { label: 'Copy', keys: 'Cmd+C', run: s.copy }, { label: 'Paste at playhead', keys: 'Cmd+V', run: s.paste }, SEP,
-    { label: 'Split at playhead', keys: 'Cmd+K', run: s.splitAtPlayhead },
-    { label: 'Crossfade at cut', keys: 'Cmd+D', run: () => s.crossfadeSelection() },
+    { label: 'Cut', keys: '⌘X', run: s.cut }, { label: 'Copy', keys: '⌘C', run: s.copy }, { label: 'Paste at playhead', keys: '⌘V', run: s.paste }, SEP,
+    { label: 'Split at playhead', keys: '⌘K', run: s.splitAtPlayhead },
+    { label: 'Crossfade at cut', keys: '⌘D', run: () => s.crossfadeSelection() },
     { label: 'Repeat x2', run: () => s.repeatSelection(2) },
-    { label: 'Bounce in place (merge, effects baked in)', keys: 'Cmd+Alt+B', run: () => void s.bounceSelection() }, SEP,
+    { label: 'Bounce in place (merge, effects baked in)', keys: '⌘⌥B', run: () => void s.bounceSelection() }, SEP,
     { label: clip.disabled ? 'Enable clip' : 'Disable clip', run: () => s.patchSelected({ disabled: !clip.disabled }) },
     { label: 'Reset gain', run: () => s.patchSelected({ gain: 1 }), disabled: clip.gain === 1 },
     { label: 'Remove fades', run: () => s.patchSelected({ fadeIn: 0, fadeOut: 0 }), disabled: !clip.fadeIn && !clip.fadeOut },
@@ -54,8 +54,8 @@ export function rulerMenu(x: number, y: number, t: number, markerId?: string) {
     ...(markerId ? [{ label: 'Remove marker', danger: true, run: () => s.removeMarker(markerId) }, SEP] : []),
     { label: 'Add marker here', keys: 'M', run: () => s.markerAt(t) },
     { label: 'Set In here', keys: 'I', run: () => s.setMark('in', t) }, { label: 'Set Out here', keys: 'O', run: () => s.setMark('out', t) },
-    { label: 'Clear In and Out', keys: 'Alt+X', run: () => { s.setMark('in', null); s.setMark('out', null) } },
-    { label: s.loop ? 'Loop off' : 'Loop on', keys: 'Cmd+L', run: s.toggleLoop }, SEP,
+    { label: 'Clear In and Out', keys: '⌥X', run: () => { s.setMark('in', null); s.setMark('out', null) } },
+    { label: s.loop ? 'Loop off' : 'Loop on', keys: '⌘L', run: s.toggleLoop }, SEP,
     { label: 'Go here', run: () => s.setPlayhead(t) }
   ])
 }
@@ -63,9 +63,9 @@ export function rulerMenu(x: number, y: number, t: number, markerId?: string) {
 export function laneMenu(x: number, y: number, t: number) {
   const s = st()
   openMenu(x, y, [
-    { label: 'Paste here', keys: 'Cmd+V', run: () => { s.setPlayhead(t); s.paste() } },
+    { label: 'Paste here', keys: '⌘V', run: () => { s.setPlayhead(t); s.paste() } },
     { label: 'Add marker here', keys: 'M', run: () => s.markerAt(t) },
-    { label: 'Select all', keys: 'Cmd+A', run: s.selectAll }, SEP,
+    { label: 'Select all', keys: '⌘A', run: s.selectAll }, SEP,
     { label: 'Fit project to view', keys: '\\', run: () => s.fitToView(s.viewWidth || 1000) },
     { label: 'Add track', run: () => s.apply(p => ops.addTrack(p)) }
   ])

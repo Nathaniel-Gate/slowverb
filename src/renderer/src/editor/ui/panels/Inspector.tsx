@@ -88,7 +88,7 @@ export function Inspector() {
 
       <div className="dk-btns dk-end">
         <button className={`chip ${allOff ? 'on' : ''}`} onClick={() => patch({ disabled: !allOff })} title="Silence the clip without deleting it">{allOff ? 'DISABLED' : 'DISABLE'}</button>
-        <button className="chip" onClick={() => useEditor.getState().crossfadeSelection()} title="Crossfade across the cut between two adjacent clips (Cmd+D)">CROSSFADE</button>
+        <button className="chip" onClick={() => useEditor.getState().crossfadeSelection()} title="Crossfade across the cut between two adjacent clips (⌘D)">CROSSFADE</button>
       </div>
       {ids.length > 1 && <p className="dk-note mono">Start and source times need a single clip.</p>}
     </div>

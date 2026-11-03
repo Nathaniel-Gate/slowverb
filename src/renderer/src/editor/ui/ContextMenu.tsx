@@ -62,7 +62,7 @@ export function ContextMenuHost() {
       {menu.items.map((it, n) => it.sep ? <div key={n} className="ed-cm-sep" /> : (
         <button key={n} role="menuitem" disabled={it.disabled} className={`ed-cm-item ${active === n ? 'active' : ''} ${it.danger ? 'danger' : ''}`}
           onMouseEnter={() => !it.disabled && setActive(n)} onClick={() => { close(); it.run?.() }}>
-          <span className="ed-cm-check">{it.checked ? '✓' : ''}</span><span className="ed-cm-label">{it.label}</span><span className="ed-cm-keys mono">{it.keys ?? ''}</span>
+          <span className="ed-cm-check">{it.checked ? '✓' : ''}</span><span className="ed-cm-label">{it.label}</span><span className="ed-cm-keys mono">{it.keys ? formatKey(it.keys) : ''}</span>
         </button>
       ))}
     </div>, document.body)
