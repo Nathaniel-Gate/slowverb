@@ -31,7 +31,8 @@
 .tl-marker::after { content: ''; position: absolute; left: 0; top: 14px; bottom: 0; width: 1px; background: var(--tl-marker); opacity: .5; }
 .tl-marker i { position: absolute; left: -4px; top: 2px; width: 9px; height: 12px; background: var(--tl-marker); clip-path: polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%); transition: background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
 .tl-marker span { position: absolute; left: 8px; top: 3px; font: 500 9px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--tl-marker); white-space: nowrap; }
-.tl-marker:hover i { background: var(--white); transform: scale(1.15); }
+.tl-marker:hover i { background: var(--white); }   /* colour only: a scale() here promoted a layer and nudged the ruler */
+.tl-marker { will-change: transform; }
 .tl-marker[data-hue] { --tl-marker: var(--mc); }
 .tl-marker { cursor: grab; } .tl[data-drag='marker'] .tl-marker { cursor: grabbing; }
 .tl-mname { position: absolute; left: 8px; top: 1px; width: 110px; height: 16px; padding: 0 5px; font: 500 9px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--white); background: var(--ink-900); border: 1px solid var(--white); border-radius: var(--radius-sm); outline: none; }

@@ -59,7 +59,7 @@ function Ruler({ width, pxPerSec, scrollX, markers, markIn, markOut, loop, onDow
         if (mx < -90 || mx > width + 4) return null
         const c = labelColor(m.color)
         return (
-          <div key={m.id} className="tl-marker" data-hue={c ? '' : undefined} style={{ transform: `translateX(${mx}px)`, '--mc': c || undefined } as CSSProperties}
+          <div key={m.id} className="tl-marker" data-hue={c ? '' : undefined} style={{ transform: `translateX(${Math.round(mx)}px)`, '--mc': c || undefined } as CSSProperties}
             title={`${m.name || 'Marker'}: drag to move, double-click to rename, alt-click removes`}
             onPointerDown={e => { e.stopPropagation(); onMarker(m, e) }} onDoubleClick={e => { e.stopPropagation(); setRenaming(m.id) }}
             data-marker={m.id}>

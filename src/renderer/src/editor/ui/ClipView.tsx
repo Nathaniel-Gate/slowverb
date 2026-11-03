@@ -18,7 +18,7 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
   const cv = useRef<HTMLCanvasElement>(null)
   const dur = clipDur(clip), speed = clipSpeed(clip)
   const xL = Math.round(clip.start * pps - scrollX), xR = Math.round((clip.start + dur) * pps - scrollX)
-  const w = Math.max(1, xR - xL)
+  const w = Math.max(1, xR - xL), tiny = w < TL.minHitPx   // zoomed far out: keep a wide invisible grab area around the sliver
   const vx0 = Math.max(0, xL), vx1 = Math.min(viewW, xR), cw = Math.max(0, vx1 - vx0), cl = vx0 - xL
 
   useLayoutEffect(() => {   // draw in the same frame as the DOM change so handles and waveform never disagree
@@ -42,15 +42,16 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
   return (
     <div className="tl-clip" data-clip={clip.id} data-selected={selected || undefined} data-locked={locked || undefined}
       data-dim={dim || undefined} data-ghost={ghost || undefined} data-disabled={clip.disabled || undefined} data-label={lbl ? '' : undefined}
-      style={{ width: w, height: h, transform: `translate(${xL}px, ${y}px)`, '--lbl': lbl || undefined, '--stripe': stripe } as React.CSSProperties}>
+      data-tiny={tiny || undefined}
+      style={{ width: w, height: h, transform: `translate(${xL}px, ${y}px)`, '--lbl': lbl || undefined, '--stripe': stripe, '--hit-pad': tiny ? `${(TL.minHitPx - w) / 2}px` : undefined } as React.CSSProperties}>
       <canvas ref={cv} style={{ left: cl, width: cw, height: h }} />
       <span className="tl-clip-label" style={{ transform: `translateX(${off}px)` }}>
         {clipTitle(clip)}
         {speed !== 1 && <b className="tl-badge">{Math.round(speed * 100)}%</b>}
         {Math.abs(clip.gain - 1) > 0.006 && <b className="tl-badge">{fmtDb(clip.gain)}</b>}
       </span>
-      {!locked && <i className="tl-edge" data-edge="in" />}
-      {!locked && <i className="tl-edge" data-edge="out" />}
+      {!locked && !tiny && <i className="tl-edge" data-edge="in" />}
+      {!locked && !tiny && <i className="tl-edge" data-edge="out" />}
       {detail && <EnvLayer clip={clip} w={w} h={h} pps={pps} />}
       {detail && <FadeHandles w={w} fadeIn={clip.fadeIn * pps} fadeOut={clip.fadeOut * pps} side={w >= TL.fadeMinSideW} />}
     </div>

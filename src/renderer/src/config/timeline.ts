@@ -1,6 +1,7 @@
 // Timeline view tunables. Every pixel size, threshold and zoom limit lives here.
 export const TL = {
   rulerH: 30,            // px, ruler height (D1's TrackHeaders should leave this much space above the first header)
+  minHitPx: 30,          // px: clips narrower than this (zoomed out) get a grab area this wide so small clips stay draggable
   maxNewTracks: 8,       // most tracks one Option-drag can create
   laneH: 84,             // px, height of one track lane (TrackHeaders must use the same value)
   clipPadY: 4,           // px, gap above/below a clip inside its lane

@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,42 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_TINY) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_TINY)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        E.getState().setPlayhead(12); E.getState().splitAtPlayhead(); E.getState().setPlayhead(12.097); E.getState().splitAtPlayhead()
+        E.getState().select([]); E.getState().setZoom(8, 0); E.getState().setScroll(0) })()`)
+      await wait(900)
+      const info = await win.webContents.executeJavaScript(`(() => { const E = window.__sv.useEditor.getState(), c = E.project.clips.find(c => Math.abs(c.start - 12) < 0.01 && c.srcOut - c.srcIn < 0.2)
+        const el = document.querySelector('[data-clip="' + c.id + '"]'), b = el.getBoundingClientRect(); return { id: c.id, w: Math.round(b.width * 10) / 10, tiny: el.dataset.tiny, x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } })()`)
+      const px = info.x + 11   // outside the 1px sliver, inside the padded grab area
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: px, y: info.y })
+      win.webContents.sendInputEvent({ type: 'mouseDown', x: px, y: info.y, button: 'left', clickCount: 1 })
+      for (let i = 1; i <= 20; i++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: px + i * 6, y: info.y, button: 'left', modifiers: ['leftbuttondown'] }); await wait(16) }
+      win.webContents.sendInputEvent({ type: 'mouseUp', x: px + 120, y: info.y, button: 'left', clickCount: 1 })
+      await wait(500)
+      const after = await win.webContents.executeJavaScript(`(() => { const c = window.__sv.useEditor.getState().project.clips.find(c => c.id === ${JSON.stringify(info.id)}); return { start: +c.start.toFixed(2) } })()`)
+      console.log('TINY_RESULT ' + JSON.stringify({ info, after })); app.quit(); return
+    }
+    if (process.env.SLOWVERB_MARKHOVER) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_MARKHOVER)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        E.getState().setZoom(60, 0); E.getState().setScroll(0); E.getState().addMarkerAtPlayhead(); E.getState().setPlayhead(12); E.getState().addMarkerAtPlayhead() })()`)
+      await wait(800)
+      const snap = `(() => { const r = (q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left * 100) / 100, Math.round(b.top * 100) / 100, Math.round(b.width * 100) / 100] }
+        const E = window.__sv.useEditor.getState(); return { scrollX: E.scrollX, pps: E.pxPerSec, clip: r('.tl-clip'), playhead: r('.tl-playhead'), lanes: r('.tl-lanes'), ruler: r('.tl-ruler'), markers: [...document.querySelectorAll('.tl-marker')].map(m => { const b = m.getBoundingClientRect(); return [Math.round(b.left * 100) / 100, Math.round(b.top * 100) / 100] }) } })()`
+      const before = await win.webContents.executeJavaScript(snap)
+      const pos = await win.webContents.executeJavaScript(`(() => { const m = document.querySelectorAll('.tl-marker')[1]; const b = m.querySelector('i').getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } })()`)
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: pos.x - 30, y: pos.y })
+      await wait(100)
+      const samples: unknown[] = []
+      for (let i = 0; i <= 12; i++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: pos.x - 30 + i * 5, y: pos.y }); await wait(50); samples.push(await win.webContents.executeJavaScript(snap)) }
+      await wait(300)
+      console.log('MARKHOVER_RESULT ' + JSON.stringify({ before, during: samples.map((x) => JSON.stringify(x)).filter((v, i, a) => a.indexOf(v) === i).length, first: samples[0], last: samples[samples.length - 1] }))
+      app.quit(); return
     }
     if (process.env.SLOWVERB_GAP) {
       const r = await win.webContents.executeJavaScript(`(async () => {

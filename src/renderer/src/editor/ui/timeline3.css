@@ -75,3 +75,10 @@
 .tl-range[data-loop] { border-inline-color: var(--neon); }
 .ed-th-row.ed-ghost { border: 1px dashed var(--stripe); border-radius: var(--radius-sm); display: grid; place-items: center; color: var(--stripe); animation: pop var(--t-fast) var(--ease) both; }
 .ed-th-row.ed-ghost::before { content: ''; }
+
+/* Zoomed-out slivers: the clip keeps its true width, but an invisible padded area around it (--hit-pad, set per clip) is the grab target,
+   and it is drawn bolder so it can be seen. No edge-trim handles at this size: drag moves the clip; zoom in to trim. */
+.tl-clip[data-tiny] { z-index: 4; overflow: visible; cursor: grab; min-width: 3px; border-color: var(--stripe, var(--white)); background: color-mix(in srgb, var(--stripe, var(--white)) 45%, var(--tl-clip-bg)); }
+.tl-clip[data-tiny]::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(var(--hit-pad, 0px) * -1); right: calc(var(--hit-pad, 0px) * -1); }
+.tl-clip[data-tiny]:hover { box-shadow: 0 0 0 1px var(--stripe, var(--white)), 0 0 12px color-mix(in srgb, var(--stripe, var(--white)) 70%, transparent); }
+.tl-clip[data-tiny] .tl-clip-label { display: none; }
