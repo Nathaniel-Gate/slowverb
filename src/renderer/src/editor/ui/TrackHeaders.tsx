@@ -69,7 +69,7 @@ function useGhostTracks() {
 
 export function TrackHeaders() {
   const { ghost, down } = useGhostTracks()
-  const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false)
+  const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false), tidy = useEditor((s) => !!s.project?.autoDeleteEmpty)
   const live = useLaneLive(s => s.live)
   const apply = useEditor.getState().apply
   const flag = (t: Track, k: 'mute' | 'solo' | 'lock', label: string, tip: string) =>
@@ -79,6 +79,7 @@ export function TrackHeaders() {
       <div className="ed-th-ruler tl-th-corner">
         <TimeField />
         <button className={`ed-flag mono tl-sync ${syncLock ? 'on' : ''}`} title="Sync lock: ripple edits also shift the other tracks" onPointerUp={blurOnUp} onClick={() => useEditor.getState().toggleSyncLock()}>SYNC</button>
+        <button className={`ed-flag mono tl-sync ${tidy ? 'on' : ''}`} title="Auto-delete empty tracks: a track disappears when its last clip leaves it" onPointerUp={blurOnUp} onClick={() => useEditor.getState().toggleAutoDelete()}>TIDY</button>
         <button className="ghost" title="Add a track" onPointerUp={blurOnUp} onClick={() => apply((p) => ops.addTrack(p))}>+</button>
       </div>
       <div className="ed-th-scroll" {...{ [TL.syncAttr]: '' }}>

@@ -37,7 +37,7 @@ export type S = {
   trimToPlayhead(which: 'prevTail' | 'nextHead', ripple: boolean): void; rollEdit(leftId: string, rightId: string, t: number): void
   rateStretch(id: string, newEnd: number): void; repeatSelection(times: number): void; crossfadeSelection(dur?: number): void; uncrossfadeSelection(): void
   nudge(dt: number): void; selectForward(): void; selectBackward(): void; selectGap(g: Gap | null): void
-  targetTrack(id: string, exclusive?: boolean): void; toggleSyncLock(): void; toggleDisable(): void
+  targetTrack(id: string, exclusive?: boolean): void; toggleSyncLock(): void; toggleAutoDelete(): void; toggleDisable(): void
   scrubTo(t: number): void; shuttleKey(dir: -1 | 0 | 1): void; shuttleHold(held: boolean): void
   showToast(text: string): void; setDock(tab: DockTab | null): void; toggleBeatSnap(): void; toggleShowBeats(): void
   markerAt(t: number, name?: string): void; renameMarker(id: string, name: string): void; removeMarker(id: string): void
@@ -62,7 +62,7 @@ export type S = {
 export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain'>>
 
 export type EditKeys = 'patchSelected' | 'toggleDisable' | 'liftRange' | 'extractRange' | 'closeGapAtSelection' | 'closeAllGaps' | 'trimToPlayhead' | 'rollEdit' | 'rateStretch'
-  | 'repeatSelection' | 'crossfadeSelection' | 'uncrossfadeSelection' | 'nudge' | 'selectForward' | 'selectBackward' | 'selectGap' | 'targetTrack' | 'toggleSyncLock' | 'markerAt' | 'renameMarker' | 'removeMarker'
+  | 'repeatSelection' | 'crossfadeSelection' | 'uncrossfadeSelection' | 'nudge' | 'selectForward' | 'selectBackward' | 'selectGap' | 'targetTrack' | 'toggleSyncLock' | 'toggleAutoDelete' | 'markerAt' | 'renameMarker' | 'removeMarker'
 export type ProjectKeys = 'insertSource' | 'setTrackFx' | 'resetTrackFx' | 'applyMaster' | 'setBpm' | 'toggleBeatSnap' | 'toggleShowBeats' | 'setDock' | 'fitSelection' | 'gotoTime' | 'listVersions' | 'refreshVersions'
   | 'newVersion' | 'duplicateVersion' | 'openVersion' | 'deleteVersion'
 export type RangeKeys = 'setRange' | 'muteRange' | 'gainRangeDb' | 'fadeRangeEdge' | 'liftRangeSel' | 'extractRangeSel' | 'gainSelectedDb' | 'setEnvPointAt' | 'removeEnvPointAt'

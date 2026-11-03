@@ -15,6 +15,7 @@ import { computePeaks, type Peaks } from './peaks'
 import { renderProject } from './render'
 import { loadBuffers } from './schedule'
 import { isPristine } from './pristine'
+import { tidyTracks } from './tidy'
 import { sourceToTimeline, timelineToSource } from './sync'
 import { editPlayActions } from './storePlay'
 import { editActions } from './storeEdit'
@@ -182,7 +183,7 @@ export const useEditor = create<S>((set, get) => {
 
     apply(fn) {
       const { project, hist } = get(); if (!project || !hist) return
-      const next = fn(project); if (next === project) return
+      const next = tidyTracks(project, fn(project)); if (next === project) return   // auto-delete empty tracks is part of the same undo step
       const h = pushHistory(hist, next); if (h === hist) return
       const ids = new Set(h.present.clips.map((c) => c.id))
       lastKey = ''

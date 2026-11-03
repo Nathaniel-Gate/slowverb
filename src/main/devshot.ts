@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,21 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_TIDY) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_TIDY)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        E.getState().apply(p => sv.ops.addTrack(sv.ops.addTrack(p)))
+        out.start = E.getState().project.tracks.length
+        E.getState().toggleAutoDelete(); out.afterEnable = { tracks: E.getState().project.tracks.map(t => t.name), flag: E.getState().project.autoDeleteEmpty }
+        E.getState().apply(p => sv.ops.addTrack(p)); out.newEmptyKept = E.getState().project.tracks.length
+        const c = E.getState().project.clips[0]; E.getState().apply(p => sv.ops.moveClips(p, [c.id], 0, 1)); await wait(100)
+        out.afterMove = E.getState().project.tracks.map(t => t.name); out.clipTrack = E.getState().project.tracks.findIndex(t => t.id === E.getState().project.clips[0].track)
+        E.getState().undo(); await wait(100); out.afterUndo = E.getState().project.tracks.map(t => t.name)
+        return out })()`)
+      console.log('TIDY_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_LOOP) {
       const r = await win.webContents.executeJavaScript(`(async () => {

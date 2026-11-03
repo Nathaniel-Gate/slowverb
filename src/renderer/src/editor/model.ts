@@ -40,6 +40,7 @@ export type Project = {
   bpmOffset?: number                             // seconds: time of the first beat
   loops?: Loop[]                                 // live loops: each is expanded into overlapping repeat clips (Clip.loop = Loop.id); editing the Loop regenerates them
   smoothCuts?: boolean                           // micro-fades (a few ms) on every clip boundary so cuts never click (default true)
+  autoDeleteEmpty?: boolean                      // remove a track as soon as its last clip leaves it (off by default)
   syncLock?: boolean                             // ripple edits also shift non-targeted tracks (default true)
   master: Fx | null                              // speed/reverb applied to the whole mix (phase 3)
 }

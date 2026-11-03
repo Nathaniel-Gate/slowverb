@@ -1,6 +1,7 @@
 import { EDITOR } from '../config/editorKeys'
 import { clipSpeed, type Project } from './model'
 import * as ops from './ops'
+import { sweepEmptyTracks } from './tidy'
 import type { ClipPatch, Ctx, EditKeys, S } from './storeTypes'
 import { fmtDur, fmtTime } from './timefmt'
 
@@ -115,6 +116,12 @@ export function editActions({ get, set, toast, edit, coalesce, targets }: Ctx): 
     },
     toggleSyncLock() {
       edit((p) => ({ ...p, syncLock: p.syncLock === false }), (s) => (s.project?.syncLock === false ? 'Sync lock off' : 'Sync lock on'))
+    },
+    toggleAutoDelete() {
+      const on = get().project?.autoDeleteEmpty !== true
+      const before = get().project?.tracks.length ?? 0
+      edit((p) => (on ? sweepEmptyTracks({ ...p, autoDeleteEmpty: true }) : { ...p, autoDeleteEmpty: false }),
+        (s) => (on ? `Auto-delete empty tracks on${before > (s.project?.tracks.length ?? 0) ? ` (removed ${before - (s.project?.tracks.length ?? 0)} empty)` : ''}` : 'Auto-delete empty tracks off'))
     },
     markerAt(t, name) { edit((p) => ops.addMarker(p, t, name), `Marker at ${fmtTime(t)}`) },
     renameMarker(id, name) { edit((p) => ({ ...p, markers: p.markers.map((m) => (m.id === id ? { ...m, name } : m)) }), `Marker renamed to ${name}`) },

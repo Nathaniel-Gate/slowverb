@@ -149,6 +149,7 @@ export const COMMANDS: Command[] = [
   cmd('edit.reset', 'Reset to original (one clip)', 'Edit', (s) => s.resetToOriginal()),
   cmd('version.duplicate', 'Duplicate version', 'Project', (s) => void s.duplicateVersion()),
   cmd('syncLock', 'Toggle sync lock', 'Project', (s) => s.toggleSyncLock()),
+  cmd('autoDelete', 'Toggle auto-delete empty tracks', 'Project', (s) => s.toggleAutoDelete()),
   cmd('history', 'Undo history', 'Project', () => { const o = useOverlay.getState(); o.set({ history: !o.history }) }),
   cmd('palette', 'Command palette', 'App', () => { const o = useOverlay.getState(); o.set({ palette: !o.palette, shortcuts: false }) }),
   cmd('shortcuts', 'Keyboard shortcuts', 'App', () => useOverlay.getState().set({ shortcuts: true, palette: false }))
