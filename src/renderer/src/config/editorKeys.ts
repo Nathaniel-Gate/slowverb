@@ -42,7 +42,7 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
 
 // Tunables for the editor shell and store.
 export const EDITOR = {
-  autosaveMs: 700,            // debounce before a dirty project is written to its sidecar
+  autosaveMs: 300,            // debounce before a dirty project is written to its sidecar
   zoomMin: TL.minPps, zoomMax: TL.maxPps,  // pixels per second (limits shared with the timeline)
   zoomStep: 1.25,             // factor per +/- key
   defaultPxPerSec: 80,

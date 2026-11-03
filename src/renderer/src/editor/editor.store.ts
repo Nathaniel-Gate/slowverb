@@ -175,7 +175,7 @@ export const useEditor = create<S>((set, get) => {
       clearTimeout(saveTimer)
       const { project, saveState } = get(); if (!project || saveState === 'saved') return
       set({ saveState: 'saving' })
-      try { await window.api.editorSave(project.song, project) } catch (e) { console.error('[editor] save failed', e); set({ saveState: 'dirty' }); return }
+      try { await window.api.editorSave(project.song, project) } catch (e) { console.error('[editor] save failed', e); set({ saveState: 'dirty' }); saveTimer = window.setTimeout(() => void get().flush(), 2000); return }   // retry until it works
       set({ saveState: get().project === project ? 'saved' : 'dirty' })
     },
 

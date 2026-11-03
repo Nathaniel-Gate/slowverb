@@ -43,14 +43,20 @@ export async function wire() {
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => usePlayer.getState().next(1))
   // persist (debounced)
-  let timer: number | undefined
-  const save = () => { clearTimeout(timer); timer = window.setTimeout(() => {
+  const saveLibraryNow = () => {
     const f = useFx.getState()
     const data: Saved = { tracks: useLibrary.getState().tracks, cur: usePlayer.getState().cur, fx: f.fx, preset: f.preset, userPresets: f.userPresets }
-    window.api.save(data)
-  }, 400) }
+    return window.api.save(data)
+  }
+  let timer: number | undefined
+  const save = () => { clearTimeout(timer); timer = window.setTimeout(() => void saveLibraryNow(), 250) }
   useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save)
-  window.addEventListener('beforeunload', () => void useEditor.getState().flush())   // last edit never lost on quit
+  const saveEverything = async () => { clearTimeout(timer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow()]) }
+  window.addEventListener('beforeunload', () => void saveEverything())                      // belt
+  window.addEventListener('blur', () => void saveEverything())                              // switching to another app
+  document.addEventListener('visibilitychange', () => { if (document.hidden) void saveEverything() })
+  window.api.onSaveNow(() => void saveEverything().finally(() => window.api.saveDone()))     // braces: main waits for this before closing the window
+  void saveLibraryNow()
 }
 
 // Debug handle for DevTools and the screenshot harness.
