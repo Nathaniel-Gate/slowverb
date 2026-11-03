@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,30 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_PERF) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      const sample = async (secs: number) => {
+        const rows: Record<string, number[]> = {}
+        for (let i = 0; i < secs; i++) {
+          await wait(1000)
+          for (const m of app.getAppMetrics()) { const k = m.type + (m.name ? ':' + m.name : ''); (rows[k] ??= []).push(+m.cpu.percentCPUUsage.toFixed(1)) }
+        }
+        return Object.fromEntries(Object.entries(rows).map(([k, v]) => [k, { avg: +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1), max: Math.max(...v) }]))
+      }
+      const lt = async () => win.webContents.executeJavaScript(`(() => { const l = window.__lt || []; const r = { n: l.length, maxMs: Math.round(Math.max(0, ...l)), totalMs: Math.round(l.reduce((a, b) => a + b, 0)) }; window.__lt = []; return r })()`)
+      await win.webContents.executeJavaScript(`(async () => {
+        window.__lt = []; try { new PerformanceObserver(l => l.getEntries().forEach(e => window.__lt.push(e.duration))).observe({ entryTypes: ['longtask'] }) } catch (e) {}
+        const sv = window.__sv, r = await window.api.scan([${JSON.stringify(process.env.SLOWVERB_DIR)}])
+        sv.useLibrary.getState().replace(r.map((x, i) => ({ ...x, id: 't' + i }))); sv.useFx.getState().applyPreset('Slowed + Reverb'); sv.usePlayer.getState().play('t0') })()`)
+      await wait(2000); await lt()
+      const player = { cpu: await sample(10), longtasks: await lt() }
+      await win.webContents.executeJavaScript(`(async () => { const sv = window.__sv; sv.usePlayer.getState().toggle(); await sv.useEditor.getState().openSong(${JSON.stringify(process.env.SLOWVERB_PERF)})
+        for (let i = 0; i < 80 && !(sv.useEditor.getState().project && sv.useEditor.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        await sv.useEditor.getState().togglePlay() })()`)
+      await wait(2000); await lt()
+      const editor = { cpu: await sample(10), longtasks: await lt() }
+      console.log('PERF_RESULT ' + JSON.stringify({ player, editor })); app.quit(); return
     }
     if (process.env.SLOWVERB_AUDIOHEALTH) {
       const r = await win.webContents.executeJavaScript(`(async () => {
