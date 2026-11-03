@@ -13,9 +13,9 @@
 @keyframes ed-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes ed-left { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 @keyframes ed-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-.editor { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding-top: 38px; background-color: var(--ink-950); animation: ed-in var(--t-slow) var(--ease) both;
-  background-image: linear-gradient(to right, rgb(255 255 255 / var(--grid-major-a)) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / var(--grid-major-a)) 1px, transparent 1px);
-  background-size: var(--grid-major) var(--grid-major); }
+.editor { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding-top: 38px; animation: ed-in var(--t-slow) var(--ease) both;
+  /* one flat tone from the very top (behind the PLAYER/EDITOR switch) down through the header bar, no blueprint grid showing in the strip */
+  background-color: var(--ink-900); }
 .editor.leaving { animation: ed-out var(--t) var(--ease) both; pointer-events: none; }
 .ed-loading { margin: auto; animation: ed-pulse 1.2s ease-in-out infinite; }
 
