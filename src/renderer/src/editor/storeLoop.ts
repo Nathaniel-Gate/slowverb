@@ -77,7 +77,7 @@ export function loopActions({ get, set, toast, edit, coalesce }: Ctx): Pick<S, L
     detachLastRepeat() {
       const l = need(); if (!l) return
       let id: string | undefined
-      if (edit((p) => { const q = ops.detachLastRepeat(p, l.id); id = ops.loopClips(p, l.id).at(-1)?.id; return q }, 'Last repeat is now a normal clip: trim or extend it', 'Cannot detach (locked track?)') && id) get().select([id])
+      if (edit((p) => { const q = ops.detachLastRepeat(p, l.id); id = ops.loopClips(p, l.id).at(-1)?.id; return q }, 'Last repeat released: it is a normal clip now, the rest is still a loop', 'Cannot detach (locked track?)') && id) get().select([id])
     },
     unloopSelection() {
       const l = need(); if (!l) return

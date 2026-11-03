@@ -24,7 +24,7 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
   'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
   // wave 4: loop clips. Alt+[ ] move the begin point, Alt+Shift+[ ] the end point (1 ms); add Cmd for 10 ms.
-  'loop.make': ['Alt+L'], 'loop.unloop': ['Alt+Shift+L'], 'loop.in-': ['Alt+['], 'loop.in+': ['Alt+]'], 'loop.out-': ['Alt+Shift+['], 'loop.out+': ['Alt+Shift+]'],
+  'loop.make': ['Alt+L'], 'loop.unloop': ['Alt+Shift+L'], 'loop.detach': ['Alt+Shift+D'], 'loop.in-': ['Alt+['], 'loop.in+': ['Alt+]'], 'loop.out-': ['Alt+Shift+['], 'loop.out+': ['Alt+Shift+]'],
   'loop.in-fine': ['Cmd+Alt+['], 'loop.in+fine': ['Cmd+Alt+]'], 'loop.out-fine': ['Cmd+Alt+Shift+['], 'loop.out+fine': ['Cmd+Alt+Shift+]'],
   'loop.fill': [], 'loop.count+': ['Alt+='], 'loop.count-': ['Alt+-'],
   // selection and clipboard
