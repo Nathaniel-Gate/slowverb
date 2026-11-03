@@ -3,3 +3,15 @@
 .tfx-knobs { display: grid; grid-template-columns: 1fr; gap: 0; }
 .tfx-knobs .knob { margin-top: 12px; }
 .ed-flag.fx.on { color: var(--neon, var(--white)); border-color: var(--neon, var(--white)); box-shadow: 0 0 6px color-mix(in srgb, var(--neon, #fff) 50%, transparent); }
+
+/* Auto-delete empty tracks: a full-width switch row pinned under the track list, always visible */
+.ed-th-foot { flex: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--hairline-strong); text-align: left; width: 100%; background: rgb(15 15 15 / .9); transition: background-color var(--t-fast) var(--ease); }
+.ed-th-foot:hover { background: var(--ink-800); }
+.ed-sw { flex: none; width: 34px; height: 20px; border-radius: 10px; border: 1px solid var(--steel-500); background: var(--ink-950); position: relative; transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+.ed-sw i { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--steel-400); transition: transform var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); }
+.ed-foot-txt { display: grid; gap: 3px; min-width: 0; }
+.ed-foot-txt b { font: 500 11px var(--font-mono); letter-spacing: .08em; color: var(--steel-300); }
+.ed-foot-txt small { font-size: 11px; color: var(--steel-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-th-foot[data-on] .ed-sw { background: color-mix(in srgb, var(--neon, #fff) 25%, var(--ink-950)); border-color: var(--neon, var(--white)); box-shadow: 0 0 8px color-mix(in srgb, var(--neon, #fff) 55%, transparent); }
+.ed-th-foot[data-on] .ed-sw i { transform: translateX(14px); background: var(--neon, var(--white)); }
+.ed-th-foot[data-on] .ed-foot-txt b { color: var(--neon, var(--white)); } .ed-th-foot[data-on] .ed-foot-txt small { color: var(--steel-300); }

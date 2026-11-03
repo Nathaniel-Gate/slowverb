@@ -161,6 +161,7 @@ export function runShot(win: BrowserWindow) {
         out.open = sv.useEditor.getState().open; out.project = !!sv.useEditor.getState().project; out.busy = sv.useEditor.getState().busy
         out.timelineInDom = !!document.querySelector('.tl-lanes')
         return out })()`)
+      if (process.env.SLOWVERB_TIDYON) await win.webContents.executeJavaScript(`window.__sv.useEditor.getState().toggleAutoDelete()`)
       await new Promise((res) => setTimeout(res, 900)); const shotImg = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, shotImg.toPNG())
       console.log('CLICKEDITOR_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
