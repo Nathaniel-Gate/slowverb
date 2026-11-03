@@ -210,8 +210,12 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
       const k = e.deltaMode === 1 ? TL.wheelLineScale : 1
       const dx = e.deltaX * k, dy = e.deltaY * k, s = st(), ln = lanes.current
       const x = e.clientX - el.getBoundingClientRect().left
-      if (e.ctrlKey || e.metaKey) return zoomAt(x, s.pxPerSec * Math.exp(-clamp(dy, -60, 60) * TL.zoomWheelK))
-      if (Math.abs(dx) > Math.abs(dy) || e.shiftKey) return scrollTo(s.scrollX + (dx || dy))
+      const zoom = () => zoomAt(x, s.pxPerSec * Math.exp(-clamp(dy, -60, 60) * TL.zoomWheelK))
+      if (e.ctrlKey || e.metaKey) return zoom()                                              // pinch / Cmd+wheel: zoom at the cursor
+      if (Math.abs(dx) > Math.abs(dy)) return scrollTo(s.scrollX + dx)                       // sideways swipe: left/right
+      if (e.shiftKey) return scrollTo(s.scrollX + (dx || dy))                                // Shift+wheel: left/right
+      if (e.altKey) { if (ln && ln.scrollHeight > ln.clientHeight + 1) ln.scrollTop += dy; return }   // Alt+wheel: up/down through tall track stacks
+      if (TL.wheelMode === 'zoom') return zoom()                                             // plain wheel: zoom at the cursor
       if (ln && ln.scrollHeight > ln.clientHeight + 1) ln.scrollTop += dy
       else scrollTo(s.scrollX + dy)
     }

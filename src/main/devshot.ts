@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,25 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_AUDIOHEALTH) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const out = {}, wait = (ms) => new Promise(r => setTimeout(r, ms))
+        for (const hint of ['interactive', 'playback']) {
+          const ctx = new AudioContext({ latencyHint: hint }), noise = ctx.createBuffer(2, ctx.sampleRate * 4, ctx.sampleRate)
+          for (let c = 0; c < 2; c++) { const d = noise.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = Math.sin(i / 20) * 0.3 }
+          const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true
+          const conv = ctx.createConvolver(), ir = ctx.createBuffer(2, ctx.sampleRate * 8, ctx.sampleRate)   // heavy 8s reverb: worst case
+          for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3 }
+          conv.buffer = ir; const g = ctx.createGain(); g.gain.value = 0.0001   // inaudible: we only measure the stream
+          src.connect(conv).connect(g).connect(ctx.destination); src.start()
+          await ctx.resume(); await wait(9000)
+          const st = ctx.playoutStats ? ctx.playoutStats.toJSON() : null
+          out[hint] = { rate: ctx.sampleRate, baseLatencyMs: +(ctx.baseLatency * 1000).toFixed(1), outputLatencyMs: +((ctx.outputLatency || 0) * 1000).toFixed(1), stats: st }
+          await ctx.close()
+        }
+        return out })()`)
+      console.log('AUDIOHEALTH_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_DRAGPERF) {
       const r = await win.webContents.executeJavaScript(`(async () => {

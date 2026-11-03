@@ -1,10 +1,11 @@
 import type { Fx } from '../../../shared/types'
+import { OUTPUT } from '../config/audioOutput'
 import { buildChain } from './chain'
 
 /** The one live audio engine: an <audio> element feeding the effect chain. No React in here. */
 class Engine {
   readonly el = new Audio()
-  readonly ctx = new AudioContext()
+  readonly ctx = new AudioContext({ latencyHint: OUTPUT.latencyHint })
   private chain
   constructor() {
     this.el.crossOrigin = 'anonymous'
@@ -22,6 +23,8 @@ class Engine {
     this.apply(fx)
     if (autoplay) await this.el.play()
   }
+  /** Stop rendering silence when something else is playing (two live contexts on one Bluetooth device fight for the stream). */
+  idle() { if (this.el.paused && this.ctx.state === 'running') void this.ctx.suspend() }
   get loaded() { return !!this.el.getAttribute('src') }
   clear() { this.el.pause(); this.el.removeAttribute('src') }
 }

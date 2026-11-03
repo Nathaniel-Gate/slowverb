@@ -14,7 +14,7 @@ const TOOLS: { id: ToolId; label: string; key: string; icon: React.ReactNode }[]
   { id: 'trackfwd', label: 'Track select forward (Shift: all tracks)', key: '', icon: <path d="M3 4h5M3 8h5M3 12h5M10 4.5l3 3.5-3 3.5" {...I} /> },
   { id: 'slip', label: 'Slip', key: 'Y', icon: <path d="M2.5 8h11M5 5.5L2.5 8 5 10.5M11 5.5L13.5 8 11 10.5" {...I} /> },
   { id: 'hand', label: 'Hand', key: 'H', icon: <path d="M5 8V4.2a1 1 0 012 0V8m0-.5V3.2a1 1 0 012 0V8m0-.5V4a1 1 0 012 0v5.2c0 2.4-1.6 4-3.8 4C5.6 13.2 5 12 4 10.4 3.4 9.4 3.8 8.6 5 9" {...I} /> },
-  { id: 'zoom', label: 'Zoom', key: 'Z', icon: <><circle cx="7" cy="7" r="4" {...I} /><path d="M10 10l3.5 3.5" {...I} /></> }
+  { id: 'zoom', label: 'Zoom tool', key: '⌥Z', icon: <><circle cx="7" cy="7" r="4" {...I} /><path d="M10 10l3.5 3.5" {...I} /></> }
 ]
 
 /** Vertical tool column. A highlight slides to the active tool (same idea as the playlist tree). */

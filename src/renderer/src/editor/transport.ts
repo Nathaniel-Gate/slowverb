@@ -1,3 +1,4 @@
+import { OUTPUT } from '../config/audioOutput'
 import { EDITOR_AUDIO } from '../config/editorAudio'
 import { DEFAULT_FX } from '../config/fx'
 import { projectEnd, type Project } from './model'
@@ -41,7 +42,9 @@ export class EditorTransport {
   loops = 0                  // completed loop passes scheduled in this run (diagnostics / harness)
   onEnded?: () => void
 
-  get ctx(): AudioContext { return (this._ctx ??= new AudioContext()) }
+  get ctx(): AudioContext { return (this._ctx ??= new AudioContext({ latencyHint: OUTPUT.latencyHint })) }
+  /** Suspend the editor's output stream while the player is the one playing. */
+  idle() { if (this._ctx && !this._playing && this._ctx.state === 'running') void this._ctx.suspend() }
   get playing() { return this._playing }
   get shuttleRate() { return this.rate }
   /** Post-chain tap for meters / tests (everything the speakers get). */

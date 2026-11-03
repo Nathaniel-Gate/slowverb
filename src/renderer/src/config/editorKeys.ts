@@ -6,7 +6,7 @@ import { TL } from './timeline'
 // Users can override any of these in the Shortcuts dialog (Cmd+Alt+K); overrides persist in localStorage.
 export const DEFAULT_KEYS: Record<string, string[]> = {
   // tools
-  'tool.select': ['V'], 'tool.razor': ['C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Z'],
+  'tool.select': ['V'], 'tool.razor': ['C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Alt+Z'],
   'tool.roll': ['N'], 'tool.rate': ['Shift+R'], 'tool.range': ['R'],
   // transport
   'play': ['Space'], 'playRange': ['Shift+Space'], 'loop': ['Cmd+L'],
@@ -31,7 +31,7 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'marker': ['M'], 'marker.next': ['Shift+M'], 'marker.prev': ['Shift+Alt+M'],
   // view
   'snap': ['S'], 'beatSnap': ['Shift+S'], 'showBeats': ['Shift+B'], 'fit': ['\\', 'Shift+Z'], 'fitSelection': ['Shift+\\'],
-  'zoomIn': ['=', 'Shift+=', 'NumpadAdd'], 'zoomOut': ['-', 'NumpadSubtract'],
+  'zoomIn': ['X', '=', 'Shift+=', 'NumpadAdd'], 'zoomOut': ['Z', '-', 'NumpadSubtract'],
   'dock.inspector': ['Alt+1'], 'dock.source': ['Alt+2'], 'dock.markers': ['Alt+3'], 'dock.mix': ['Alt+4'], 'dock.bpm': ['Alt+5'], 'dock.auto': ['Alt+6'], 'dock.hide': ['Alt+0'],
   // project
   'undo': ['Cmd+Z'], 'redo': ['Cmd+Shift+Z', 'Cmd+Y'], 'history': ['Cmd+Alt+Z'], 'save': ['Cmd+S'], 'render': ['Cmd+E'],

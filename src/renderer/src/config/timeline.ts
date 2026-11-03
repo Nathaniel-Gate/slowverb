@@ -11,6 +11,7 @@ export const TL = {
   minPps: 0.5,           // px per second, furthest zoom out
   maxPps: 4000,          // px per second, furthest zoom in
   zoomStep: 1.6,         // factor per click with the zoom tool
+  wheelMode: 'zoom' as 'zoom' | 'scroll',  // plain mouse wheel: 'zoom' (zooms at the cursor; Shift+wheel and sideways swipes scroll left/right) or 'scroll'
   zoomWheelK: 0.0125,    // exp(-deltaY * k) per wheel/pinch tick
   scrollTailViewFrac: 0.5, // scroll may run this fraction of a viewport past the end of the project
   followMarginFrac: 0.1, // while playing, page the view so the playhead lands this far from the left edge

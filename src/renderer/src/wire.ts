@@ -2,6 +2,7 @@
 import type { Saved } from '../../shared/types'
 import { engine } from './audio/engine'
 import { useEditor } from './editor/editor.store'
+import { editorTransport } from './editor/transport'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
@@ -23,7 +24,8 @@ export async function wire() {
     const cur = usePlayer.getState().cur
     if (s.touched !== touched) { touched = s.touched; if (cur) useLibrary.getState().setTrackFx(cur, s.fx) }
   })
-  engine.el.addEventListener('play', () => { usePlayer.setState({ playing: true }); if (useEditor.getState().playing) void useEditor.getState().togglePlay() })   // never both at once
+  engine.el.addEventListener('play', () => { usePlayer.setState({ playing: true }); if (useEditor.getState().playing) void useEditor.getState().togglePlay(); editorTransport.idle() })   // never both at once; the editor's output stream sleeps while the player plays
+  useEditor.subscribe((s, prev) => { if (s.playing && !prev.playing) engine.idle() })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => usePlayer.getState().next(1))
   // persist (debounced)
@@ -42,7 +44,7 @@ export async function wire() {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()
-  const src = await new AudioContext().decodeAudioData(bytes), orig = await renderVersion(t.path, DEFAULT_FX)
+  const src = await new OfflineAudioContext(2, 1, 44100).decodeAudioData(bytes), orig = await renderVersion(t.path, DEFAULT_FX)
   let maxDiff = 0; const a = src.getChannelData(0); for (let i = 0; i < a.length; i++) maxDiff = Math.max(maxDiff, Math.abs(a[i] - orig.channels[0][i]))
   const slow = await renderVersion(t.path, { ...DEFAULT_FX, speed: 0.8, wet: 0.4, decay: 4.5 })
   return { nullMaxDiff: maxDiff, srcSec: src.duration, origSec: orig.channels[0].length / orig.rate, slowSec: slow.channels[0].length / slow.rate, expectSlow: src.duration / 0.8 + 4.52 }
