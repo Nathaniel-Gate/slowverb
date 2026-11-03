@@ -9,7 +9,8 @@
     "start": "electron-vite preview",
     "dist": "electron-vite build && electron-builder --mac --dir",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "./scripts-deploy.sh"
   },
   "keywords": [],
   "author": "",
