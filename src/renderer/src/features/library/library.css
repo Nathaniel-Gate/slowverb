@@ -8,3 +8,12 @@
 .item .n { font-family: var(--font-mono); font-size: 11px; color: var(--steel-500); }
 .item .t, .item .a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .item .a { font-size: 12px; color: var(--steel-500); min-height: 1.2em; }
 .empty { padding: 40px 20px; text-align: center; line-height: 1.8; }
+
+/* Soft UI pass: floating sidebar card, inset rounded rows */
+.side { margin: 12px 12px 12px 0; padding-top: 38px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; background: rgb(15 15 15 / .92); }
+.main { border-right: 0; }
+.list { padding: 8px; }
+.item { border-bottom: 0; border-radius: var(--radius); padding: 10px 12px; margin-bottom: 2px; }
+.item.cur { box-shadow: none; outline: 1px solid var(--hairline-strong); }
+.item.cur .n:first-child { color: var(--white); }
+.list::-webkit-scrollbar { width: 10px; } .list::-webkit-scrollbar-thumb { background: var(--ink-700); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }

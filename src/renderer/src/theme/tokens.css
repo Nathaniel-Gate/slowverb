@@ -13,5 +13,5 @@
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif; --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --grid-major: 120px; --grid-minor: 24px; --grid-major-a: 0.045; --grid-minor-a: 0.018;
   --radius-sm: 5px; --radius: 10px; --radius-lg: 14px; /* corner softness: set all to 0 for fully sharp */
-  --sidebar-w: 340px; --pad: 40px; --title-size: 34px;
+  --sidebar-w: 352px; --pad: 40px; --title-size: 34px;
 }

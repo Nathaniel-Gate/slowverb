@@ -8,3 +8,7 @@ input[type=range] { width: 100%; appearance: none; height: 1px; background: var(
 input[type=range]::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; background: var(--accent); border: 0; border-radius: 50%; cursor: pointer; }
 .ghost { color: var(--steel-400); font-family: var(--font-mono); font-size: 12px; } .ghost:hover { color: var(--white); }
 .ghost.on { color: var(--white); border-bottom: 1px solid var(--white); }
+
+.ghost { padding: 5px 9px; border-radius: var(--radius-sm); border-bottom: 0 !important; } .ghost:hover { background: var(--ink-800); }
+.ghost.on { background: var(--ink-800); color: var(--white); }
+.ghost:disabled { opacity: .4; cursor: default; }
