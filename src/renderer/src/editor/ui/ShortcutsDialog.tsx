@@ -56,6 +56,7 @@ function Dialog() {
   return (
     <div className="ed-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget && !cap) close() }}>
       <div className="ed-dialog" role="dialog" aria-label="Keyboard shortcuts">
+        <div className="ed-legend mono">⌘ COMMAND · ⌥ OPTION · ⇧ SHIFT (the up-arrow symbol) · ⌃ CONTROL</div>
         <div className="ed-dialog-head">
           <span className="ed-dialog-title">Keyboard shortcuts</span>
           <input className="ed-dialog-search" autoFocus placeholder="Filter" spellCheck={false} value={q} onChange={(e) => setQ(e.target.value)} />

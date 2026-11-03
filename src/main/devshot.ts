@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -49,6 +49,25 @@ export function runShot(win: BrowserWindow) {
         out.slowedMaster_bare_old = await grain(slow, { bare: true })
         return out })()`)
       console.log('SCRUB_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_DETACHKEY) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_DETACHKEY)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        for (const t of [10, 12]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        const mid = E.getState().project.clips.find(c => Math.abs(c.start - 10) < 0.01)
+        E.getState().select([mid.id]); E.getState().makeLoopFromSelection(4, 0.05)
+        E.getState().select(E.getState().project.clips.filter(c => c.loop).map(c => c.id)) })()`)
+      await wait(500)
+      const snap = `(() => { const p = window.__sv.useEditor.getState().project; return { count: p.loops && p.loops[0] && p.loops[0].count, tagged: p.clips.filter(c => c.loop).length, plainAfter10: p.clips.filter(c => !c.loop && c.start >= 10 && c.start < 20).length, sel: window.__sv.useEditor.getState().selection.length, open: window.__sv.useEditor.getState().open, focus: document.activeElement && document.activeElement.tagName } })()`
+      const before = await win.webContents.executeJavaScript(snap)
+      win.webContents.focus()
+      win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'D', modifiers: ['alt', 'shift'] })
+      win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'D', modifiers: ['alt', 'shift'] })
+      await wait(500)
+      const after = await win.webContents.executeJavaScript(snap)
+      const toast = await win.webContents.executeJavaScript(`JSON.stringify(window.__sv.useEditor.getState().toast)`)
+      console.log('DETACHKEY_RESULT ' + JSON.stringify({ before, after, toast })); app.quit(); return
     }
     if (process.env.SLOWVERB_AUTOPLAY) {
       const r = await win.webContents.executeJavaScript(`(async () => {

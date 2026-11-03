@@ -88,3 +88,5 @@
 
 /* header sits above the body so nothing in the body paints over it */
 .ed-head { z-index: 6; }
+
+.ed-legend { padding: 10px 16px 0; color: var(--steel-500); font-size: 10px; letter-spacing: .08em; }
