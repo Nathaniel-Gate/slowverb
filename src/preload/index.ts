@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('api', {
   editorRenameVersion: (song: string, from: string, to: string) => ipcRenderer.invoke('editor:rename', song, from, to),
   renameSong: (song: string, base: string) => ipcRenderer.invoke('editor:renameSong', song, base),
   saveRender: (song: string, name: string, wav: ArrayBuffer) => ipcRenderer.invoke('editor:render', song, name, wav),
+  peaksGet: (key: string) => ipcRenderer.invoke('peaks:get', key),
+  peaksPut: (key: string, data: ArrayBuffer) => ipcRenderer.invoke('peaks:put', key, data),
+  peaksStat: (path: string) => ipcRenderer.invoke('peaks:stat', path),
   cancelDownload: () => ipcRenderer.invoke('dl:cancel'),
   onDownloadProgress: (cb: (p: unknown) => void) => {
     const h = (_e: unknown, p: unknown) => cb(p); ipcRenderer.on('dl:progress', h); return () => ipcRenderer.removeListener('dl:progress', h)

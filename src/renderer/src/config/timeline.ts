@@ -23,8 +23,48 @@ export const TL = {
   autoScrollMax: 24,     // px per frame at the very edge
   scrubSnap: true,       // snap the playhead to edit points while scrubbing the ruler
   syncAttr: 'data-sync-scroll-y', // elements with this attribute get scrollTop mirrored from the lanes (TrackHeaders scroller)
-  scrollYEvent: 'editor:scroll-y' // window CustomEvent<{ top: number }> fired when the lanes scroll vertically
+  scrollYEvent: 'editor:scroll-y', // window CustomEvent<{ top: number }> fired when the lanes scroll vertically
+
+  // wave 2 (agent H)
+  laneMinH: 38, laneMaxH: 280, collapsedH: 26,   // px: per-track height limits (Track.height / Track.collapsed)
+  detailMinH: 46,        // px: clips shorter than this hide fade handles and the gain band
+  fadeHandlePx: 10,      // px, size of the fade handle square
+  gainMinDb: -36, gainMaxDb: 12, gainPadTop: 20, gainPadBottom: 8, // gain band: dB range mapped onto the clip height (minus padding)
+  gainHitPx: 7,          // px each side of the gain line that grabs it
+  gainFine: 0.12,        // Alt = fine: pointer movement multiplier
+  followMode: 'glide' as 'glide' | 'page' | 'off', // while playing: glide (animated page turn), page (instant), off
+  glideMs: 260, zoomGlideMs: 190,
+  hoverTipMs: 520,       // hover this long over a clip for the start/length/gain tooltip
+  flashMs: 420,          // razor cut flash
+  cutHitPx: 11,          // px: how close the pointer must be to a cut for the rolling-edit tool
+  beatMinPx: 6,          // px: hide beat lines closer together than this
+  beatBarEvery: 4,       // every Nth beat is drawn stronger
+  dropGhostSec: 6,       // width of the ghost clip while dragging a source over the lanes (real length unknown until drop)
+  autoScrollY: 16,       // px per frame at the top/bottom edge while dragging across tracks
+  rangeGripPx: 7,        // px: grab width of the In/Out brackets on the ruler
+  markerDragPx: 3,
+  miniH: 34, miniMinViewSec: 0.05, miniPad: 0.06,     // minimap bar height, narrowest viewport, empty tail fraction
+  zoomSliderSteps: 1000,
+  tcFrameDecimals: 3     // decimals in the typed/displayed timecode (m:ss.mmm)
 }
+
+export type ToolId = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd'
+
+// Label colours (Clip.label / Marker.color are these keys). Muted so the greyscale look stays calm.
+export const LABELS: { key: string; name: string; color: string }[] = [
+  { key: 'none', name: 'None', color: '' },
+  { key: 'blue', name: 'Blue', color: '#7d97bd' },
+  { key: 'teal', name: 'Teal', color: '#6fa9a3' },
+  { key: 'sage', name: 'Sage', color: '#8fae82' },
+  { key: 'sand', name: 'Sand', color: '#c4a76c' },
+  { key: 'rose', name: 'Rose', color: '#c08585' },
+  { key: 'violet', name: 'Violet', color: '#a08cc0' },
+  { key: 'stone', name: 'Stone', color: '#b2aea2' }
+]
+export const labelColor = (key?: string): string => LABELS.find(l => l.key === key)?.color ?? ''
+// Track stripe colours, picked by track index.
+export const TRACK_COLORS = ['#7d97bd', '#6fa9a3', '#8fae82', '#c4a76c', '#c08585', '#a08cc0', '#b2aea2']
+export const trackColor = (i: number) => TRACK_COLORS[((i % TRACK_COLORS.length) + TRACK_COLORS.length) % TRACK_COLORS.length]
 
 // Ruler tick table: [step in seconds, subdivisions drawn between labelled ticks]
 export const TICK_STEPS: [number, number][] = [

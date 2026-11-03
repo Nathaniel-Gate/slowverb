@@ -1,23 +1,11 @@
 // Electron-harness proofs for the editor audio (bundled on the fly by main/devshot.ts under SLOWVERB_ED=1). Not shipped in the app.
-import { projectEnd, type Clip, type Project } from './model'
+import { projectEnd } from './model'
 import { loadBuffers, type Buffers } from './schedule'
 import { renderProject } from './render'
 import { editorTransport } from './transport'
-
-const RATE = 44100
-const track = (id: string, o: Partial<{ gain: number; mute: boolean; solo: boolean }> = {}) => ({ id, name: id, mute: false, solo: false, lock: false, gain: 1, ...o })
-const clip = (id: string, src: string, tr: string, start: number, srcIn: number, srcOut: number, o: Partial<Clip> = {}): Clip =>
-  ({ id, src, track: tr, start, srcIn, srcOut, gain: 1, fadeIn: 0, fadeOut: 0, ...o })
-const project = (sources: Record<string, number>, tracks: ReturnType<typeof track>[], clips: Clip[], master: Project['master'] = null): Project =>
-  ({ version: 1, id: 'p', name: 'proof', song: 'x', sources: Object.fromEntries(Object.entries(sources).map(([k, d]) => [k, { duration: d }])), tracks, clips, markers: [], bpm: null, master })
-const synth = (ctx: BaseAudioContext, secs: number, f: (i: number, c: number) => number, ch = 2) => {
-  const b = ctx.createBuffer(ch, Math.round(secs * RATE), RATE)
-  for (let c = 0; c < ch; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = f(i, c) }
-  return b
-}
-const maxAbs = (a: Float32Array, from = 0, to = a.length) => { let m = 0; for (let i = from; i < to; i++) m = Math.max(m, Math.abs(a[i])); return m }
-const maxDiff = (a: Float32Array, b: Float32Array, n = Math.min(a.length, b.length)) => { let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(a[i] - b[i])); return m }
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+import { detectBpm } from './bpm'
+import { maxAbs, maxDiff, clip, project, RATE, sleep, synth, track } from './proofKit'
+import { runProofs2 } from './proof2'
 
 export async function runProofs(heliumPath: string) {
   const ctx = new AudioContext(), R: Record<string, unknown> = {}
@@ -75,6 +63,7 @@ export async function runProofs(heliumPath: string) {
     R.helium = { seconds: d, rate: buf.sampleRate, channels: buf.numberOfChannels, renderedSamples: r.channels[0].length, srcSamples: buf.length, renderMs: Math.round(ms),
       maxDiffL: maxDiff(r.channels[0], buf.getChannelData(0)), maxDiffR: maxDiff(r.channels[1], buf.getChannelData(buf.numberOfChannels > 1 ? 1 : 0)), peak: maxAbs(r.channels[0]),
       splitRejoinMaxDiff: maxDiff(rs.channels[0], r.channels[0]) }
+    const tb = performance.now(), bp = detectBpm(buf); R.heliumBpm = { ...bp, ms: Math.round(performance.now() - tb) }
   } catch (e) { R.helium = { error: String(e) } }
   // 7. live transport: same graph through the master chain, audible, position tracks the clock, seek/pause behave
   {
@@ -91,5 +80,6 @@ export async function runProofs(heliumPath: string) {
     await t.play(p, b, 3.2); await sleep(2200)
     R.live = { ctxState: t.ctx.state, peak, posAfter600ms: pos1, elapsed, expectedPos: 0.5 + elapsed, afterSeekTo2: afterSeek, pausedAt: paused, stayedAtRest: stable === paused, seekIdle, endedFired: ended, playingAfterEnd: t.playing, finalPos: t.position() }
   }
+  Object.assign(R, await runProofs2(ctx, heliumPath))
   return R
 }

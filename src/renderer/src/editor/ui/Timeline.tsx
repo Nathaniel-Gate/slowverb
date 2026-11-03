@@ -1,12 +1,23 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { clipDur, type Project } from '../model'
 import { useEditor } from '../editor.store'
 import { editorTransport } from '../transport'
-import { TL } from '../../config/timeline'
+import { TL, trackColor } from '../../config/timeline'
+import BeatGrid from './BeatGrid'
 import ClipView from './ClipView'
+import Minimap from './Minimap'
 import Ruler from './Ruler'
-import { pickStep } from './timelineMath'
-import { useTimelineInput, type Marquee } from './useTimelineInput'
+import { makeView } from './dragRunner'
+import { useLaneLive } from './laneLive'
+import { clipBox, layoutOf, overlaps, pickStep } from './timelineMath'
+import type { Guides, Marquee, TimelineUi } from './timelineUi'
+import { useDropTarget } from './useDropTarget'
+import { useRulerInput } from './useRulerInput'
+import { useLaneHover } from './useLaneHover'
+import { useTimelineInput } from './useTimelineInput'
+
+type Flash = { id: number; t: number; y: number; h: number }
+let flashId = 0
 
 export function Timeline() {
   const project = useEditor(s => s.project)
@@ -17,52 +28,72 @@ export function Timeline() {
   const scrollX = useEditor(s => s.scrollX)
   const markIn = useEditor(s => s.markIn)
   const markOut = useEditor(s => s.markOut)
+  const loop = useEditor(s => s.loop)
+  const gap = useEditor(s => s.gap)
+  const showBeats = useEditor(s => s.showBeats)
+  const live = useLaneLive(s => s.live)
 
-  const root = useRef<HTMLDivElement>(null), lanes = useRef<HTMLDivElement>(null)
-  const razor = useRef<HTMLDivElement>(null), head = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null), lanes = useRef<HTMLDivElement>(null), head = useRef<HTMLDivElement>(null)
+  const razor = useRef<HTMLDivElement>(null), hot = useRef<HTMLDivElement>(null), ghost = useRef<HTMLDivElement>(null), hud = useRef<HTMLDivElement>(null)
   const [viewW, setViewW] = useState(0)
   const [preview, setPreview] = useState<Project | null>(null)
   const [snapAt, setSnapAt] = useState<number | null>(null)
   const [marquee, setMarquee] = useState<Marquee | null>(null)
+  const [range, setRange] = useState<{ in: number; out: number } | null>(null)
+  const [flashes, setFlashes] = useState<Flash[]>([])
   const lastSnap = useRef(0)
   if (snapAt !== null) lastSnap.current = snapAt
 
-  const ui = useMemo(() => ({ setPreview, setSnapAt, setMarquee }), [])
-  const input = useTimelineInput({ root, lanes, razor }, ui, !!project)
+  const flash = useCallback((t: number, y: number, h: number) => {
+    const f = { id: ++flashId, t, y, h }
+    setFlashes(a => [...a, f])
+    window.setTimeout(() => setFlashes(a => a.filter(x => x.id !== f.id)), TL.flashMs + 40)
+  }, [])
+  const view = useMemo(() => makeView({ root, lanes }), [])
+  const ui: TimelineUi = useMemo(() => ({ setPreview, setSnapAt, setMarquee, setRange, flash }), [flash])
+  const guides: Guides = { razor, hot, ghost, hud }
+  const input = useTimelineInput(view, { root, lanes }, guides, ui, !!project)
+  const hover = useLaneHover(view, { root, lanes }, guides)
+  const ruler = useRulerInput(view, ui, hud, root)
+  const drop = useDropTarget(view, ghost)
 
   useEffect(() => {
     const el = root.current
     if (!el) return
     const ro = new ResizeObserver(() => setViewW(Math.round(el.clientWidth)))
-    ro.observe(el)
-    setViewW(Math.round(el.clientWidth))
+    ro.observe(el); setViewW(Math.round(el.clientWidth))
     return () => ro.disconnect()
   }, [!project])
 
   // Playhead: transform only, position read from the transport every frame while playing (never via zustand).
+  // Follow: when the playhead crosses the view edge during playback, turn the page (glide or instant, TL.followMode).
   useEffect(() => {
     const el = head.current
     if (!el) return
-    let raf = 0, prevX = -1
+    let raf = 0, prevX = -1, lastFlip = 0
     const place = () => {
       const s = useEditor.getState(), t = s.playing ? editorTransport.position() : s.playhead
       const x = t * s.pxPerSec - s.scrollX, w = lanes.current?.clientWidth ?? 0
       el.style.transform = `translate3d(${Math.round(x)}px,0,0)`
-      if (TL.followPlayhead && s.playing && prevX >= 0 && prevX <= w && x > w && !root.current?.dataset.drag)
-        s.setScroll(Math.max(0, t * s.pxPerSec - w * TL.followMarginFrac))
+      const now = performance.now()
+      if (TL.followMode !== 'off' && s.playing && prevX >= 0 && prevX <= w && (x > w || x < 0) && !root.current?.dataset.drag && now - lastFlip > TL.glideMs + 80) {
+        const target = t * s.pxPerSec - w * TL.followMarginFrac
+        lastFlip = now
+        if (TL.followMode === 'glide') view.glideScroll(target); else view.scrollTo(target)
+      }
       prevX = x
     }
-    const loop = () => { place(); raf = requestAnimationFrame(loop) }
+    const loopFn = () => { place(); raf = requestAnimationFrame(loopFn) }
     const sync = () => {
       place()
       const playing = useEditor.getState().playing
-      if (playing && !raf) raf = requestAnimationFrame(loop)
+      if (playing && !raf) raf = requestAnimationFrame(loopFn)
       if (!playing && raf) { cancelAnimationFrame(raf); raf = 0 }
     }
     sync()
     const off = useEditor.subscribe(sync)
     return () => { off(); if (raf) cancelAnimationFrame(raf) }
-  }, [!project])
+  }, [!project])  // eslint-disable-line react-hooks/exhaustive-deps -- view is stable
 
   // Vertical scroll stays in step with TrackHeaders (any element carrying TL.syncAttr), both directions.
   useEffect(() => {
@@ -83,32 +114,50 @@ export function Timeline() {
   const baseById = new Map(base.clips.map(c => [c.id, c]))
   const sel = new Set(selection)
   const anySolo = shown.tracks.some(t => t.solo)
+  const L = layoutOf(shown.tracks, live)
   const laneOf = new Map(shown.tracks.map((t, i) => [t.id, i]))
   const trackOf = new Map(shown.tracks.map(t => [t.id, t]))
   const x = (t: number) => t * pps - scrollX
-  const { step } = pickStep(pps)
-  const stepPx = step * pps
-  const contentH = shown.tracks.length * TL.laneH
+  const stepPx = pickStep(pps).step * pps
   const visible = shown.clips.filter(c => x(c.start + clipDur(c)) >= 0 && x(c.start) <= viewW)
-  const rangeOn = markIn !== null && markOut !== null && markOut > markIn
+  const rIn = range?.in ?? markIn, rOut = range?.out ?? markOut
+  const rangeOn = rIn !== null && rOut !== null && rOut > rIn
+  const gapLane = gap ? laneOf.get(gap.track) : undefined
+  const xfades = overlaps(shown)
 
   return (
-    <div className="tl" ref={root} data-tool={tool}
-      style={{ '--tl-ruler-h': `${TL.rulerH}px`, '--tl-lane-h': `${TL.laneH}px`, '--tl-edge': `${TL.edgePx}px`, '--tl-dim': TL.dimMuted } as CSSProperties}>
-      <Ruler width={viewW} pxPerSec={pps} scrollX={scrollX} markers={shown.markers} markIn={markIn} markOut={markOut}
-        onDown={input.onRulerDown} onMarker={input.onMarker} />
-      <div className="tl-lanes" ref={lanes} onPointerDown={input.onLanesDown} onPointerMove={input.onLanesMove} onPointerLeave={input.onLanesLeave}>
-        <div className="tl-content" style={{ height: contentH, backgroundSize: `${stepPx}px 100%`, backgroundPosition: `${-scrollX}px 0` }}>
+    <div className="tl" ref={root} data-tool={tool} tabIndex={-1} onDragOver={drop.onDragOver} onDragLeave={drop.onDragLeave} onDrop={drop.onDrop}
+      style={{ '--tl-ruler-h': `${TL.rulerH}px`, '--tl-edge': `${TL.edgePx}px`, '--tl-handle': `${TL.fadeHandlePx}px`, '--tl-gain-hit': `${TL.gainHitPx}px`, '--tl-dim': TL.dimMuted, '--tl-flash': `${TL.flashMs}ms` } as CSSProperties}>
+      <Ruler width={viewW} pxPerSec={pps} scrollX={scrollX} markers={shown.markers} markIn={rIn} markOut={rOut} loop={loop}
+        onDown={ruler.onRulerDown} onMarker={ruler.onMarker} onRange={ruler.onRange} onContext={ruler.onRulerContext} />
+      <div className="tl-lanes" ref={lanes} onPointerDown={input.onLanesDown} onPointerMove={hover.onLanesMove} onPointerLeave={hover.onLanesLeave}
+        onDoubleClick={input.onLanesDoubleClick} onContextMenu={input.onLanesContext}>
+        <div className="tl-content" style={{ height: L.total, backgroundSize: `${stepPx}px 100%`, backgroundPosition: `${-scrollX}px 0` }}>
           {shown.tracks.map((t, i) => (
-            <div key={t.id} className="tl-lane" data-odd={i % 2 || undefined} data-lock={t.lock || undefined} style={{ transform: `translateY(${i * TL.laneH}px)` }} />
+            <div key={t.id} className="tl-lane" data-odd={i % 2 || undefined} data-lock={t.lock || undefined} data-collapsed={t.collapsed || undefined}
+              style={{ height: L.hs[i], transform: `translateY(${L.tops[i]}px)` }} />
           ))}
-          {rangeOn && <div className="tl-range" style={{ transform: `translateX(${x(markIn!)}px)`, width: (markOut! - markIn!) * pps }} />}
+          {showBeats && shown.bpm ? <BeatGrid project={shown} pps={pps} scrollX={scrollX} viewW={viewW} height={L.total} /> : null}
+          {rangeOn && <div className="tl-range" data-loop={loop || undefined} style={{ transform: `translateX(${x(rIn!)}px)`, width: (rOut! - rIn!) * pps }} />}
+          {gap && gapLane !== undefined && (
+            <div className="tl-gap" style={{ transform: `translate(${x(gap.start)}px, ${L.tops[gapLane]}px)`, width: (gap.end - gap.start) * pps, height: L.hs[gapLane] }} />
+          )}
           {shown.markers.map(m => (x(m.t) >= 0 && x(m.t) <= viewW ? <div key={m.id} className="tl-mline" style={{ transform: `translateX(${x(m.t)}px)` }} /> : null))}
           {visible.map(c => {
-            const lane = laneOf.get(c.track) ?? 0, tr = trackOf.get(c.track)
+            const lane = laneOf.get(c.track) ?? 0, tr = trackOf.get(c.track), b = clipBox(L, lane)
             return (
-              <ClipView key={c.id} clip={c} lane={lane} selected={sel.has(c.id)} locked={!!tr?.lock} dim={!!tr && (tr.mute || (anySolo && !tr.solo))}
-                ghost={!!preview && baseById.get(c.id) !== c} peaks={peaks.get(c.src)} pxPerSec={pps} scrollX={scrollX} viewW={viewW} />
+              <ClipView key={c.id} clip={c} y={b.y} h={b.h} selected={sel.has(c.id)} locked={!!tr?.lock} stripe={trackColor(lane)}
+                dim={!!tr && (tr.mute || (anySolo && !tr.solo))} ghost={!!preview && baseById.get(c.id) !== c}
+                peaks={peaks.get(c.src)} pxPerSec={pps} scrollX={scrollX} viewW={viewW} />
+            )
+          })}
+          {xfades.map(o => {
+            const lane = laneOf.get(o.track) ?? 0, b = clipBox(L, lane)
+            if (x(o.end) < 0 || x(o.start) > viewW) return null
+            return (
+              <div key={o.id} className="tl-xfade" style={{ transform: `translate(${x(o.start)}px, ${b.y}px)`, width: Math.max(2, (o.end - o.start) * pps), height: b.h }}>
+                <svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 10L10 0M0 0L10 10" vectorEffect="non-scaling-stroke" /></svg>
+              </div>
             )
           })}
           {marquee && (
@@ -117,12 +166,15 @@ export function Timeline() {
               width: Math.abs(marquee.t1 - marquee.t0) * pps, height: Math.abs(marquee.y1 - marquee.y0)
             }} />
           )}
-          <div className="tl-razor" ref={razor} />
+          {flashes.map(f => <div key={f.id} className="tl-flash" style={{ transform: `translate(${x(f.t)}px, ${f.y}px)`, height: f.h }} />)}
+          <div className="tl-razor" ref={razor} /><div className="tl-hot" ref={hot} /><div className="tl-dropghost" ref={ghost} />
         </div>
       </div>
+      <Minimap project={base} pps={pps} scrollX={scrollX} viewW={viewW} view={view} />
       <div className="tl-overlay">
         <div className="tl-snap" data-on={snapAt !== null || undefined} style={{ transform: `translateX(${Math.round(x(lastSnap.current))}px)` }} />
         <div className="tl-playhead" ref={head}><div className="tl-playhead-cap" /></div>
+        <div className="tl-hud mono" ref={hud} />
       </div>
     </div>
   )

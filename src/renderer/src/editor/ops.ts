@@ -1,12 +1,19 @@
-import { clipDur, clipEnd, MIN_CLIP, type Clip, type Marker, type Project, type Track } from './model'
-import { EPS, clamp, finite, fitFades, lockedIds, uid } from './clipmath'
+import { clipEnd, MIN_CLIP, type Clip, type Marker, type Project, type Track } from './model'
+import { EPS, finite, uid } from './clipmath'
+import { patchClips } from './opsFade'
 
 // Pure edit operations for the audio timeline (agent A). Every function returns a NEW Project (or the SAME object
 // when the op changes nothing, so history can drop no-ops). Invariants are listed in CONTRACT.md and checked by validate().
 export { splitAt, deleteClips, rippleDelete, moveClips, duplicateClips, pasteClips } from './opsEdit'
 export { trimClip, rippleTrim } from './opsTrim'
 export { validate } from './validate'
-export { snapTime } from './snap'
+export { snapTime, snapTargets, type SnapOpts } from './snap'
+// wave 2 (agent E): ranges, gaps, sync lock, speed, crossfades, queries
+export { gapsOf, liftRange, extractRange, closeGap, closeAllGaps, trimToPlayhead, rippleTracks, targetTracks, type Gap, type RippleOpts } from './opsRange'
+export { setClipSpeed, rateStretch, rollEdit } from './opsSpeed'
+export { applyCrossfade, removeCrossfade, patchClips, type ClipPatch } from './opsFade'
+export { clipsInRange, clipsForward, clipsBackward, nearestEditPoint, beatGrid, clipFromSource, repeatClips, insertClips } from './ops2'
+export { SPEED_MIN, SPEED_MAX, REPEAT_MAX } from './clipmath'
 
 export const DEFAULT_PROJECT_NAME = 'Edit'
 const NEW_TRACK = { mute: false, solo: false, lock: false, gain: 1 } as const
@@ -23,16 +30,9 @@ export function newProject(song: string, duration: number, name = DEFAULT_PROJEC
   }
 }
 
+/** Gain and fades of one clip (fades clamp so fadeIn + fadeOut <= duration and never below a crossfade overlap). */
 export function setClip(p: Project, id: string, patch: Partial<Pick<Clip, 'gain' | 'fadeIn' | 'fadeOut'>>): Project {
-  const c = p.clips.find(x => x.id === id)
-  if (!c || lockedIds(p).has(c.track)) return p
-  const d = clipDur(c), has = (k: 'gain' | 'fadeIn' | 'fadeOut') => finite(patch[k])
-  const gain = has('gain') ? Math.max(0, patch.gain!) : c.gain
-  // a patched fade is clamped against the OTHER fade as it stands; if both are patched, fadeIn wins
-  const fadeIn = has('fadeIn') ? clamp(patch.fadeIn!, 0, has('fadeOut') ? d : d - c.fadeOut) : c.fadeIn
-  const fadeOut = has('fadeOut') ? clamp(patch.fadeOut!, 0, d - fadeIn) : c.fadeOut
-  if (gain === c.gain && fadeIn === c.fadeIn && fadeOut === c.fadeOut) return p
-  return { ...p, clips: p.clips.map(x => (x.id === id ? fitFades({ ...x, gain, fadeIn, fadeOut }) : x)) }
+  return patchClips(p, [id], patch)
 }
 
 /** New track "A<n>" (smallest unused n); name defaults to its id. */

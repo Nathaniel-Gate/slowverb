@@ -1,124 +1,141 @@
-import { useEffect, type PointerEvent as RPointerEvent, type RefObject } from 'react'
-import { clipEnd, type Project } from '../model'
-import { removeMarker, splitAt } from '../ops'
-import { useEditor } from '../editor.store'
+import { useEffect, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from 'react'
+import { clipDur, clipEnd, type Project } from '../model'
+import { clipsForward, patchClips, splitAt } from '../ops'
 import { TL } from '../../config/timeline'
-import { clampTrackShift, previewOf, snapMove, snapOne, type Drag, type SnapEnv } from './timelineDrags'
-import { clamp, clampScroll, clipsInRect, laneAt } from './timelineMath'
+import { cancelGlide, envOf, layOf, st, type Pt, type View, type ViewRefs } from './dragRunner'
+import { hideHud, showHud } from './hud'
+import { clampTrackShift, hudText, previewOf, snapMove, snapOne, type Drag } from './timelineDrags'
+import { clamp, clipBox, clipsInRect, findCut, gainToY, gapAt, laneAt, slipDelta, yToGain } from './timelineMath'
+import { clipMenu, gapMenu, laneMenu } from './timelineMenus'
+import type { Guides, TimelineUi } from './timelineUi'
 
-export type Marquee = { t0: number; y0: number; t1: number; y1: number } // times + content y, so autoscroll keeps the anchor
-export type TimelineUi = {
-  setPreview: (p: Project | null) => void
-  setSnapAt: (t: number | null) => void
-  setMarquee: (m: Marquee | null) => void
-}
-type Pt = { cx: number; cy: number; x: number; y: number; t: number }
-type Refs = { root: RefObject<HTMLDivElement | null>; lanes: RefObject<HTMLDivElement | null>; razor: RefObject<HTMLDivElement | null> }
+type Made = { d: Drag; at: number | null }
+const DONE: Record<Drag['kind'], string> = { move: 'Moved', trim: 'Trimmed', slip: 'Slipped', fade: 'Fade', gain: 'Gain', roll: 'Rolled', stretch: 'Stretched' }
 
-const st = () => useEditor.getState()
-const envOf = (): SnapEnv => { const s = st(); return { enabled: s.snap, playhead: s.playhead, pxPerSec: s.pxPerSec } }
-const endOf = (p: Project) => p.clips.reduce((m, c) => Math.max(m, clipEnd(c)), 0)
+/** Everything the pointer does on the lanes, per tool. Drags build a small Drag description, preview it, and commit once on release. */
+export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: Guides, ui: TimelineUi, ready: boolean) {
+  const { point, runDrag, scrollTo, zoomAt } = view
 
-export function useTimelineInput({ root, lanes, razor }: Refs, ui: TimelineUi, ready: boolean) {
-  const point = (cx: number, cy: number): Pt => {
-    const el = lanes.current!, r = el.getBoundingClientRect(), s = st()
-    const x = cx - r.left
-    return { cx, cy, x, y: cy - r.top + el.scrollTop, t: (x + s.scrollX) / s.pxPerSec }
-  }
-  const scrollTo = (x: number) => {
-    const s = st(), w = lanes.current?.clientWidth ?? 0
-    const v = clampScroll(x, s.project ? endOf(s.project) : 0, s.pxPerSec, w)
-    if (Math.abs(v - s.scrollX) > 0.01) s.setScroll(v)
-  }
-  const zoomAt = (x: number, pps: number) => {
-    const s = st(), next = clamp(pps, TL.minPps, TL.maxPps), anchor = (x + s.scrollX) / s.pxPerSec
-    if (next === s.pxPerSec) return
-    s.setZoom(next, anchor)   // the store keeps the anchor time under the same screen x
-    const a = st(), v = clampScroll(a.scrollX, a.project ? endOf(a.project) : 0, a.pxPerSec, lanes.current?.clientWidth ?? 0)
-    if (v !== a.scrollX) a.setScroll(v)
-  }
-
-  // Generic pointer drag on window: threshold, edge autoscroll, Escape to cancel.
-  function runDrag(e: { clientX: number; clientY: number }, kind: string, o: { auto?: boolean; threshold?: number },
-    step: (pt: Pt) => void, end: (moved: boolean, cancel: boolean) => void) {
-    let moved = false, raf = 0, last = { cx: e.clientX, cy: e.clientY }
-    const thr = o.threshold ?? TL.dragStartPx
-    root.current!.dataset.drag = kind
-    const frame = () => {
-      raf = 0
-      const r = lanes.current!.getBoundingClientRect(), x = last.cx - r.left, z = TL.autoScrollZonePx
-      const v = x < z ? -(z - x) / z : x > r.width - z ? (x - (r.width - z)) / z : 0
-      if (!v) return
-      scrollTo(st().scrollX + clamp(v, -1, 1) * TL.autoScrollMax)
-      step(point(last.cx, last.cy))
-      raf = requestAnimationFrame(frame)
-    }
-    const move = (ev: PointerEvent) => {
-      last = { cx: ev.clientX, cy: ev.clientY }
-      if (!moved && Math.hypot(last.cx - e.clientX, last.cy - e.clientY) < thr) return
-      moved = true
-      step(point(last.cx, last.cy))
-      if (o.auto && !raf) raf = requestAnimationFrame(frame)
-    }
-    const finish = (cancel: boolean) => {
-      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', cancelUp); window.removeEventListener('keydown', key)
-      if (raf) cancelAnimationFrame(raf)
-      delete root.current?.dataset.drag
-      end(moved, cancel)
-    }
-    const up = () => finish(false), cancelUp = () => finish(true)
-    const key = (ev: KeyboardEvent) => { if (ev.key === 'Escape') finish(true) }
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', cancelUp); window.addEventListener('keydown', key)
-  }
-
-  // Replay a clip drag as a live preview; commit once on release.
-  function dragClips(e: RPointerEvent, kind: string, make: (pt: Pt, base: Project) => { d: Drag; at: number | null }, onClick?: () => void) {
+  function dragClips(e: RPointerEvent, kind: string, make: (pt: Pt, base: Project) => Made, onClick?: () => void) {
     const base = st().project!
-    let final: Project | null = null
+    let final: Project | null = null, lastD: Drag | null = null
     runDrag(e, kind, { auto: true }, pt => {
       const { d, at } = make(pt, base)
+      lastD = d
       final = previewOf(base, d); ui.setPreview(final); ui.setSnapAt(at)
+      showHud(guides.hud, root.current, hudText(d, final), pt.cx, pt.cy)
     }, (moved, cancel) => {
-      ui.setPreview(null); ui.setSnapAt(null)
+      ui.setPreview(null); ui.setSnapAt(null); hideHud(guides.hud)
       if (!moved && !cancel) onClick?.()
       if (!moved || cancel || !final || final === base) return
-      const out = final, had = new Set(base.clips.map(c => c.id))
-      st().apply(() => out)
+      const out = final, had = new Set(base.clips.map(c => c.id)), s = st()
+      if (lastD?.kind === 'roll') s.rollEdit(lastD.left, lastD.right, lastD.t)           // store actions carry the toast
+      else if (lastD?.kind === 'stretch') s.rateStretch(lastD.id, lastD.newEnd)
+      else { s.apply(() => out); if (lastD) s.showToast(`${DONE[lastD.kind]} ${hudText(lastD, out)}`) }
       if (kind === 'dup') st().select(out.clips.filter(c => !had.has(c.id)).map(c => c.id))
+    })
+  }
+
+  function startMarquee(e: RPointerEvent, pt: Pt, base: Project, onClick?: () => void) {
+    const keep = e.shiftKey ? st().selection : []
+    if (!e.shiftKey) st().select([])
+    st().selectGap(null)
+    let key = keep.join()
+    const L = layOf(base)
+    runDrag(e, 'marquee', { auto: true }, p => {
+      ui.setMarquee({ t0: pt.t, y0: pt.y, t1: p.t, y1: p.y })
+      const ids = [...new Set([...keep, ...clipsInRect(base, L, pt.t, p.t, pt.y, p.y)])]
+      if (ids.join() !== key) { key = ids.join(); st().select(ids) }
+    }, moved => { ui.setMarquee(null); if (!moved) onClick?.() })
+  }
+
+  /** Click empty lane space: select the gap there; drag: rubber-band marquee. */
+  function emptyDown(e: RPointerEvent, pt: Pt, base: Project) {
+    const track = base.tracks[laneAt(layOf(base), pt.y)]?.id, gap = track ? gapAt(base, track, pt.t) : null
+    startMarquee(e, pt, base, () => { if (gap) { st().select([]); st().selectGap(gap) } })
+  }
+
+  function zoomDown(e: RPointerEvent, pt: Pt) {
+    const s = st(), ln = lanes.current!
+    let t1 = pt.t
+    runDrag(e, 'marquee', { threshold: 6 }, p => {
+      t1 = p.t
+      ui.setMarquee({ t0: pt.t, y0: ln.scrollTop, t1: p.t, y1: ln.scrollTop + ln.clientHeight })
+    }, (moved, cancel) => {
+      ui.setMarquee(null)
+      if (moved && !cancel && Math.abs(t1 - pt.t) > TL.miniMinViewSec) view.zoomToRange(Math.min(pt.t, t1), Math.max(pt.t, t1))
+      else if (!moved) zoomAt(pt.x, s.pxPerSec * (e.altKey ? 1 / TL.zoomStep : TL.zoomStep), true)
+    })
+  }
+
+  function razorDown(e: RPointerEvent, pt: Pt, base: Project, clipEl: HTMLElement | null) {
+    const all = e.shiftKey || e.altKey, ids = all ? undefined : clipEl ? [clipEl.dataset.clip!] : null
+    if (ids === null) return
+    const t = Math.max(0, snapOne(base, Math.max(0, pt.t), envOf()).t), L = layOf(base)
+    const lane = laneAt(L, pt.y)
+    st().apply(p => splitAt(p, t, ids))
+    if (st().project !== base) all ? ui.flash(t, 0, L.total) : ui.flash(t, L.tops[lane] ?? 0, L.hs[lane] ?? 0)
+  }
+
+  function rollDown(e: RPointerEvent, pt: Pt, base: Project) {
+    const L = layOf(base), tr = base.tracks[laneAt(L, pt.y)]
+    const cut = tr && findCut(base, tr.id, pt.t, TL.cutHitPx / st().pxPerSec)
+    if (!cut || tr.lock) return startMarquee(e, pt, base)
+    dragClips(e, 'roll', p => {
+      const sn = st().snap ? snapOne(base, p.t, envOf(), [cut.left, cut.right]) : { t: p.t, at: null }
+      return { d: { kind: 'roll', left: cut.left, right: cut.right, t: sn.t }, at: sn.at }
     })
   }
 
   function onLanesDown(e: RPointerEvent) {
     const s = st(), base = s.project
     if (!base || (e.button !== 0 && e.button !== 1)) return
+    const act = document.activeElement as HTMLElement | null
+    if (act && act !== document.body) act.blur()
+    root.current?.focus({ preventScroll: true })
     const el = e.target as Element, clipEl = el.closest<HTMLElement>('[data-clip]')
-    const pt = point(e.clientX, e.clientY)
-    const tool = e.button === 1 ? 'hand' : s.tool
+    const pt = point(e.clientX, e.clientY), tool = (e.button === 1 ? 'hand' : s.tool) as string
     if (tool === 'hand') {
       e.preventDefault()
       const sx = s.scrollX, sy = lanes.current!.scrollTop
       return runDrag(e, 'pan', {}, p => { scrollTo(sx - (p.cx - e.clientX)); lanes.current!.scrollTop = sy - (p.cy - e.clientY) }, () => {})
     }
-    if (tool === 'zoom') return zoomAt(pt.x, s.pxPerSec * (e.altKey ? 1 / TL.zoomStep : TL.zoomStep))
-    if (tool === 'razor') {
-      const ids = e.shiftKey ? undefined : clipEl ? [clipEl.dataset.clip!] : null
-      if (ids === null) return
-      const t = Math.max(0, snapOne(base, Math.max(0, pt.t), envOf()).t)
-      return s.apply(p => splitAt(p, t, ids))
-    }
+    cancelGlide()
+    if (tool === 'zoom') return zoomDown(e, pt)
+    if (tool === 'razor') return razorDown(e, pt, base, clipEl)
+    if (tool === 'roll') return rollDown(e, pt, base)
     const clip = clipEl && base.clips.find(c => c.id === clipEl.dataset.clip)
-    if (!clip) return startMarquee(e, pt, base)
+    if (!clip) {
+      if (tool === 'trackfwd') {
+        const tr = base.tracks[laneAt(layOf(base), pt.y)]
+        if (tr) return s.select(clipsForward(base, pt.t, e.shiftKey ? undefined : [tr.id]))
+      }
+      return emptyDown(e, pt, base)
+    }
     const locked = base.tracks.find(t => t.id === clip.track)?.lock
+    const fadeEl = el.closest<HTMLElement>('[data-fade]'), gainEl = el.closest('[data-gain]')
     let sel = s.selection
-    if (e.shiftKey) {
+    s.selectGap(null)
+    if (tool === 'trackfwd') { sel = clipsForward(base, clip.start, e.shiftKey ? undefined : [clip.track]); s.select(sel) }
+    else if (e.shiftKey && !fadeEl && !gainEl) {
       if (sel.includes(clip.id)) return s.select(sel.filter(i => i !== clip.id))
       s.select([clip.id], true); sel = [...sel, clip.id]
     } else if (!sel.includes(clip.id)) { s.select([clip.id]); sel = [clip.id] }
     if (locked) return
+    const L = layOf(base), lane0 = base.tracks.findIndex(t => t.id === clip.track), box = clipBox(L, lane0)
+    if (tool === 'select' && fadeEl) {
+      const edge = fadeEl.dataset.fade as 'in' | 'out'
+      return dragClips(e, 'fade', p => {
+        const sn = st().snap ? snapOne(base, p.t, envOf(), [clip.id]) : { t: p.t, at: null }
+        const dur = edge === 'in' ? sn.t - clip.start : clipEnd(clip) - sn.t
+        return { d: { kind: 'fade', id: clip.id, edge, dur: clamp(dur, 0, clipDur(clip)) }, at: null }
+      })
+    }
+    if (tool === 'select' && gainEl) {
+      const y0 = gainToY(clip.gain, box.h)
+      return dragClips(e, 'gain', p => ({ d: { kind: 'gain', id: clip.id, gain: yToGain(y0 + (p.y - pt.y) * (e.altKey ? TL.gainFine : 1), box.h) }, at: null }))
+    }
     const edge = el.closest<HTMLElement>('[data-edge]')?.dataset.edge as 'in' | 'out' | undefined
-    const lane0 = base.tracks.findIndex(t => t.id === clip.track)
     const ids = sel.filter(id => { const c = base.clips.find(x => x.id === id); return c && !base.tracks.find(t => t.id === c.track)?.lock })
     if (edge && (tool === 'select' || tool === 'ripple')) {
       const ripple = tool === 'ripple' || e.metaKey, orig = edge === 'in' ? clip.start : clipEnd(clip)
@@ -127,63 +144,52 @@ export function useTimelineInput({ root, lanes, razor }: Refs, ui: TimelineUi, r
         return { d: { kind: 'trim', id: clip.id, edge, t: Math.max(0, sn.t), ripple }, at: sn.at }
       })
     }
-    if (tool === 'slip') return dragClips(e, 'slip', p => ({ d: { kind: 'slip', ids, dsrc: -(p.t - pt.t) }, at: null }))
+    if (tool === 'rate') {
+      if (edge !== 'out') return
+      return dragClips(e, 'stretch', p => {
+        const raw = clipEnd(clip) + (p.t - pt.t), sn = s.snap ? snapOne(base, raw, envOf(), [clip.id]) : { t: raw, at: null }
+        return { d: { kind: 'stretch', id: clip.id, newEnd: Math.max(clip.start + 0.02, sn.t) }, at: sn.at }
+      })
+    }
+    if (tool === 'slip') return dragClips(e, 'slip', p => ({ d: { kind: 'slip', ids, dsrc: slipDelta(clip, p.t - pt.t) }, at: null }))
     if (tool === 'ripple') return
     const dup = e.altKey
     dragClips(e, dup ? 'dup' : 'move', p => {
       const sn = snapMove(base, ids, p.t - pt.t, envOf())
       const head = Math.min(...base.clips.filter(c => ids.includes(c.id)).map(c => c.start))
-      const shift = dup ? 0 : clampTrackShift(base, ids, laneAt(p.y) - lane0)
+      const shift = dup ? 0 : clampTrackShift(base, ids, laneAt(L, p.y) - lane0)
       return { d: { kind: 'move', ids, dt: Math.max(sn.dt, -head), trackShift: shift, dup }, at: sn.at }
-    }, () => { if (!e.shiftKey && sel.length > 1) s.select([clip.id]) })   // plain click inside a multi-selection narrows it
+    }, () => { if (!e.shiftKey && sel.length > 1 && tool === 'select') s.select([clip.id]) })   // plain click inside a multi-selection narrows it
   }
 
-  function startMarquee(e: RPointerEvent, pt: Pt, base: Project) {
-    const keep = e.shiftKey ? st().selection : []
-    if (!e.shiftKey) st().select([])
-    let key = keep.join()
-    runDrag(e, 'marquee', { auto: true }, p => {
-      ui.setMarquee({ t0: pt.t, y0: pt.y, t1: p.t, y1: p.y })
-      const ids = [...new Set([...keep, ...clipsInRect(base, pt.t, p.t, pt.y, p.y)])]
-      if (ids.join() !== key) { key = ids.join(); st().select(ids) }
-    }, () => ui.setMarquee(null))
+  function onLanesDoubleClick(e: RMouseEvent) {
+    const s = st(), el = e.target as Element, id = el.closest<HTMLElement>('[data-clip]')?.dataset.clip
+    if (!s.project || !id || s.tool !== 'select') return
+    if (el.closest('[data-gain]')) s.apply(p => patchClips(p, [id], { gain: 1 }))
+    else { const f = el.closest<HTMLElement>('[data-fade]')?.dataset.fade; if (f) s.apply(p => patchClips(p, [id], f === 'in' ? { fadeIn: 0 } : { fadeOut: 0 })) }
   }
 
-  function onRulerDown(e: RPointerEvent) {
-    const base = st().project
-    if (!base || e.button !== 0) return
-    let queued: number | null = null, raf = 0
-    const seek = (p: Pt, now = false) => {
-      const raw = Math.max(0, p.t), s = st()
-      queued = TL.scrubSnap && s.snap ? snapOne(base, raw, envOf()).t : raw
-      if (now) { s.setPlayhead(queued); queued = null; return }
-      if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (queued !== null) st().setPlayhead(queued); queued = null })
+  function onLanesContext(e: RMouseEvent) {
+    e.preventDefault()
+    const s = st(), p = s.project
+    if (!p) return
+    const pt = point(e.clientX, e.clientY), id = (e.target as Element).closest<HTMLElement>('[data-clip]')?.dataset.clip
+    const clip = id ? p.clips.find(c => c.id === id) : undefined
+    if (clip) {
+      if (!s.selection.includes(clip.id)) s.select([clip.id])
+      return clipMenu(e.clientX, e.clientY, clip, p)
     }
-    seek(point(e.clientX, e.clientY), true)
-    runDrag(e, 'scrub', { auto: true, threshold: 0 }, p => seek(p), () => {
-      if (raf) cancelAnimationFrame(raf)
-      if (queued !== null) st().setPlayhead(queued)
-    })
+    const tr = p.tracks[laneAt(layOf(p), pt.y)], gap = tr ? gapAt(p, tr.id, pt.t) : null
+    if (gap) { s.select([]); s.selectGap(gap); return gapMenu(e.clientX, e.clientY, gap) }
+    laneMenu(e.clientX, e.clientY, Math.max(0, pt.t))
   }
-
-  function onLanesMove(e: RPointerEvent) {
-    const g = razor.current, s = st()
-    if (!g) return
-    if (s.tool !== 'razor' || !s.project || root.current?.dataset.drag) { g.style.display = 'none'; return }
-    const pt = point(e.clientX, e.clientY), t = snapOne(s.project, Math.max(0, pt.t), envOf()).t
-    g.style.display = 'block'
-    g.style.transform = `translate(${t * s.pxPerSec - s.scrollX}px, ${e.shiftKey ? 0 : laneAt(pt.y) * TL.laneH}px)`
-    g.style.height = e.shiftKey ? '100%' : `${TL.laneH}px`
-  }
-  const onLanesLeave = () => { if (razor.current) razor.current.style.display = 'none' }
-  const onMarker = (id: string, t: number, alt: boolean) => (alt ? st().apply(p => removeMarker(p, id)) : st().setPlayhead(t))
 
   // Wheel / pinch: native listener because React's onWheel is passive and cannot preventDefault.
   useEffect(() => {
     const el = root.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
+      e.preventDefault(); cancelGlide()
       const k = e.deltaMode === 1 ? TL.wheelLineScale : 1
       const dx = e.deltaX * k, dy = e.deltaY * k, s = st(), ln = lanes.current
       const x = e.clientX - el.getBoundingClientRect().left
@@ -196,5 +202,5 @@ export function useTimelineInput({ root, lanes, razor }: Refs, ui: TimelineUi, r
     return () => el.removeEventListener('wheel', onWheel)
   }, [ready])  // eslint-disable-line react-hooks/exhaustive-deps -- handlers read live state through the store
 
-  return { onLanesDown, onLanesMove, onLanesLeave, onRulerDown, onMarker }
+  return { onLanesDown, onLanesDoubleClick, onLanesContext }
 }

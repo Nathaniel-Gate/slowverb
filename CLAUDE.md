@@ -37,3 +37,8 @@ Contract + design: `src/renderer/src/editor/CONTRACT.md`, plan `~/.claude/plans/
 | Sidecar saves, rename song, save render | `src/main/editor.ts` + `editorPaths.ts` (IPC `editor:*`) |
 Harness: `SLOWVERB_ED=1` audio proofs; `SLOWVERB_EDUI=<song path>` scripted edit + screenshot (add `SLOWVERB_RENDER=1` to render, `SLOWVERB_ROOT=<dir>` to keep it off your real library).
 Done: phases 1-2 (shell, playback, render, razor/split/delete/ripple/move/trim/undo/snap). Not yet: fade-handle dragging, crossfades UI, source bin, markers UI polish, BPM grid, peaks cache, rename UI polish (phases 3-5).
+Harness safety: SLOWVERB_ED/EDUI/PL refuse to run unless SLOWVERB_ROOT points at a temp folder (a test once left cuts in the real Helium edit).
+
+### Editor wave 2 (Premiere-speed features)
+Contract: `editor/CONTRACT2.md`. Range/ripple/crossfade/speed ops: `ops2.ts opsRange.ts opsFade.ts opsSpeed.ts` (re-exported by ops.ts). Audio: `analysis.ts bpm.ts meter.ts` (+ peaks cache via `cachedPeaks`), transport loop/scrub/shuttle. Commands + keys: `editor/commands.ts`, defaults `config/editorKeys.ts` (DEFAULT_KEYS; user overrides in localStorage), palette Cmd+Shift+P, shortcuts Cmd+Alt+K. Docked panels: `editor/ui/panels/*` (Inspector, Source bin, Markers, Mix, BPM). Timeline extras: `Minimap.tsx BeatGrid.tsx TimeField.tsx useRulerInput.ts useDropTarget.ts`. Label colours: one palette in `config/timeline.ts` (panels.ts derives from it).
+Known unverified by hand: mouse tools (fade handles, rolling edit, rate stretch, drop from source bin), 60fps (harness caps rAF at 30), Helium BPM guess (91, confidence 0.21).

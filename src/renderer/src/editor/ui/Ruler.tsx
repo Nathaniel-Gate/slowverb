@@ -1,18 +1,23 @@
-import { memo, useEffect, useRef, type PointerEvent as RPointerEvent } from 'react'
+import { memo, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
 import type { Marker } from '../model'
-import { TL } from '../../config/timeline'
+import { TL, labelColor } from '../../config/timeline'
+import { useEditor } from '../editor.store'
 import { cachedVars, formatTick, pickStep } from './timelineMath'
 
+export type RangePart = 'in' | 'out' | 'body'
 type Props = {
   width: number; pxPerSec: number; scrollX: number
-  markers: Marker[]; markIn: number | null; markOut: number | null
+  markers: Marker[]; markIn: number | null; markOut: number | null; loop: boolean
   onDown: (e: RPointerEvent) => void
-  onMarker: (id: string, t: number, alt: boolean) => void
+  onMarker: (m: Marker, e: RPointerEvent) => void
+  onRange: (part: RangePart, e: RPointerEvent) => void
+  onContext: (e: React.MouseEvent) => void
 }
 const VARS = ['--tl-tick', '--tl-tick-minor', '--tl-label', '--tl-ruler-line']
 
-function Ruler({ width, pxPerSec, scrollX, markers, markIn, markOut, onDown, onMarker }: Props) {
+function Ruler({ width, pxPerSec, scrollX, markers, markIn, markOut, loop, onDown, onMarker, onRange, onContext }: Props) {
   const cv = useRef<HTMLCanvasElement>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
 
   useEffect(() => {
     const c = cv.current
@@ -38,19 +43,31 @@ function Ruler({ width, pxPerSec, scrollX, markers, markIn, markOut, onDown, onM
 
   const x = (t: number) => t * pxPerSec - scrollX
   const range = markIn !== null && markOut !== null && markOut > markIn
+  const done = (m: Marker, v: string) => { setRenaming(null); if (v.trim() !== m.name) useEditor.getState().renameMarker(m.id, v.trim()) }
+  const grips = (part: RangePart) => (e: RPointerEvent) => { e.stopPropagation(); onRange(part, e) }
   return (
-    <div className="tl-ruler" onPointerDown={onDown}>
+    <div className="tl-ruler" onPointerDown={onDown} onContextMenu={onContext}>
       <canvas ref={cv} style={{ width, height: TL.rulerH }} />
-      {range && <div className="tl-ruler-range" style={{ transform: `translateX(${x(markIn!)}px)`, width: (markOut! - markIn!) * pxPerSec }} />}
-      {markIn !== null && <div className="tl-bracket in" style={{ transform: `translateX(${x(markIn)}px)` }} />}
-      {markOut !== null && <div className="tl-bracket out" style={{ transform: `translateX(${x(markOut)}px)` }} />}
+      {range && (
+        <div className="tl-ruler-range" data-loop={loop || undefined} style={{ transform: `translateX(${x(markIn!)}px)`, width: (markOut! - markIn!) * pxPerSec }}
+          onPointerDown={grips('body')} title={loop ? 'Loop region (drag to move)' : 'In to Out (drag to move)'} />
+      )}
+      {markIn !== null && <div className="tl-bracket in" style={{ transform: `translateX(${x(markIn)}px)` }} onPointerDown={grips('in')} title="In point (drag)" />}
+      {markOut !== null && <div className="tl-bracket out" style={{ transform: `translateX(${x(markOut)}px)` }} onPointerDown={grips('out')} title="Out point (drag)" />}
       {markers.map(m => {
         const mx = x(m.t)
-        if (mx < -80 || mx > width + 4) return null
+        if (mx < -90 || mx > width + 4) return null
+        const c = labelColor(m.color)
         return (
-          <div key={m.id} className="tl-marker" style={{ transform: `translateX(${mx}px)` }} title={`${m.name || 'Marker'} (alt-click removes)`}
-            onPointerDown={e => { e.stopPropagation(); onMarker(m.id, m.t, e.altKey) }}>
-            <i /><span>{m.name.slice(0, TL.markerLabelMax)}</span>
+          <div key={m.id} className="tl-marker" data-hue={c ? '' : undefined} style={{ transform: `translateX(${mx}px)`, '--mc': c || undefined } as CSSProperties}
+            title={`${m.name || 'Marker'}: drag to move, double-click to rename, alt-click removes`}
+            onPointerDown={e => { e.stopPropagation(); onMarker(m, e) }} onDoubleClick={e => { e.stopPropagation(); setRenaming(m.id) }}
+            data-marker={m.id}>
+            <i />
+            {renaming === m.id
+              ? <input autoFocus className="tl-mname" defaultValue={m.name} spellCheck={false} onPointerDown={e => e.stopPropagation()} onFocus={e => e.currentTarget.select()}
+                  onBlur={e => done(m, e.currentTarget.value)} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') done(m, e.currentTarget.value); if (e.key === 'Escape') setRenaming(null) }} />
+              : <span>{m.name.slice(0, TL.markerLabelMax)}</span>}
           </div>
         )
       })}

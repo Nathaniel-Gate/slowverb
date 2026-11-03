@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useEditor } from '../editor.store'
 import { useEditorKeys } from '../useEditorKeys'
 import { HeaderBar } from './HeaderBar'
+import { Dock } from './panels/Dock'
 import { Timeline } from './Timeline'
 import { ToolStrip } from './ToolStrip'
 import { TrackHeaders } from './TrackHeaders'
@@ -26,6 +27,7 @@ export function EditorView({ leaving }: { leaving: boolean }) {
             <TrackHeaders />
             <div className="ed-timeline" ref={area}><Timeline /></div>
           </div>
+          <Dock />
         </div>
       ) : <div className="ed-loading mono">{busy ?? 'Loading'}</div>}
     </div>

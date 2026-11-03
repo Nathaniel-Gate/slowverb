@@ -1,4 +1,4 @@
-import { shell } from 'electron'
+import { app, shell } from 'electron'
 import { mkdir, readdir, readFile, rename, stat, writeFile } from 'fs/promises'
 import { dirname, extname, join } from 'path'
 import type { Project } from '../renderer/src/editor/model'
@@ -45,4 +45,19 @@ export async function renameSong(song: string, newBaseName: string): Promise<str
 export async function saveRender(song: string, versionName: string, wav: ArrayBuffer): Promise<string> {
   const dest = await uniquePath(dirname(song), renderName(song, versionName), exists)
   await writeFile(dest, Buffer.from(wav)); return dest
+}
+
+// Waveform peaks cache: <userData>/peaks/<key>.pks (under SLOWVERB_ROOT/.peaks in the test harness, so tests never touch real app data).
+// The key is built in the renderer (peaksKey: path hash + mtime + size), so an edited file simply misses.
+const peaksDir = () => process.env.SLOWVERB_ROOT ? join(process.env.SLOWVERB_ROOT, '.peaks') : join(app.getPath('userData'), 'peaks')
+const peaksFile = (key: string) => { const k = key.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); if (!k) throw new Error('Empty peaks key'); return join(peaksDir(), `${k}.pks`) }
+export async function peaksGet(key: string): Promise<ArrayBuffer | null> {
+  try { const b = await readFile(peaksFile(key)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer } catch { return null }
+}
+export async function peaksPut(key: string, data: ArrayBuffer): Promise<void> {
+  const dest = peaksFile(key), tmp = `${dest}.tmp`
+  await mkdir(dirname(dest), { recursive: true }); await writeFile(tmp, Buffer.from(data)); await rename(tmp, dest)   // atomic
+}
+export async function peaksStat(path: string): Promise<{ mtimeMs: number; size: number } | null> {
+  try { const s = await stat(path); return { mtimeMs: s.mtimeMs, size: s.size } } catch { return null }
 }

@@ -1,5 +1,6 @@
 import { clipEnd, type Clip, type Project } from './model'
-import { EPS, clamp, finite, fitFades, lockedIds, piece, placeAll, tooShort, trackIndex, uid } from './clipmath'
+import { EPS, SLACK, SPEED_MAX, SPEED_MIN, clamp, finite, fitFades, lockedIds, piece, placeAll, settle, spanTooShort, trackIndex, uid } from './clipmath'
+import { removeSpan, rippleTracks, type RippleOpts } from './opsRange'
 
 // Clip-level edits. All pure: they return a NEW Project, or the SAME object when nothing changed.
 // Locked tracks are read-only: clips on them are skipped by every op here.
@@ -16,11 +17,13 @@ export function splitAt(p: Project, t: number, ids?: string[]): Project {
   let changed = false
   const clips = p.clips.flatMap(c => {
     const s = c.start, e = clipEnd(c)
-    if (locked.has(c.track) || (only && !only.has(c.id)) || t <= s + EPS || t >= e - EPS || tooShort(t - s) || tooShort(e - t)) return [c]
-    const rid = uid('c', taken); taken.add(rid); changed = true
-    return [piece(c, s, t, c.id)!, piece(c, t, e, rid)!]
+    if (locked.has(c.track) || (only && !only.has(c.id)) || t <= s + EPS || t >= e - EPS) return [c]
+    const rid = uid('c', taken), l = piece(c, s, t, c.id), r = piece(c, t, e, rid)
+    if (!l || !r) return [c]
+    taken.add(rid); changed = true
+    return [l, r]
   })
-  return changed ? { ...p, clips } : p
+  return changed ? { ...p, clips: settle(clips) } : p
 }
 
 export function deleteClips(p: Project, ids: string[]): Project {
@@ -28,24 +31,43 @@ export function deleteClips(p: Project, ids: string[]): Project {
   return gone.size ? { ...p, clips: p.clips.filter(c => !gone.has(c.id)) } : p
 }
 
-/** Delete, then close the gap: later clips on the same tracks shift left by the (merged) removed span before them. */
-export function rippleDelete(p: Project, ids: string[]): Project {
+/** Subtract the [s, e] intervals in `cover` from [a, b]; pieces shorter than SLACK dropped. */
+function minus(a: number, b: number, cover: [number, number][]): [number, number][] {
+  let parts: [number, number][] = [[a, b]]
+  for (const [s, e] of cover) parts = parts.flatMap(([x, y]) => (e <= x || s >= y ? [[x, y]] : [[x, Math.min(y, s)], [Math.max(x, e), y]]) as [number, number][])
+  return parts.filter(([x, y]) => y - x > SLACK)
+}
+
+const merge = (list: [number, number][]) => {
+  const out: [number, number][] = []
+  for (const [a, b] of [...list].sort((x, y) => x[0] - y[0])) {
+    const last = out[out.length - 1]
+    if (last && a <= last[1] + EPS) last[1] = Math.max(last[1], b)
+    else out.push([a, b])
+  }
+  return out
+}
+
+/**
+ * Delete, then close the space they leave: later clips on the same tracks shift left by the (merged) emptied span before
+ * them. Space still covered by a surviving crossfade partner is not removed. With sync lock (opts, else p.syncLock,
+ * default on) every other unlocked track loses the union of those spans too, so tracks stay in sync.
+ */
+export function rippleDelete(p: Project, ids: string[], opts?: RippleOpts): Project {
   const gone = byId(p, ids)
   if (!gone.length) return p
   const goneIds = new Set(gone.map(c => c.id))
-  const spans = new Map<string, [number, number][]>()   // per track, merged, sorted
-  for (const c of [...gone].sort((a, b) => a.start - b.start)) {
-    const list = spans.get(c.track) ?? []
-    const last = list[list.length - 1]
-    if (last && c.start <= last[1] + EPS) last[1] = Math.max(last[1], clipEnd(c))
-    else list.push([c.start, clipEnd(c)])
-    spans.set(c.track, list)
+  let clips = p.clips.filter(c => !goneIds.has(c.id))
+  const spans = new Map<string, [number, number][]>()
+  for (const c of gone) {
+    const cover = clips.filter(x => x.track === c.track).map(x => [x.start, clipEnd(x)] as [number, number])
+    spans.set(c.track, [...(spans.get(c.track) ?? []), ...minus(c.start, clipEnd(c), cover)])
   }
-  const clips = p.clips.filter(c => !goneIds.has(c.id)).map(c => {
-    const shift = (spans.get(c.track) ?? []).reduce((n, [a, b]) => (b <= c.start + EPS ? n + (b - a) : n), 0)
-    return shift > 0 ? { ...c, start: Math.max(0, c.start - shift) } : c
-  })
-  return { ...p, clips }
+  const union = merge([...spans.values()].flat())
+  for (const tr of rippleTracks(p, spans.keys(), opts)) {
+    for (const [a, b] of merge(spans.get(tr) ?? union).reverse()) clips = removeSpan(clips, tr, a, b)
+  }
+  return { ...p, clips: settle(clips) }
 }
 
 /** Move clips by dt (clamped so none starts before 0) and trackShift (clamped into range; a locked destination refuses). Overwrites what it lands on. */
@@ -86,7 +108,8 @@ export function pasteClips(p: Project, clips: Clip[], at: number, track?: string
     const src = p.sources[c.src]
     if (!src || !finite(c.start) || !finite(c.srcIn) || !finite(c.srcOut)) return []
     const srcIn = clamp(c.srcIn, 0, src.duration), srcOut = clamp(c.srcOut, 0, src.duration)
-    return tooShort(srcOut - srcIn) ? [] : [{ ...c, srcIn, srcOut, gain: finite(c.gain) && c.gain >= 0 ? c.gain : 1, fadeIn: Math.max(0, c.fadeIn || 0), fadeOut: Math.max(0, c.fadeOut || 0) }]
+    const speed = c.speed === undefined ? undefined : finite(c.speed) && c.speed > 0 ? clamp(c.speed, SPEED_MIN, SPEED_MAX) : 1
+    return spanTooShort(srcOut - srcIn, speed ?? 1) ? [] : [{ ...c, ...(speed === undefined ? {} : { speed }), srcIn, srcOut, gain: finite(c.gain) && c.gain >= 0 ? c.gain : 1, fadeIn: Math.max(0, c.fadeIn || 0), fadeOut: Math.max(0, c.fadeOut || 0) }]
   }).sort((a, b) => a.start - b.start)
   if (!valid.length) return p
   let offset = 0

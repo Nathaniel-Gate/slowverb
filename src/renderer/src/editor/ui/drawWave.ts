@@ -9,6 +9,7 @@ export type WaveArgs = {
   srcIn: number; srcOut: number
   u0: number                                 // clip-relative time (s) at the canvas left edge
   gain: number; fadeIn: number; fadeOut: number
+  speed?: number                             // clip playback rate: source seconds per timeline second (default 1)
   wave: string; fadeShade: string; fadeLine: string
 }
 
@@ -20,11 +21,12 @@ export function drawWave(g: CanvasRenderingContext2D, o: WaveArgs) {
   const mid = h / 2, half = h / 2 - 3
   const scale = Math.min(o.gain, 10 ** (TL.gainClampDb / 20))
   if (o.pk) {
-    const lvl = pickLevel(o.pk, 1 / pps), spb = lvl.spp / o.pk.rate, n = lvl.max.length
-    const perCol = 1 / pps
+    const sp = o.speed && o.speed > 0 ? o.speed : 1
+    const lvl = pickLevel(o.pk, sp / pps), spb = lvl.spp / o.pk.rate, n = lvl.max.length
+    const perCol = sp / pps
     g.fillStyle = o.wave
     for (let i = 0; i < w; i++) {
-      const s0 = o.srcIn + o.u0 + i * perCol, s1 = s0 + perCol
+      const s0 = o.srcIn + o.u0 * sp + i * perCol, s1 = s0 + perCol
       if (s1 <= o.srcIn || s0 >= o.srcOut) continue
       const b0 = Math.max(0, Math.floor(Math.max(s0, o.srcIn) / spb))
       const b1 = Math.min(n, Math.max(b0 + 1, Math.ceil(Math.min(s1, o.srcOut) / spb)))

@@ -1,35 +1,41 @@
-import type { Tool } from '../editor/model'
 import { TL } from './timeline'
 
-// Editor shortcuts. code = KeyboardEvent.code. meta = needs Cmd. shift/alt: omitted = ignored for shift, must be off for alt.
-// repeat: true lets holding the key repeat the action. Actions are implemented in editor/useEditorKeys.ts.
-export type EditorAction =
-  | `tool:${Tool}` | 'play' | 'split' | 'delete' | 'rippleDelete' | 'undo' | 'redo' | 'snap' | 'fit' | 'zoomIn' | 'zoomOut'
-  | 'nudgeBack' | 'nudgeFwd' | 'nudgeBackBig' | 'nudgeFwdBig' | 'prevEdit' | 'nextEdit' | 'home' | 'end'
-  | 'markIn' | 'markOut' | 'clearIn' | 'clearOut' | 'marker' | 'selectAll' | 'deselect' | 'copy' | 'cut' | 'paste'
-export type EditorKey = { code: string; meta?: boolean; shift?: boolean; alt?: boolean; repeat?: boolean; action: EditorAction }
-
-// Order matters: the first match wins, so put the shift variants first.
-export const EDITOR_KEYS: EditorKey[] = [
-  { code: 'KeyV', action: 'tool:select' }, { code: 'KeyC', action: 'tool:razor' }, { code: 'KeyB', action: 'tool:ripple' },
-  { code: 'KeyY', action: 'tool:slip' }, { code: 'KeyH', action: 'tool:hand' }, { code: 'KeyZ', action: 'tool:zoom' },
-  { code: 'Space', action: 'play' },
-  { code: 'KeyK', meta: true, action: 'split' },
-  { code: 'Delete', shift: true, action: 'rippleDelete' }, { code: 'Backspace', shift: true, action: 'rippleDelete' },
-  { code: 'Delete', action: 'delete' }, { code: 'Backspace', action: 'delete' },
-  { code: 'KeyZ', meta: true, shift: true, repeat: true, action: 'redo' }, { code: 'KeyZ', meta: true, repeat: true, action: 'undo' },
-  { code: 'KeyS', action: 'snap' }, { code: 'Backslash', action: 'fit' },
-  { code: 'Equal', repeat: true, action: 'zoomIn' }, { code: 'NumpadAdd', repeat: true, action: 'zoomIn' },
-  { code: 'Minus', repeat: true, action: 'zoomOut' }, { code: 'NumpadSubtract', repeat: true, action: 'zoomOut' },
-  { code: 'ArrowLeft', shift: true, repeat: true, action: 'nudgeBackBig' }, { code: 'ArrowRight', shift: true, repeat: true, action: 'nudgeFwdBig' },
-  { code: 'ArrowLeft', repeat: true, action: 'nudgeBack' }, { code: 'ArrowRight', repeat: true, action: 'nudgeFwd' },
-  { code: 'ArrowUp', action: 'prevEdit' }, { code: 'ArrowDown', action: 'nextEdit' },
-  { code: 'Home', action: 'home' }, { code: 'End', action: 'end' },
-  { code: 'KeyI', alt: true, action: 'clearIn' }, { code: 'KeyO', alt: true, action: 'clearOut' },
-  { code: 'KeyI', action: 'markIn' }, { code: 'KeyO', action: 'markOut' }, { code: 'KeyM', action: 'marker' },
-  { code: 'KeyA', meta: true, action: 'selectAll' }, { code: 'Escape', action: 'deselect' },
-  { code: 'KeyC', meta: true, action: 'copy' }, { code: 'KeyX', meta: true, action: 'cut' }, { code: 'KeyV', meta: true, action: 'paste' }
-]
+// Editor shortcuts and tunables. Keys are mac style: 'Cmd+Shift+K', 'Alt+Left', 'Space'. Modifiers are matched EXACTLY
+// (Shift+X is not X). Key names: A-Z, 0-9, Left/Right/Up/Down, Space, Delete, Backspace, Home, End, Escape, Enter, Tab,
+// and the literals ; ' \ = - , . / [ ]. Command ids match editor/commands.ts. No default may collide (commands.test.ts checks).
+// Users can override any of these in the Shortcuts dialog (Cmd+Alt+K); overrides persist in localStorage.
+export const DEFAULT_KEYS: Record<string, string[]> = {
+  // tools
+  'tool.select': ['V'], 'tool.razor': ['C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Z'],
+  'tool.roll': ['N'], 'tool.rate': ['R'],
+  // transport
+  'play': ['Space'], 'playRange': ['Shift+Space'], 'loop': ['Cmd+L'],
+  'shuttle.back': ['J'], 'shuttle.stop': ['K'], 'shuttle.fwd': ['L'],
+  'step.back': ['Left'], 'step.fwd': ['Right'], 'step.backBig': ['Shift+Left'], 'step.fwdBig': ['Shift+Right'],
+  'edit.prev': ['Up'], 'edit.next': ['Down'], 'home': ['Home'], 'end': ['End'],
+  // cutting
+  'split': ['Cmd+K'], 'splitAll': ['Cmd+Shift+K'],
+  'trim.headRipple': ['Q'], 'trim.tailRipple': ['W'], 'trim.head': ['Alt+Q'], 'trim.tail': ['Alt+W'],
+  'delete': ['Delete', 'Backspace'], 'rippleDelete': ['Shift+Delete', 'Shift+Backspace'],
+  'lift': [';'], 'extract': ["'"], 'closeGaps': [],
+  'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
+  'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
+  // selection and clipboard
+  'selectAll': ['Cmd+A'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
+  'copy': ['Cmd+C'], 'cut': ['Cmd+X'], 'paste': ['Cmd+V'], 'pasteInsert': ['Cmd+Shift+V'],
+  // marks and markers
+  'markIn': ['I'], 'markOut': ['O'], 'gotoIn': ['Shift+I'], 'gotoOut': ['Shift+O'], 'clearIn': ['Alt+I'], 'clearOut': ['Alt+O'], 'clearMarks': ['Alt+X'],
+  'marker': ['M'], 'marker.next': ['Shift+M'], 'marker.prev': ['Shift+Alt+M'],
+  // view
+  'snap': ['S'], 'beatSnap': ['Shift+S'], 'showBeats': ['Shift+B'], 'fit': ['\\'], 'fitSelection': ['Shift+\\'],
+  'zoomIn': ['=', 'Shift+=', 'NumpadAdd'], 'zoomOut': ['-', 'NumpadSubtract'],
+  'dock.inspector': ['Alt+1'], 'dock.source': ['Alt+2'], 'dock.markers': ['Alt+3'], 'dock.mix': ['Alt+4'], 'dock.bpm': ['Alt+5'], 'dock.hide': ['Alt+0'],
+  // project
+  'undo': ['Cmd+Z'], 'redo': ['Cmd+Shift+Z', 'Cmd+Y'], 'history': ['Cmd+Alt+Z'], 'save': ['Cmd+S'], 'render': ['Cmd+E'],
+  'version.new': [], 'version.duplicate': [], 'syncLock': [],
+  // overlays
+  'palette': ['Cmd+Shift+P'], 'shortcuts': ['Cmd+Alt+K']
+}
 
 // Tunables for the editor shell and store.
 export const EDITOR = {
@@ -38,9 +44,17 @@ export const EDITOR = {
   zoomStep: 1.25,             // factor per +/- key
   defaultPxPerSec: 80,
   fitPadPx: 48,               // breathing room when fitting the whole project to the view
-  nudgeSec: 0.1, nudgeBigSec: 1,
+  nudgeSec: 0.1, nudgeBigSec: 1,           // playhead step (arrows, Shift+arrows)
+  nudgeClipSec: 0.01, nudgeClipBigMul: 10, // clip nudge (Alt+arrows, Cmd+Alt+arrows = x10)
+  crossfadeSec: 0.5,          // default crossfade length (Cmd+D)
+  coalesceMs: 700,            // edits of the same kind inside this window (slider drags, held nudges) share ONE undo step
   edgeEps: 1e-4,              // seconds: tolerance when stepping between edit points
   headerW: 188,               // track header column width, px
-  noteMs: 2400,               // how long a finished status ("Saved to library") stays in the header
-  unmountMs: 320              // keep the editor mounted this long after close so the exit animation can play
+  toastMs: 2200,              // how long a toast stays up
+  unmountMs: 320,             // keep the editor mounted this long after close so the exit animation can play
+  shuttleSteps: [1, 2, 4, 8], // J/K/L: each extra tap goes one step faster
+  shuttleSlow: 0.25,          // K held + J/L
+  recentCommands: 6,          // palette shows this many recently used commands first
+  keysStorage: 'slowverb.editor.keys', renderStorage: 'slowverb.editor.render',
+  render: { bitDepth: 16 as 16 | 24 | 32, normalize: false }
 } as const

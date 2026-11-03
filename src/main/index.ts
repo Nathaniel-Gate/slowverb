@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { scan } from './scan'
 import { exportSave } from './export'
 import { cancelDownload, downloadAudio } from './ytdlp'
-import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, renameSong, saveRender } from './editor'
+import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, peaksGet, peaksPut, peaksStat, renameSong, saveRender } from './editor'
 import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
 
@@ -51,6 +51,9 @@ app.whenReady().then(() => {
   ipcMain.handle('editor:rename', (_e, song: string, from: string, to: string) => editorRenameVersion(song, from, to))
   ipcMain.handle('editor:renameSong', (_e, song: string, base: string) => renameSong(song, base))
   ipcMain.handle('editor:render', (_e, song: string, name: string, wav: ArrayBuffer) => saveRender(song, name, wav))
+  ipcMain.handle('peaks:get', (_e, key: string) => peaksGet(key))
+  ipcMain.handle('peaks:put', (_e, key: string, data: ArrayBuffer) => peaksPut(key, data))
+  ipcMain.handle('peaks:stat', (_e, path: string) => peaksStat(path))
   ipcMain.handle('dl:cancel', () => cancelDownload())
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))
   ipcMain.handle('library:load', async () => { try { return JSON.parse(await readFile(libraryFile(), 'utf8')) } catch { return null } })

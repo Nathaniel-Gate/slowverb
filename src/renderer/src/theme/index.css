@@ -9,3 +9,4 @@
 @import '../features/playlists/playlists.css';
 @import '../editor/editor.css';
 @import '../editor/ui/timeline.css';
+@import '../editor/ui/overlays.css';

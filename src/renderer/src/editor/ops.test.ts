@@ -74,16 +74,16 @@ describe('deleteClips / rippleDelete', () => {
     expect(deleteClips(l, ['a', 'd']).clips.map(c => c.id).sort()).toEqual(['a', 'b', 'c'])
     expect(rippleDelete(l, ['a'])).toBe(l)
   })
-  it('rippleDelete closes the gap on the same track only', () => {
-    const q = rippleDelete(p, ['b'])
+  it('rippleDelete without sync lock closes the gap on the same track only', () => {
+    const q = rippleDelete(p, ['b'], { syncLock: false })
     expect(spans(q, 'T1')).toEqual([[0, 2], [3, 4]]); expect(spans(q, 'T2')).toEqual([[1, 3]]); ok(q)
   })
   it('rippleDelete of several clips shifts later clips by the cumulative span', () => {
     const q = rippleDelete(p, ['a', 'b'])
     expect(spans(q, 'T1')).toEqual([[1, 2]])               // c: 6 - 5 = 1
   })
-  it('rippleDelete across multiple tracks shifts each track by its own span', () => {
-    const m = proj([mk('a', 'T1', 0, 0, 2), mk('b', 'T1', 3, 0, 1), mk('c', 'T2', 1, 0, 3), mk('d', 'T2', 5, 0, 1), mk('e', 'T3', 4, 0, 1)])
+  it('rippleDelete across multiple tracks shifts each track by its own span (no sync lock)', () => {
+    const m = { ...proj([mk('a', 'T1', 0, 0, 2), mk('b', 'T1', 3, 0, 1), mk('c', 'T2', 1, 0, 3), mk('d', 'T2', 5, 0, 1), mk('e', 'T3', 4, 0, 1)]), syncLock: false }
     const q = rippleDelete(m, ['a', 'c'])
     expect(spans(q, 'T1')).toEqual([[1, 2]]); expect(spans(q, 'T2')).toEqual([[2, 3]]); expect(spans(q, 'T3')).toEqual([[4, 5]]); ok(q)
   })
@@ -220,8 +220,8 @@ describe('trimClip', () => {
 
 describe('rippleTrim', () => {
   const p = proj([mk('a', 'T1', 0, 0, 4), mk('b', 'T1', 4, 0, 2), mk('c', 'T1', 8, 0, 1), mk('d', 'T2', 5, 0, 1)])
-  it('out edge shorter pulls later clips of the same track left', () => {
-    const q = rippleTrim(p, 'a', 'out', 3)
+  it('out edge shorter pulls later clips of the same track left (no sync lock)', () => {
+    const q = rippleTrim(p, 'a', 'out', 3, { syncLock: false })
     expect(spans(q, 'T1')).toEqual([[0, 3], [3, 5], [7, 8]]); expect(spans(q, 'T2')).toEqual([[5, 6]]); ok(q)
   })
   it('out edge longer pushes later clips right, nothing overwritten', () => {
