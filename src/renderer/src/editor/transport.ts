@@ -150,7 +150,7 @@ export class EditorTransport {
     if (ctx.state !== 'running') void ctx.resume()
     this.grainAt = now; this.lastGrainT = Math.max(0, t); this.grain?.stop()
     this.from = Math.max(0, t)
-    this.grain = buildGraph(ctx, p, buffers, this.from, now + 0.005, { bare: true, until: this.from + E.scrubGrain, rampIn: E.scrubFadeIn, rampOut: E.scrubFadeOut })
+    this.grain = buildGraph(ctx, p, buffers, this.from, now + 0.005, { speedOnly: true, until: this.from + E.scrubGrain, rampIn: E.scrubFadeIn, rampOut: E.scrubFadeOut })
     this.grain.out.connect(this.analyser)
   }
 }

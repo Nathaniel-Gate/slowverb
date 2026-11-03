@@ -6,7 +6,7 @@ import { editorTransport } from './editor/transport'
 import { setMasterFallback } from './editor/master'
 import * as ops from './editor/ops'
 import { renderProject } from './editor/render'
-import { loadBuffers } from './editor/schedule'
+import { buildGraph, loadBuffers } from './editor/schedule'
 import { DEFAULT_FX } from './config/fx'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
@@ -64,7 +64,7 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
+;(window as any).__sv = { buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()

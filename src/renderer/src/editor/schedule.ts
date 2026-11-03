@@ -84,7 +84,8 @@ export type GraphOpts = {
   rate?: number            // extra rate on top of master speed (shuttle), magnitude only
   reverse?: boolean        // play the timeline BACKWARDS from fromSec using reversed buffers
   until?: number           // forward only: timeline second playback stops at (loop end, play range, scrub grain)
-  bare?: boolean           // skip master speed + reverb chain (scrub grains)
+  bare?: boolean           // skip master speed + reverb chain
+  speedOnly?: boolean      // apply the master speed (so pitch/tone match the playback) but skip the reverb chain: scrub grains, which fire many times a second
 }
 
 // Reversed copies for reverse shuttle, made lazily once per source buffer.
@@ -120,7 +121,7 @@ export function buildGraph(ctx: BaseAudioContext, p: Project, buffers: Buffers, 
   const factor = (opts.bare ? 1 : Math.max(fx.speed, EDITOR_AUDIO.minSpeed)) * Math.max(opts.rate ?? 1, EDITOR_AUDIO.shuttleMin), k = 1 / factor
   const input = ctx.createGain()
   let out: GainNode
-  if (opts.bare) { out = ctx.createGain(); input.connect(out).connect(ctx.destination) }
+  if (opts.bare || opts.speedOnly) { out = ctx.createGain(); input.connect(out).connect(ctx.destination) }
   else { const chain = buildChain(ctx, input); chain.apply(fx); out = chain.out }
   const limit = rev ? Infinity : opts.until ?? Infinity
   const ctxAt = (t: number) => atCtxTime + Math.abs(t - fromSec) * k

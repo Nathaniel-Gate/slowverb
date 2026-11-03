@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,25 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_SCRUB) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, song = ${JSON.stringify(process.env.SLOWVERB_SCRUB)}, out = {}
+        const base = sv.ops.newProject(song, 3), buffers = await sv.loadBuffers(base, sv.editorTransport.ctx)
+        const hz = (ch, rate) => { let z = 0; for (let i = 1; i < ch.length; i++) if (ch[i - 1] <= 0 && ch[i] > 0) z++; return z / (ch.length / rate) }
+        const grain = async (master, opts) => {
+          const p = { ...base, master }, ctx = new OfflineAudioContext(2, 44100, 44100)
+          sv.buildGraph(ctx, p, buffers, 0.5, 0, { until: 0.5 + 0.5, ...opts })
+          const buf = await ctx.startRendering(), ch = buf.getChannelData(0)
+          let last = 0; for (let i = 0; i < ch.length; i++) if (Math.abs(ch[i]) > 0.001) last = i
+          return { hz: +hz(ch.slice(0, last), 44100).toFixed(0), sec: +(last / 44100).toFixed(2) }
+        }
+        const slow = { speed: 0.5, pitchLock: false, wet: 0, decay: 2, damping: 0.3 }
+        out.normalMaster = await grain(null, { speedOnly: true })
+        out.slowedMaster_speedOnly = await grain(slow, { speedOnly: true })
+        out.slowedMaster_bare_old = await grain(slow, { bare: true })
+        return out })()`)
+      console.log('SCRUB_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_AUTOPLAY) {
       const r = await win.webContents.executeJavaScript(`(async () => {
