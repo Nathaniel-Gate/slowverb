@@ -1,5 +1,5 @@
 .side { background: var(--ink-900); display: flex; flex-direction: column; min-height: 0; padding-top: 38px; }
-.side-head { padding: 16px 20px; border-bottom: 1px solid var(--hairline); }
+.side-head { padding: 18px 20px; border-bottom: 1px solid var(--hairline); }
 .side-head:last-child { border-top: 1px solid var(--hairline); border-bottom: 0; }
 .list { flex: 1; overflow-y: auto; }
 .item { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--hairline); cursor: pointer; align-items: center; }
@@ -10,7 +10,7 @@
 .empty { padding: 40px 20px; text-align: center; line-height: 1.8; }
 
 /* Soft UI pass: floating sidebar card, inset rounded rows */
-.side { margin: 12px 12px 12px 0; padding-top: 38px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; background: rgb(15 15 15 / .92); }
+.side { margin: 12px 12px 12px 0; padding-top: 0; border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; background: rgb(15 15 15 / .92); }
 .main { border-right: 0; }
 .list { padding: 8px; }
 .item { border-bottom: 0; border-radius: var(--radius); padding: 10px 12px; margin-bottom: 2px; }

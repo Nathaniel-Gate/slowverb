@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './base.css';
 @import './blueprint.css';
+@import './motion.css';
 @import '../features/player/player.css';
 @import '../features/fx/fx.css';
 @import '../features/library/library.css';

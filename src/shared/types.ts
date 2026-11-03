@@ -14,3 +14,6 @@ export type Track = {
 }
 export type Saved = { tracks: Track[]; cur: string | null; fx: Fx; preset: string | null; userPresets: { name: string; fx: Fx }[] }
 export type ScanResult = Omit<Track, 'id' | 'fx'>
+
+/** Download progress sent main -> UI. pct null = unknown duration (show a moving bar, not a number). */
+export type DlProgress = { stage: string; pct: number | null; item?: { i: number; n: number } }

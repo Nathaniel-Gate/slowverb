@@ -1,0 +1,49 @@
+/* MOTION. Only transform + opacity animate (compositor-friendly). Tune speed/feel with these tokens. */
+:root { --ease: cubic-bezier(.16, 1, .3, 1); --t-fast: 140ms; --t: 260ms; --t-slow: 520ms; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes title-in { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+@keyframes eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+/* entrance: panels stagger up, sidebar slides in */
+.main > div:first-child { animation: rise var(--t-slow) var(--ease) both; }
+.main .stack > .panel { animation: rise var(--t-slow) var(--ease) both; }
+.main .stack > .panel:nth-child(2) { animation-delay: 70ms; }
+.side { animation: slide-in var(--t-slow) var(--ease) 90ms both; }
+.item { animation: slide-in var(--t) var(--ease) both; }
+.title, .artist { animation: title-in var(--t-slow) var(--ease) both; }   /* re-keyed per track in NowPlaying */
+.drop { animation: pop var(--t) var(--ease) both; }
+
+/* feel: everything interactive responds */
+button, .chip, .item, .dl-input { transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease); }
+button:active:not(:disabled), .chip:active { transform: scale(.96); }
+.play:hover { transform: scale(1.04); } .play:active { transform: scale(.95) !important; }
+.item:active { transform: scale(.995); }
+input[type=range]::-webkit-slider-thumb { transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.25); }
+input[type=range]:active::-webkit-slider-thumb { transform: scale(1.5); box-shadow: 0 0 0 6px rgb(255 255 255 / .1); }
+
+/* slider fill: set --p (0-100%) inline on the input */
+input[type=range] { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--white) var(--p, 0%), var(--hairline-strong) var(--p, 0%)); }
+
+/* playing indicator on the current row */
+.eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
+.eq i { width: 2px; height: 100%; background: var(--white); border-radius: 1px; transform-origin: bottom; animation: eq 900ms ease-in-out infinite; }
+.eq i:nth-child(2) { animation-delay: -300ms; } .eq i:nth-child(3) { animation-delay: -600ms; }
+.eq.paused i { animation-play-state: paused; transform: scaleY(.3); }
+
+/* progress bar: smooth determinate + sliding indeterminate */
+.bar { height: 3px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
+.bar-fill { height: 100%; width: 100%; background: var(--white); border-radius: 3px; transform-origin: left; will-change: transform; }
+.bar-ind { height: 100%; width: 38%; background: linear-gradient(90deg, transparent, var(--white), transparent); animation: shimmer 1.2s var(--ease) infinite; }
+
+/* download feedback area expands smoothly instead of popping */
+.dl-feedback { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--t) var(--ease), opacity var(--t) var(--ease); }
+.dl-feedback > * { overflow: hidden; min-height: 0; }
+.dl-feedback.show { grid-template-rows: 1fr; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; } }

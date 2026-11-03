@@ -6,8 +6,9 @@ contextBridge.exposeInMainWorld('api', {
   load: () => ipcRenderer.invoke('library:load'),
   save: (d: unknown) => ipcRenderer.invoke('library:save', d),
   download: (url: string) => ipcRenderer.invoke('dl:start', url),
-  onDownloadProgress: (cb: (p: { pct: number; stage: string }) => void) => {
-    const h = (_e: unknown, p: { pct: number; stage: string }) => cb(p); ipcRenderer.on('dl:progress', h); return () => ipcRenderer.removeListener('dl:progress', h)
+  cancelDownload: () => ipcRenderer.invoke('dl:cancel'),
+  onDownloadProgress: (cb: (p: unknown) => void) => {
+    const h = (_e: unknown, p: unknown) => cb(p); ipcRenderer.on('dl:progress', h); return () => ipcRenderer.removeListener('dl:progress', h)
   },
   exportAudio: (name: string, data: ArrayBuffer) => ipcRenderer.invoke('export:save', name, data)
 })

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'url'
 import { readFile, writeFile } from 'fs/promises'
 import { scan } from './scan'
 import { exportSave } from './export'
-import { downloadAudio } from './ytdlp'
+import { cancelDownload, downloadAudio } from './ytdlp'
 import { runShot } from './devshot'
 
 // media://local/<abs path> streams a file from disk with range support (seeking) and CORS (Web Audio needs it).
@@ -17,7 +17,7 @@ const libraryFile = () => join(app.getPath('userData'), 'library.json')
 function createWindow() {
   const win = new BrowserWindow({
     width: 1100, height: 720, minWidth: 720, minHeight: 480,
-    backgroundColor: '#0a0a0a', titleBarStyle: 'hiddenInset',
+    backgroundColor: '#0a0a0a', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 18 },
     webPreferences: { autoplayPolicy: process.env.SLOWVERB_SHOT ? 'no-user-gesture-required' : 'document-user-activation-required', preload: join(__dirname, '../preload/index.js'), sandbox: false }
   })
   if (process.env['ELECTRON_RENDERER_URL']) win.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -33,9 +33,10 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('scan', (_e, paths: string[]) => scan(paths))
   ipcMain.handle('dl:start', async (e, url: string) => {
-    try { return { paths: await downloadAudio(url, (pct, stage) => e.sender.send('dl:progress', { pct, stage })) } }
+    try { return { paths: await downloadAudio(url, (p) => e.sender.send('dl:progress', p)) } }
     catch (err) { return { error: err instanceof Error ? err.message : String(err) } }
   })
+  ipcMain.handle('dl:cancel', () => cancelDownload())
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))
   ipcMain.handle('library:load', async () => { try { return JSON.parse(await readFile(libraryFile(), 'utf8')) } catch { return null } })
   ipcMain.handle('library:save', (_e, data) => writeFile(libraryFile(), JSON.stringify(data)))

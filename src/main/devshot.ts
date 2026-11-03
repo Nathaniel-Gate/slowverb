@@ -20,6 +20,7 @@ export function runShot(win: BrowserWindow) {
       return { ex, seekedTo: e.currentTime, duration: e.duration, seekable: e.seekable.length && e.seekable.end(0), tracks: r.length, rate: e.playbackRate, preservesPitch: e.preservesPitch, time: e.currentTime, paused: e.paused, peak, error: e.error && e.error.message }
     })()`
     const result = await win.webContents.executeJavaScript(js)
+    if (process.env.SLOWVERB_FAKE_PROGRESS) { win.webContents.send('dl:progress', { stage: 'Downloading', pct: 42, item: { i: 2, n: 5 } }); await new Promise((r) => setTimeout(r, 1500)) }
     const img = await win.webContents.capturePage()
     writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
     console.log('SHOT_RESULT ' + JSON.stringify(result))
