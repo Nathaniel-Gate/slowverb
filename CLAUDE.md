@@ -23,3 +23,4 @@ Known: streamed media reports Infinity duration, so UI uses the tag duration (us
 Plan: ~/.claude/plans/sequential-pondering-blum.md (phase 3 export DONE; 4 library polish and 5 settings/themes still to do). Export: audio/offline.ts + wav.ts, main/export.ts; harness runs a null-test..
 Icon: `build/icon.svg` is the source; `npx electron build/render-icon.cjs` regenerates icon.png + icon.icns, then `npm run deploy`.
 Corner softness: `--radius-sm/--radius/--radius-lg` in theme/tokens.css (0 = sharp).
+Live editing: `npm run live` opens a window that hot-reloads on every save (UI changes instantly; main-process changes restart the app). Use it instead of the installed app while editing; run `npm run deploy` when happy.
