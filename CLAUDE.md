@@ -22,3 +22,4 @@ Screenshot/audio harness: `SLOWVERB_SHOT=out.png SLOWVERB_DIR=<folder of audio> 
 Known: streamed media reports Infinity duration, so UI uses the tag duration (useAudioTime.ts).
 Plan: ~/.claude/plans/sequential-pondering-blum.md (phase 3 export DONE; 4 library polish and 5 settings/themes still to do). Export: audio/offline.ts + wav.ts, main/export.ts; harness runs a null-test..
 Icon: `build/icon.svg` is the source; `npx electron build/render-icon.cjs` regenerates icon.png + icon.icns, then `npm run deploy`.
+Corner softness: `--radius-sm/--radius/--radius-lg` in theme/tokens.css (0 = sharp).

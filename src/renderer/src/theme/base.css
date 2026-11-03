@@ -7,8 +7,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .main { overflow-y: auto; gap: 24px; padding: 56px var(--pad) 32px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--hairline); min-width: 0; }
 .title { font-size: var(--title-size); font-weight: 500; letter-spacing: -.02em; line-height: 1.1; margin-top: 10px; }
 .artist { color: var(--steel-400); margin-top: 8px; min-height: 1.4em; }
-.tag { display: inline-block; border: 1px solid var(--hairline-strong); padding: 3px 8px; margin: 14px 8px 0 0; }
+.tag { display: inline-block; border: 1px solid var(--hairline-strong); padding: 3px 8px; margin: 14px 8px 0 0; border-radius: var(--radius-sm); }
 .item { align-items: center; }
 .row { display: flex; justify-content: space-between; align-items: center; }
 .stack > * + * { margin-top: 12px; }
-.drop { position: absolute; inset: 0; z-index: 9; background: rgb(10 10 10 / .92); border: 1px dashed var(--white); margin: 14px; display: grid; place-items: center; pointer-events: none; }
+.drop { position: absolute; inset: 0; z-index: 9; background: rgb(10 10 10 / .92); border: 1px dashed var(--white); margin: 14px; display: grid; place-items: center; pointer-events: none; border-radius: var(--radius-lg); }

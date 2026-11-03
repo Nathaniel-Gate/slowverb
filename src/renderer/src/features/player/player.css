@@ -1,4 +1,4 @@
 .transport { display: flex; align-items: center; gap: 20px; margin-top: 18px; }
 .transport input[type=range] { flex: 1; }
-.play { width: 52px; height: 52px; border: 1px solid var(--white); display: grid; place-items: center; font-family: var(--font-mono); flex: none; }
+.play { width: 52px; height: 52px; border: 1px solid var(--white); display: grid; place-items: center; font-family: var(--font-mono); flex: none; border-radius: var(--radius); }
 .play:hover { background: var(--white); color: var(--ink-950); }
