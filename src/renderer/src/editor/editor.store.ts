@@ -3,6 +3,8 @@ import { encodeWav } from '../audio/wav'
 import { engine } from '../audio/engine'
 import { EDITOR } from '../config/editorKeys'
 import { useLibrary } from '../features/library/library.store'
+import { useFx } from '../features/fx/fx.store'
+import { usePlayer } from '../features/player/player.store'
 import { runCommandById } from './commands'
 import { describeStep } from './describe'
 import { createHistory, pushHistory, redo as redoH, undo as undoH, type History } from './history'
@@ -11,6 +13,7 @@ import * as ops from './ops'
 import { computePeaks, type Peaks } from './peaks'
 import { renderProject } from './render'
 import { loadBuffers } from './schedule'
+import { sourceToTimeline, timelineToSource } from './sync'
 import { editPlayActions } from './storePlay'
 import { editActions } from './storeEdit'
 import { projectActions } from './storeProject'
@@ -42,6 +45,26 @@ export const useEditor = create<S>((set, get) => {
   const stopPlayback = () => {
     if (get().playing) { const t = editorTransport.pause(); set({ playing: false, playhead: t }) }
     if (get().shuttle) { set({ shuttle: 0 }); editorTransport.setRate(1) }
+  }
+  // Player <-> editor hand-over: switching view lands on the exact same moment of the song, and keeps playing if it was playing.
+  type Entry = { s: number; was: boolean } | null
+  const playerPath = () => { const id = usePlayer.getState().cur; return id ? useLibrary.getState().tracks.find((t) => t.id === id)?.path : undefined }
+  const playerEntry = (path: string): Entry => (engine.loaded && playerPath() === path ? { s: engine.el.currentTime, was: !engine.el.paused } : null)
+  const carryIn = (e: Entry) => {
+    const p = get().project; if (!e || !p) return
+    const t = sourceToTimeline(p, p.song, e.s, get().playhead)
+    if (t === null) { toast('That part of the song is cut out of this edit'); return }
+    get().gotoTime(t)
+    if (e.was) void get().togglePlay()
+  }
+  const carryOutInfo = () => { const { project, playing } = get(); return project ? { map: timelineToSource(project, get().now()), song: project.song, was: playing } : null }
+  const carryOut = (o: ReturnType<typeof carryOutInfo>) => {
+    if (!o || !o.map) return
+    const track = useLibrary.getState().tracks.find((t) => t.path === o.map!.src); if (!track) return
+    const resume = () => { engine.el.currentTime = o.map!.s; if (o.was) void usePlayer.getState().toggle() }
+    if (usePlayer.getState().cur === track.id && engine.loaded) return resume()
+    usePlayer.setState({ cur: track.id })                            // load the same song in the player, paused, then jump to the point
+    void engine.load(track.path, useFx.getState().fx, false).then(() => { if (engine.el.readyState >= 1) resume(); else engine.el.addEventListener('loadedmetadata', resume, { once: true }) })
   }
   const schedule = () => { clearTimeout(saveTimer); saveTimer = window.setTimeout(() => void get().flush(), EDITOR.autosaveMs) }
   const resync = () => {
@@ -95,7 +118,7 @@ export const useEditor = create<S>((set, get) => {
     ...editActions(ctx), ...projectActions(ctx), ...rangeActions(ctx), ...autoActions(ctx), ...editPlayActions(ctx, syncLoop),
 
     async openSong(path) {
-      const s = get()
+      const s = get(), entry = playerEntry(path)
       if (s.project?.song === path) { get().show(); return }
       await get().flush(); stopPlayback(); engine.el.pause()
       const token = ++opening
@@ -117,12 +140,13 @@ export const useEditor = create<S>((set, get) => {
         })
         syncLoop(); void get().refreshVersions()
         get().fitToView(get().viewWidth || 1000)
+        carryIn(entry)
       } catch (e) {
         console.error('[editor] open failed', path, e); set({ open: false, busy: null }); toast('Could not open')
       }
     },
-    show() { if (get().project) { engine.el.pause(); set({ open: true }) } },
-    close() { stopPlayback(); void get().flush(); set({ open: false }) },
+    show() { const p = get().project; if (!p) return; const entry = playerEntry(p.song); engine.el.pause(); set({ open: true }); carryIn(entry) },
+    close() { const out = carryOutInfo(); stopPlayback(); void get().flush(); set({ open: false }); carryOut(out) },
     async flush() {
       clearTimeout(saveTimer)
       const { project, saveState } = get(); if (!project || saveState === 'saved') return

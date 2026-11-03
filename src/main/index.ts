@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, protocol, net } from 'electron'
-import { join } from 'path'
-import { pathToFileURL } from 'url'
+import { app, BrowserWindow, ipcMain, protocol } from 'electron'
+import { extname, join } from 'path'
+import { createReadStream } from 'fs'
+import { stat } from 'fs/promises'
+import { Readable } from 'stream'
 import { readFile, writeFile } from 'fs/promises'
 import { scan } from './scan'
 import { exportSave } from './export'
@@ -14,6 +16,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true, bypassCSP: true, corsEnabled: true } }
 ])
 
+const MIME: Record<string, string> = { '.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.aac': 'audio/aac', '.webm': 'audio/webm', '.aiff': 'audio/aiff' }
 const libraryFile = () => join(app.getPath('userData'), 'library.json')
 
 function createWindow() {
@@ -30,10 +33,21 @@ function createWindow() {
 app.whenReady().then(() => {
   // The live dev window runs inside Electron's own app bundle, so give it our icon in the Dock too (the packaged app already has it).
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
+  // Serve the file ourselves with proper Range support: without 206 + Content-Range + Content-Length, Chromium cannot seek inside
+  // m4a/mp3 (a seek jumps back to the start and the duration reads as Infinity).
   protocol.handle('media', async (req) => {
-    const res = await net.fetch(pathToFileURL(decodeURIComponent(new URL(req.url).pathname)).toString(), { headers: req.headers, method: req.method })
-    const h = new Headers(res.headers); h.set('Access-Control-Allow-Origin', '*')
-    return new Response(res.body, { status: res.status, headers: h })
+    const file = decodeURIComponent(new URL(req.url).pathname)
+    const st = await stat(file).catch(() => null)
+    if (!st) return new Response('not found', { status: 404 })
+    const size = st.size
+    const base = { 'Accept-Ranges': 'bytes', 'Content-Type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream', 'Access-Control-Allow-Origin': '*' }
+    const m = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range') ?? '')
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? +m[1] : Math.max(0, size - +m[2]), end = Math.min(m[1] && m[2] ? +m[2] : size - 1, size - 1)
+      if (start > end || start >= size) return new Response(null, { status: 416, headers: { ...base, 'Content-Range': `bytes */${size}` } })
+      return new Response(Readable.toWeb(createReadStream(file, { start, end })) as ReadableStream, { status: 206, headers: { ...base, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': String(end - start + 1) } })
+    }
+    return new Response(Readable.toWeb(createReadStream(file)) as ReadableStream, { status: 200, headers: { ...base, 'Content-Length': String(size) } })
   })
   ipcMain.handle('scan', (_e, paths: string[]) => scan(paths))
   ipcMain.handle('dl:start', async (e, url: string, toRel: string) => {

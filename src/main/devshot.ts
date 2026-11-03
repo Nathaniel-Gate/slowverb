@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,24 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_SYNC) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        const scan = await window.api.scan([${JSON.stringify(process.env.SLOWVERB_SYNC)}])
+        sv.useLibrary.getState().replace(scan.map((x, i) => ({ ...x, id: 't' + i })))
+        sv.usePlayer.getState().play('t0'); await wait(1500); sv.engine.el.currentTime = 90; await wait(800)
+        out.playerBefore = +sv.engine.el.currentTime.toFixed(2); out.playerPlaying = !sv.engine.el.paused
+        await E.getState().openSong(scan[0].path)
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        await wait(600)
+        out.editorAfterOpen = +E.getState().now().toFixed(2); out.editorPlaying = E.getState().playing; out.playerPausedAfterOpen = sv.engine.el.paused
+        E.getState().gotoTime(150); await wait(1200)
+        out.editorAt = +E.getState().now().toFixed(2)
+        E.getState().close(); await wait(1200)
+        out.playerAfterClose = +sv.engine.el.currentTime.toFixed(2); out.playerPlayingAfterClose = !sv.engine.el.paused; out.editorPlayingAfterClose = E.getState().playing
+        return out })()`)
+      console.log('SYNC_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_DUPDRAG) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
