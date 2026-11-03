@@ -89,13 +89,14 @@
 .tl[data-tool='slip'] .tl-clip { cursor: col-resize; }
 .tl[data-tool='hand'] .tl-lanes, .tl[data-tool='hand'] .tl-clip { cursor: grab; }
 .tl[data-tool='zoom'] .tl-lanes, .tl[data-tool='zoom'] .tl-clip { cursor: zoom-in; }
+.tl[data-tool='range'] .tl-lanes, .tl[data-tool='range'] .tl-clip { cursor: crosshair; }
 .tl[data-tool='select'] .tl-edge, .tl[data-tool='ripple'] .tl-edge, .tl[data-tool='rate'] .tl-edge { cursor: ew-resize; }
 .tl[data-drag='pan'], .tl[data-drag='pan'] * { cursor: grabbing !important; }
 .tl[data-drag='move'], .tl[data-drag='move'] * { cursor: grabbing !important; }
 .tl[data-drag='dup'], .tl[data-drag='dup'] * { cursor: copy !important; }
 .tl[data-drag='trim'], .tl[data-drag='trim'] *, .tl[data-drag='slip'], .tl[data-drag='slip'] *, .tl[data-drag='fade'], .tl[data-drag='fade'] *,
 .tl[data-drag='roll'], .tl[data-drag='roll'] *, .tl[data-drag='stretch'], .tl[data-drag='stretch'] *, .tl[data-drag='range'], .tl[data-drag='range'] * { cursor: ew-resize !important; }
-.tl[data-drag='gain'], .tl[data-drag='gain'] * { cursor: ns-resize !important; }
+.tl[data-drag='gain'], .tl[data-drag='gain'] *, .tl[data-drag='env'], .tl[data-drag='env'] * { cursor: ns-resize !important; }
 .tl[data-drag='scrub'], .tl[data-drag='scrub'] * { cursor: ew-resize !important; }
 
 
@@ -109,19 +110,7 @@
 .tl-badge { display: inline-block; margin-left: 6px; padding: 0 4px; font-weight: 500; font-size: 9px; letter-spacing: .04em; color: var(--ink-950); background: var(--steel-300); border-radius: 3px; text-shadow: none; vertical-align: 1px; }
 .tl-clip[data-locked] { cursor: not-allowed; }
 
-/* fade handles + gain rubber band (select tool only) */
-.tl-fade { position: absolute; top: 0; width: var(--tl-handle); height: var(--tl-handle); z-index: 3; background: var(--white); border-radius: 0 0 3px 0; opacity: 0; cursor: ew-resize;
-  transition: opacity var(--t-fast) var(--ease), transform 0s; box-shadow: 0 0 0 1px var(--ink-950); }
-.tl-fade[data-fade='in'] { left: 0; } .tl-fade[data-fade='out'] { right: 0; border-radius: 0 0 0 3px; }
-.tl-fade::after { content: ''; position: absolute; inset: -6px; }
-.tl-gain { position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 3; opacity: 0; transition: opacity var(--t-fast) var(--ease); }
-.tl-gain::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--white); box-shadow: 0 0 0 .5px rgb(0 0 0 / .5); }
-.tl-gain i { position: absolute; left: 0; right: 0; top: calc(var(--tl-gain-hit) * -1); height: calc(var(--tl-gain-hit) * 2); cursor: ns-resize; }
-.tl-clip:hover .tl-fade, .tl-clip[data-selected] .tl-fade { opacity: .78; }
-.tl-clip:hover .tl-gain { opacity: .45; } .tl-clip[data-selected] .tl-gain { opacity: .75; } .tl-gain:hover { opacity: 1 !important; }
-.tl-fade:hover { opacity: 1 !important; }
-.tl:not([data-tool='select']) .tl-fade, .tl:not([data-tool='select']) .tl-gain { display: none; }
-.tl[data-drag='gain'] .tl-gain { opacity: 1; }
+/* fade handles, side zones and the volume rubber band: timeline3.css */
 
 /* crossfade overlap, selected gap, flash, guides, drop ghost */
 .tl-xfade { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; background: rgb(255 255 255 / .12); border-inline: 1px solid rgb(255 255 255 / .55); animation: fade var(--t) var(--ease) both; }

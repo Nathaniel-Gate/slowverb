@@ -15,7 +15,11 @@ export type Clip = {
   fadeOut: number   // seconds
   speed?: number    // playback rate of this clip (default 1). Pitch follows speed. Timeline duration = (srcOut - srcIn) / speed
   name?: string; label?: string /* colour key from config/timeline.ts */; disabled?: boolean
+  fadeInCurve?: FadeCurve; fadeOutCurve?: FadeCurve   // default 'pow' (equal power)
+  env?: EnvPoint[]                                    // volume envelope (Fairlight-style rubber band). t = seconds from clip START on the timeline, g = linear gain multiplier on top of clip gain. Sorted by t, within [0, clipDur].
 }
+export type FadeCurve = 'lin' | 'pow' | 'log' | 's'
+export type EnvPoint = { t: number; g: number }
 export type Marker = { id: string; t: number; name: string; color?: string }
 export type Project = {
   version: 1
@@ -28,10 +32,11 @@ export type Project = {
   markers: Marker[]
   bpm: number | null
   bpmOffset?: number                             // seconds: time of the first beat
+  smoothCuts?: boolean                           // micro-fades (a few ms) on every clip boundary so cuts never click (default true)
   syncLock?: boolean                             // ripple edits also shift non-targeted tracks (default true)
   master: Fx | null                              // speed/reverb applied to the whole mix (phase 3)
 }
-export type Tool = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom'
+export type Tool = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd' | 'range'
 
 export const clipSpeed = (c: Clip) => c.speed && c.speed > 0 ? c.speed : 1
 export const srcSpan = (c: Clip) => c.srcOut - c.srcIn                 // seconds of SOURCE used

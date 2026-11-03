@@ -9,10 +9,12 @@ import { auditionStart, auditionStop } from './audition'
 export type SrcData = { buf: AudioBuffer; peaks: Peaks }
 export type Norm = { peakDb: number; rmsDb: number; lufsApprox: number }
 type Range = { in: number; out: number }
+export type AutoData = { song: string; sections: { t: number; strength: number }[] | null; silences: { start: number; end: number }[] | null }
 
 type S = {
   scope: 'playlist' | 'all'; picked: string | null; ranges: Record<string, Range>; loading: string | null; auditioning: boolean
   norm: Norm | null; normMode: 'peak' | 'rms'; stash: Fx | null; taps: number[]; detecting: boolean; detected: { conf: number } | null
+  auto: AutoData | null; autoBusy: 'sections' | 'silence' | null; sens: number; silDb: number; silMin: number
   setScope(s: 'playlist' | 'all'): void
   pick(path: string | null): Promise<SrcData | null>
   setRange(path: string, r: Partial<Range>, duration: number): void
@@ -40,6 +42,7 @@ async function decode(path: string): Promise<SrcData | null> {
 export const usePanels = create<S>((set, get) => ({
   scope: 'playlist', picked: null, ranges: {}, loading: null, auditioning: false,
   norm: null, normMode: PANELS.normMode, stash: null, taps: [], detecting: false, detected: null,
+  auto: null, autoBusy: null, sens: PANELS.sectionSensDefault, silDb: PANELS.silenceDb, silMin: PANELS.silenceMinSec,
   setScope: (scope) => set({ scope }),
   async pick(path) {
     get().stopAudition(); set({ picked: path, loading: path }); if (!path) { set({ loading: null }); return null }

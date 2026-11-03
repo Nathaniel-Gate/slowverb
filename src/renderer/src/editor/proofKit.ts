@@ -6,7 +6,7 @@ export const track = (id: string, o: Partial<{ gain: number; mute: boolean; solo
 export const clip = (id: string, src: string, tr: string, start: number, srcIn: number, srcOut: number, o: Partial<Clip> = {}): Clip =>
   ({ id, src, track: tr, start, srcIn, srcOut, gain: 1, fadeIn: 0, fadeOut: 0, ...o })
 export const project = (sources: Record<string, number>, tracks: ReturnType<typeof track>[], clips: Clip[], master: Project['master'] = null): Project =>
-  ({ version: 1, id: 'p', name: 'proof', song: 'x', sources: Object.fromEntries(Object.entries(sources).map(([k, d]) => [k, { duration: d }])), tracks, clips, markers: [], bpm: null, master })
+  ({ version: 1, id: 'p', name: 'proof', song: 'x', sources: Object.fromEntries(Object.entries(sources).map(([k, d]) => [k, { duration: d }])), tracks, clips, markers: [], bpm: null, master, smoothCuts: false })   // legacy proofs expect bit-exact edges; proof3 turns smoothCuts on
 export const synth = (ctx: BaseAudioContext, secs: number, f: (i: number, c: number) => number, ch = 2) => {
   const b = ctx.createBuffer(ch, Math.round(secs * RATE), RATE)
   for (let c = 0; c < ch; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = f(i, c) }

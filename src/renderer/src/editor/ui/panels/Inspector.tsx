@@ -4,6 +4,7 @@ import { analyseClip, gainToTarget } from '../../analysis'
 import { clipDur, clipSpeed, type Clip } from '../../model'
 import * as ops from '../../ops'
 import { Field, TextField } from './Field'
+import { EnvSection, FadeCurves, RangeSection, SmoothCuts } from './InspectorExtras'
 import { usePanels } from './panels.store'
 import { clamp, dbOf, fmtTime, gainOf, parseNum, parseTime } from './timecode'
 
@@ -15,7 +16,7 @@ export function Inspector() {
   const norm = usePanels((s) => s.norm), mode = usePanels((s) => s.normMode)
   const ed = useEditor.getState()
   const clips = project ? project.clips.filter((c) => sel.includes(c.id)) : []
-  if (!clips.length) return <p className="dk-empty mono">Select a clip to inspect it</p>
+  if (!clips.length) return <div className="dk-stack"><RangeSection /><p className="dk-empty mono">Select a clip to inspect it</p><SmoothCuts /></div>
   const one = clips.length === 1 ? clips[0] : null, ids = clips.map((c) => c.id)
   const gain = common(clips, (c) => c.gain), speedPct = common(clips, (c) => Math.round(clipSpeed(c) * 1000) / 10)
   const fadeIn = common(clips, (c) => c.fadeIn), fadeOut = common(clips, (c) => c.fadeOut)
@@ -32,6 +33,7 @@ export function Inspector() {
   const gdb = gain === null ? 0 : clamp(dbOf(gain), PANELS.gainMinDb, PANELS.gainMaxDb)
   return (
     <div className="dk-stack">
+      <RangeSection />
       <div className="dk-sec">
         <span className="mono">{one ? 'CLIP' : `${clips.length} CLIPS`}</span>
         <TextField value={common(clips, (c) => c.name ?? '')} placeholder="Name" onCommit={(name) => patch({ name })} />
@@ -67,6 +69,9 @@ export function Inspector() {
         <Field label="FADE OUT s" value={fadeOut} fmt={(v) => v.toFixed(2)} parse={parseNum} step={PANELS.fadeStep} onCommit={(v) => patch({ fadeOut: clamp(v, 0, PANELS.fadeMaxSec) })} />
       </div>
 
+      <FadeCurves clips={clips} />
+      <EnvSection clips={clips} />
+
       <div className="dk-sec dk-grid2">
         <Field label="START" disabled={!one} value={one ? one.start : null} fmt={fmtTime} parse={parseTime} step={PANELS.timeStep}
           onCommit={(t) => one && ed.apply((p) => ops.moveClips(p, [one.id], Math.max(0, t) - one.start))} />
@@ -76,6 +81,8 @@ export function Inspector() {
         <Field label="SOURCE OUT" disabled={!one} value={one ? one.srcOut : null} fmt={fmtTime} parse={parseTime} step={PANELS.timeStep}
           onCommit={(v) => one && ed.apply((p) => ops.trimClip(p, one.id, 'out', one.start + (v - one.srcIn) / speed))} />
       </div>
+
+      <SmoothCuts />
 
       <div className="dk-btns dk-end">
         <button className={`chip ${allOff ? 'on' : ''}`} onClick={() => patch({ disabled: !allOff })} title="Silence the clip without deleting it">{allOff ? 'DISABLED' : 'DISABLE'}</button>

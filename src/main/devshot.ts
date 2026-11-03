@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,26 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_EDUI3) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_EDUI3)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        const id = E.getState().project.clips[0].id
+        E.getState().select([id]); E.getState().setFadeCurveSel('in', 's'); E.getState().patchSelected({ fadeIn: 4, fadeOut: 6 })
+        E.getState().setEnvPointAt(id, 100, 1); E.getState().setEnvPointAt(id, 110, 0.3); E.getState().setEnvPointAt(id, 140, 0.3); E.getState().setEnvPointAt(id, 150, 1)
+        E.getState().setRange({ a: 200, b: 240, tracks: null }); E.getState().muteRange()
+        await E.getState().detectSectionsToMarkers(); await wait(800)
+        E.getState().setTool('range'); E.getState().setRange({ a: 30, b: 70, tracks: null })
+        E.getState().fitToView(960); await wait(1000)
+        const p = E.getState().project, c = p.clips[0]
+        out.clips = p.clips.length; out.env = (c.env || []).map(e => [+e.t.toFixed(1), +e.g.toFixed(2)]); out.fade = [c.fadeIn, c.fadeInCurve, c.fadeOut]
+        out.markers = p.markers.map(m => +m.t.toFixed(1))
+        E.getState().undo(); E.getState().undo(); await wait(200); out.afterUndo = E.getState().project.markers.length
+        return out })()`)
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('EDUI3_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_EDUI) {
       const r = await win.webContents.executeJavaScript(`(async () => {

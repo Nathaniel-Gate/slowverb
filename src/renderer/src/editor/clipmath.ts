@@ -1,4 +1,4 @@
-import { clipDur, clipEnd, clipSpeed, MIN_CLIP, type Clip, type Project } from './model'
+import { clipDur, clipEnd, clipSpeed, MIN_CLIP, type Clip, type EnvPoint, type FadeCurve, type Project } from './model'
 
 // Shared maths for the pure edit ops. Tunables live here, not inline.
 export const EPS = 1e-9          // timeline times closer than this are "the same instant"
@@ -8,6 +8,9 @@ export const HISTORY_CAP = 200
 export const SPEED_MIN = 0.25, SPEED_MAX = 4   // clip playback rate limits
 export const REPEAT_MAX = 64                   // most copies repeatClips will make in one go
 export const BEAT_MAX = 100000                  // most grid lines beatGrid returns
+export const ENV_RAMP = 0.01                    // seconds: default ramp either side of muteRange / gainRange
+export const ENV_GAIN_MAX = 4                   // envelope point ceiling (linear, about +12 dB)
+export const FADE_CURVES: readonly FadeCurve[] = ['lin', 'pow', 'log', 's']
 
 const rand = () => Math.random().toString(36).slice(2, 10)
 export function uid(prefix: string, taken: Iterable<string>): string {
@@ -41,7 +44,69 @@ export function piece(c: Clip, from: number, to: number, id: string): Clip | nul
   const srcIn = cutHead ? c.srcIn + (from - cs) * sp : c.srcIn
   const srcOut = cutTail ? c.srcIn + (to - cs) * sp : c.srcOut
   if (spanTooShort(srcOut - srcIn, sp)) return null
-  return fitFades({ ...c, id, start: cutHead ? from : cs, srcIn, srcOut, fadeIn: cutHead ? 0 : c.fadeIn, fadeOut: cutTail ? 0 : c.fadeOut })
+  return fitFades(reEnv(c, { ...c, id, start: cutHead ? from : cs, srcIn, srcOut, fadeIn: cutHead ? 0 : c.fadeIn, fadeOut: cutTail ? 0 : c.fadeOut }))
+}
+
+// ---- volume envelope maths (Clip.env: t = seconds from clip start on the timeline, g = linear gain) ----
+
+/** Gain of a sorted envelope at clip-local t: linear between points, held flat past the ends, 1 when empty. Right-continuous at steps. */
+export function envGain(env: readonly EnvPoint[] | undefined, t: number): number {
+  if (!env || !env.length) return 1
+  if (t < env[0].t) return env[0].g
+  let i = 0
+  while (i + 1 < env.length && env[i + 1].t <= t) i++
+  if (i === env.length - 1) return env[i].g
+  const a = env[i], b = env[i + 1], span = b.t - a.t
+  return span > 0 ? a.g + (b.g - a.g) * (t - a.t) / span : b.g
+}
+
+/** Drop exact repeats; with `flatten` also drop points that sit inside a flat run (and the whole env if it is flat at 1). */
+export function tidyEnv(pts: EnvPoint[], flatten = false): EnvPoint[] {
+  const same = (a: number, b: number) => Math.abs(a - b) <= 1e-12
+  let out = pts.filter((x, i) => i === 0 || !(Math.abs(x.t - pts[i - 1].t) <= EPS && same(x.g, pts[i - 1].g)))
+  if (!flatten || !out.length) return out
+  if (out.every(x => same(x.g, out[0].g))) return same(out[0].g, 1) ? [] : [out[0]]
+  out = out.filter((x, i, a) => !((!a[i - 1] || same(a[i - 1].g, x.g)) && (!a[i + 1] || same(a[i + 1].g, x.g))))
+  return out
+}
+
+/** Keep the part of a sorted point list inside [0, d], adding interpolated points on any edge that cut points off. */
+export function clipEnv(pts: EnvPoint[], d: number): EnvPoint[] {
+  const out = pts.filter(x => x.t >= 0 && x.t <= d)
+  if (pts.some(x => x.t < 0)) out.unshift({ t: 0, g: envGain(pts, 0) })
+  if (pts.some(x => x.t > d)) out.push({ t: d, g: envGain(pts, d) })
+  return tidyEnv(out)
+}
+
+/** c with `env` set, or with the key removed when env is empty/undefined. */
+export function setEnv(c: Clip, env: EnvPoint[] | undefined): Clip {
+  if (env && env.length) return c.env === env ? c : { ...c, env }
+  if (!('env' in c)) return c
+  const { env: _gone, ...rest } = c
+  return rest
+}
+
+/**
+ * Carry old's envelope onto `next` (same source, new srcIn / length / speed). Points stay glued to the SOURCE moment they
+ * sit on, so a split interpolates a point at the cut, a head trim shifts points, a speed change rescales them.
+ */
+export function reEnv(old: Clip, next: Clip): Clip {
+  if (!old.env || !old.env.length) return next
+  const so = clipSpeed(old), sn = clipSpeed(next), d = clipDur(next)
+  if (so === sn && old.srcIn === next.srcIn && old.env[old.env.length - 1].t <= d) return setEnv(next, old.env)
+  return setEnv(next, clipEnv(old.env.map(x => ({ t: (old.srcIn + x.t * so - next.srcIn) / sn, g: x.g })), d))
+}
+
+/** Repair an untrusted clip (e.g. pasted): finite, sorted, non-negative envelope inside the clip; unknown curves dropped. */
+export function cleanClip(c: Clip): Clip {
+  let out = c
+  for (const k of ['fadeInCurve', 'fadeOutCurve'] as const) {
+    if (out[k] !== undefined && !FADE_CURVES.includes(out[k]!)) { const { [k]: _bad, ...rest } = out; out = rest as Clip }
+  }
+  if (out.env === undefined) return out
+  const pts = (Array.isArray(out.env) ? out.env : []).filter(x => x && finite(x.t) && finite(x.g))
+    .map(x => ({ t: x.t, g: clamp(x.g, 0, ENV_GAIN_MAX) })).sort((a, b) => a.t - b.t)
+  return setEnv(out, clipEnv(pts, clipDur(out)))
 }
 
 /** Earlier clip a and later clip b may overlap only as an explicit crossfade: overlap <= min(a.fadeOut, b.fadeIn). */

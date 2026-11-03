@@ -1,8 +1,13 @@
 // Editor audio tunables. Change a number here, the editor audio follows.
-export type FadeCurve = 'equalPower' | 'linear'
+export type FadeCurve = 'lin' | 'pow' | 'log' | 's'   // same union as Clip.fadeInCurve/fadeOutCurve in editor/model.ts
 export const EDITOR_AUDIO = {
-  fadeCurve: 'equalPower' as FadeCurve, // equal power keeps a crossfade's loudness steady (uncorrelated material); linear dips in the middle
+  fadeCurve: 'pow' as FadeCurve, // default for clips without a curve: equal power keeps a crossfade's loudness steady (uncorrelated material); 'lin' dips in the middle
+  logFadeDb: 60,          // 'log' fade: gain rises like a straight line in dB over this many dB (ends are pinned to exact 0 and 1)
   curvePoints: 128,       // samples in each fade automation curve
+  smoothCutSec: 0.003,    // Project.smoothCuts: micro-fade length on every clip boundary (not at the file's own start/end or inside a contiguous split)
+  microCurvePoints: 16,   // samples in a micro-fade curve (it is only a few ms long)
+  contiguousEps: 1e-6,    // seconds: two clips this close (timeline and source) count as one unbroken stretch of audio
+  naturalEdgeEps: 5e-4,   // seconds: a clip edge this close to the start/end of its source file is the file's own edge, never micro-faded
   minFadeSec: 0.0005,     // fade windows shorter than this are skipped
   declick: 0.01,          // seconds: ramp used when stopping/seeking live playback
   loopDeclick: 0.003,     // seconds: tiny ramp at each loop seam (hides the jump from b back to a)
@@ -37,5 +42,18 @@ export const EDITOR_AUDIO = {
   bpmCandidates: 5,       // tempo candidates from the autocorrelation stage that get a full beat-train check
   bpmAnalyseSec: 100,     // seconds from the start of the song analysed
   bpmPriorCenter: 120, bpmPriorOctaves: 1.4, // mild preference for common tempos (octave-error guard)
-  bpmTapReset: 2.5        // seconds: a longer gap between taps starts a new tap run
+  bpmTapReset: 2.5,       // seconds: a longer gap between taps starts a new tap run
+  // sections (detectSections / detectSilence / leadingTrailingSilence)
+  sectionBinSec: 0.5,     // feature resolution: frames are averaged into bins this long
+  sectionKernelSec: 8,    // half-width of the checkerboard novelty kernel (longer = only big changes, fewer boundaries)
+  sectionMinSec: 8,       // default minimum distance between two boundaries
+  sectionThreshold: 2,    // a boundary's novelty must exceed mean + threshold x (1 - sensitivity) x std of the novelty curve (sensitivity 0..1, default 0.5)
+  sectionFloor: [3, 0.3, 0.3, 0.3, 0.3], // smallest std per feature (rms dB, low/mid/high log10 energy, log2 centroid): drift below this is not a change, so steady audio stays boundary-free
+  sectionEdgeSec: 4,      // no boundary closer than this to the file's start or end (the kernel needs context on both sides)
+  sectionMinNovelty: 0.05, // absolute floor on a boundary's novelty (a full change scores near 1; steady audio scores under 0.01)
+  sectionSensitivity: 0.5, // default sensitivity (higher = more boundaries)
+  sectionFrameSec: 0.0464, // analysis window (rounded to a power of two samples)
+  sectionBands: [250, 2000], // Hz edges between the low / mid / high energy bands
+  sectionMaxSec: 900,     // only the first 15 minutes are analysed (keeps a long file fast)
+  silenceWinSec: 0.005    // detectSilence measures RMS in windows this long
 }

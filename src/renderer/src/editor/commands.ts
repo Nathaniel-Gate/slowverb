@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { DEFAULT_KEYS, EDITOR } from '../config/editorKeys'
 import { comboId, eventCombo, keyId } from './keyparse'
-import { projectEnd, type Tool } from './model'
+import { projectEnd, type FadeCurve, type Tool } from './model'
 import { editPoints } from './ops'
 import { useOverlay } from './overlayStore'
 import type { S } from './storeTypes'
@@ -13,7 +13,10 @@ export type MenuItem = { label: string; keys?: string; run?: () => void; disable
 
 const cmd = (id: string, label: string, group: string, run: Command['run'], extra: Partial<Command> = {}): Command => ({ id, label, group, keys: DEFAULT_KEYS[id] ?? [], run, ...extra })
 const hasRange = (s: S) => s.markIn !== null && s.markOut !== null && s.markOut > s.markIn
+const hasRangeAny = (s: S) => hasRange(s) || (s.range !== null && s.range.b > s.range.a)
 const hasSel = (s: S) => s.selection.length > 0
+/** Alt+Up/Down: a drawn range wins, then the selected clips, then In/Out. */
+const gain = (s: S, db: number) => (!s.range && hasSel(s) ? s.gainSelectedDb(db) : s.gainRangeDb(db))
 const edge = (s: S, dir: 1 | -1) => {
   if (!s.project) return
   const t = s.now(), pts = editPoints(s.project), hit = dir > 0 ? pts.find((p) => p > t + EDITOR.edgeEps) : [...pts].reverse().find((p) => p < t - EDITOR.edgeEps)
@@ -23,8 +26,10 @@ const marker = (s: S, dir: 1 | -1) => {
   const t = s.now(), ms = s.project?.markers ?? [], hit = dir > 0 ? ms.find((m) => m.t > t + EDITOR.edgeEps) : [...ms].reverse().find((m) => m.t < t - EDITOR.edgeEps)
   if (hit) s.gotoTime(hit.t); else s.showToast('No more markers')
 }
-const TOOLS: [string, string][] = [['select', 'Select'], ['razor', 'Razor'], ['ripple', 'Ripple trim'], ['slip', 'Slip'], ['hand', 'Hand'], ['zoom', 'Zoom'], ['roll', 'Rolling edit'], ['rate', 'Rate stretch']]
-const DOCKS = [['inspector', 'Inspector'], ['source', 'Source bin'], ['markers', 'Markers'], ['mix', 'Mix'], ['bpm', 'BPM']] as const
+const TOOLS: [string, string][] = [['select', 'Select'], ['razor', 'Razor'], ['ripple', 'Ripple trim'], ['slip', 'Slip'], ['hand', 'Hand'], ['zoom', 'Zoom'], ['roll', 'Rolling edit'], ['rate', 'Rate stretch'], ['range', 'Range']]
+const DOCKS = [['inspector', 'Inspector'], ['source', 'Source bin'], ['markers', 'Markers'], ['mix', 'Mix'], ['bpm', 'BPM'], ['auto', 'Auto']] as const
+const CURVES: [FadeCurve, string][] = [['lin', 'linear'], ['pow', 'equal power'], ['log', 'log'], ['s', 'S curve']]
+const BEATS: [number, string][] = [[1, '1 beat'], [2, '2 beats'], [4, '1 bar (4 beats)']]
 const rep = { repeat: true }
 
 export const COMMANDS: Command[] = [
@@ -52,8 +57,12 @@ export const COMMANDS: Command[] = [
   cmd('trim.tail', 'Trim end to playhead', 'Edit', (s) => s.trimToPlayhead('prevTail', false)),
   cmd('delete', 'Delete', 'Edit', (s) => s.deleteSelection(false), { when: hasSel }),
   cmd('rippleDelete', 'Ripple delete / close gap', 'Edit', (s) => (s.gap ? s.closeGapAtSelection() : s.deleteSelection(true)), { when: (s) => hasSel(s) || !!s.gap }),
-  cmd('lift', 'Lift In to Out', 'Edit', (s) => s.liftRange(), { when: hasRange }),
-  cmd('extract', 'Extract In to Out', 'Edit', (s) => s.extractRange(), { when: hasRange }),
+  cmd('lift', 'Lift range', 'Edit', (s) => s.liftRangeSel(), { when: hasRangeAny }),
+  cmd('extract', 'Extract range', 'Edit', (s) => s.extractRangeSel(), { when: hasRangeAny }),
+  cmd('extend', 'Extend edit to playhead', 'Edit', (s) => s.extendEditToPlayhead()),
+  cmd('trimSel.start', 'Trim start to playhead (selected clips)', 'Edit', (s) => s.trimStartToPlayhead()),
+  cmd('trimSel.end', 'Trim end to playhead (selected clips)', 'Edit', (s) => s.trimEndToPlayhead()),
+  cmd('splitMarkers', 'Cut at all markers', 'Edit', (s) => s.splitAtMarkers(), { when: (s) => !!s.project?.markers.length }),
   cmd('closeGaps', 'Close all gaps', 'Edit', (s) => s.closeAllGaps()),
   cmd('crossfade', 'Crossfade at cut', 'Edit', (s) => s.crossfadeSelection()),
   cmd('uncrossfade', 'Remove crossfade', 'Edit', (s) => s.uncrossfadeSelection()),
@@ -66,8 +75,21 @@ export const COMMANDS: Command[] = [
   cmd('undo', 'Undo', 'Edit', (s) => s.undo(), { ...rep, when: (s) => !!s.hist?.past.length }),
   cmd('redo', 'Redo', 'Edit', (s) => s.redo(), { ...rep, when: (s) => !!s.hist?.future.length }),
 
+  cmd('range.mute', 'Mute range', 'Range', (s) => s.muteRange(), { when: hasRangeAny }),
+  cmd('range.gainUp', 'Range or clip gain up 1 dB', 'Range', (s) => gain(s, EDITOR.gainStepDb), rep),
+  cmd('range.gainDown', 'Range or clip gain down 1 dB', 'Range', (s) => gain(s, -EDITOR.gainStepDb), rep),
+  cmd('range.fadeIn', 'Fade range in from silence', 'Range', (s) => s.fadeRangeEdge('in'), { when: hasRangeAny }),
+  cmd('range.fadeOut', 'Fade range out to silence', 'Range', (s) => s.fadeRangeEdge('out'), { when: hasRangeAny }),
+  cmd('range.clear', 'Clear range selection', 'Range', (s) => s.setRange(null), { when: (s) => s.range !== null }),
+  cmd('env.clear', 'Clear volume envelope (selected clips)', 'Range', (s) => s.clearEnvSelected(), { when: hasSel }),
+  ...(['in', 'out'] as const).flatMap((w) => CURVES.map(([c, label]) => cmd(`fade.${w}.${c}`, `Fade ${w} curve: ${label}`, 'Range', (s) => s.setFadeCurveSel(w, c), { when: hasSel }))),
+  cmd('smooth.toggle', 'Toggle smooth cuts', 'Range', (s) => s.setSmoothCuts(s.project?.smoothCuts === false)),
+  cmd('auto.sections', 'Detect sections and add markers', 'Auto', (s) => void s.detectSectionsToMarkers()),
+  cmd('auto.trimSilence', 'Trim silence at clip start and end', 'Auto', (s) => s.trimSilenceSelected()),
+  ...BEATS.map(([n, label]) => cmd(`auto.cut${n}`, `Cut every ${label}`, 'Auto', (s) => s.cutEveryBeatsAction(n))),
+
   cmd('selectAll', 'Select all', 'Selection', (s) => s.selectAll()),
-  cmd('deselect', 'Deselect', 'Selection', (s) => { s.select([]); s.selectGap(null) }),
+  cmd('deselect', 'Deselect', 'Selection', (s) => { s.select([]); s.selectGap(null); s.setRange(null) }),
   cmd('selectFwd', 'Select forward from playhead', 'Selection', (s) => s.selectForward()),
   cmd('selectBack', 'Select backward from playhead', 'Selection', (s) => s.selectBackward()),
   cmd('copy', 'Copy', 'Clipboard', (s) => s.copy(), { when: hasSel }),

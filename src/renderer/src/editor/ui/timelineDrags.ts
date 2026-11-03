@@ -1,6 +1,7 @@
-import { clipEnd, type Project } from '../model'
+import { clipDur, clipEnd, type Project } from '../model'
 import { duplicateClips, moveClips, patchClips, rateStretch, rippleTrim, rollEdit, snapTime, trimClip } from '../ops'
 import { TL } from '../../config/timeline'
+import { applyEnvEdit, withEnv, type EnvEdit } from './envMath'
 import { fmtDb, formatTimecode, slipClips } from './timelineMath'
 
 // A drag is a small description; previewOf() replays it on the untouched project with the real ops,
@@ -13,6 +14,7 @@ export type Drag =
   | { kind: 'gain'; id: string; gain: number }
   | { kind: 'roll'; left: string; right: string; t: number }
   | { kind: 'stretch'; id: string; newEnd: number }
+  | EnvEdit                                                       // volume rubber band (preview only; commit goes through the store)
 
 export function previewOf(base: Project, d: Drag): Project {
   switch (d.kind) {
@@ -23,6 +25,10 @@ export function previewOf(base: Project, d: Drag): Project {
     case 'gain': return patchClips(base, [d.id], { gain: Math.max(0, d.gain) })
     case 'roll': return rollEdit(base, d.left, d.right, d.t)
     case 'stretch': return rateStretch(base, d.id, d.newEnd)
+    case 'env': case 'envseg': {
+      const c = base.clips.find(x => x.id === d.id)
+      return c ? withEnv(base, d.id, applyEnvEdit(c, clipDur(c), d)) : base
+    }
   }
 }
 
@@ -73,5 +79,10 @@ export function hudText(d: Drag, final: Project): string {
     case 'gain': return fmtDb(Math.max(0, d.gain))
     case 'roll': return `ROLL ${formatTimecode(d.t)}`
     case 'stretch': return `SPEED ${Math.round((final.clips.find(c => c.id === d.id)?.speed ?? 1) * 100)}%`
+    case 'env': {
+      const c = final.clips.find(x => x.id === d.id), pt = c?.env?.[d.index]
+      return c && pt ? `${fmtDb(pt.g * c.gain)}  AT ${pt.t.toFixed(3)}s` : 'ENVELOPE'
+    }
+    case 'envseg': return 'ENVELOPE SEGMENT'
   }
 }

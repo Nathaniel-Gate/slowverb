@@ -1,13 +1,15 @@
 import type { Fx } from '../../../shared/types'
-import type { Clip, Project, Tool } from './model'
+import type { Clip, FadeCurve, Project, Tool } from './model'
 import type { History } from './history'
 import type { Buffers } from './schedule'
 import type { Peaks } from './peaks'
 
-export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm'
+export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto'
 export type Gap = { track: string; start: number; end: number }
 export type ClipPatch = Partial<Pick<Clip, 'gain' | 'fadeIn' | 'fadeOut' | 'name' | 'label' | 'disabled' | 'speed'>>
 export type RenderOpts = { bitDepth: 16 | 24 | 32; normalize: boolean; range: boolean }
+/** A timeline range selection (Range tool). tracks null = the targeted tracks, or all when none are targeted. */
+export type RangeSel = { a: number; b: number; tracks: string[] | null }
 type SaveState = 'saved' | 'saving' | 'dirty'
 
 export type S = {
@@ -17,6 +19,8 @@ export type S = {
   // wave 2
   loop: boolean; gap: Gap | null; dockOpen: boolean; dockTab: DockTab; toast: { text: string; id: number } | null; shuttle: number
   beatSnap: boolean; showBeats: boolean; versions: string[]; renderOpts: RenderOpts
+  // wave 3
+  range: RangeSel | null
 
   openSong(path: string): Promise<void>; show(): void; close(): void; flush(): Promise<void>
   apply(fn: (p: Project) => Project): void; undo(): void; redo(): void; jumpHistory(offset: number): void
@@ -39,12 +43,23 @@ export type S = {
   markerAt(t: number, name?: string): void; renameMarker(id: string, name: string): void; removeMarker(id: string): void
   newVersion(name?: string): Promise<void>; duplicateVersion(): Promise<void>; openVersion(name: string): Promise<void>; deleteVersion(name: string): Promise<void>
   listVersions(): string[]; refreshVersions(): Promise<void>; runCommand(id: string): void; fitSelection(): void; gotoTime(t: number): void
+
+  // wave 3: range, envelope, fades, smart edits. Range actions use `range`, falling back to the In/Out marks.
+  setRange(r: RangeSel | null): void; muteRange(): void; gainRangeDb(db: number): void; fadeRangeEdge(kind: 'in' | 'out'): void
+  liftRangeSel(): void; extractRangeSel(): void; gainSelectedDb(db: number): void
+  setEnvPointAt(clipId: string, tClip: number, g: number, index?: number): void; removeEnvPointAt(clipId: string, index: number): void; clearEnvSelected(): void
+  setFadeCurveSel(which: 'in' | 'out', curve: FadeCurve): void
+  extendEditToPlayhead(): void; trimStartToPlayhead(): void; trimEndToPlayhead(): void; splitAtMarkers(): void; setSmoothCuts(on: boolean): void
+  detectSectionsToMarkers(): Promise<void>; cutEveryBeatsAction(beats: number): void; trimSilenceSelected(): void
 }
 
 export type EditKeys = 'patchSelected' | 'toggleDisable' | 'liftRange' | 'extractRange' | 'closeGapAtSelection' | 'closeAllGaps' | 'trimToPlayhead' | 'rollEdit' | 'rateStretch'
   | 'repeatSelection' | 'crossfadeSelection' | 'uncrossfadeSelection' | 'nudge' | 'selectForward' | 'selectBackward' | 'selectGap' | 'targetTrack' | 'toggleSyncLock' | 'markerAt' | 'renameMarker' | 'removeMarker'
 export type ProjectKeys = 'insertSource' | 'applyMaster' | 'setBpm' | 'toggleBeatSnap' | 'toggleShowBeats' | 'setDock' | 'fitSelection' | 'gotoTime' | 'listVersions' | 'refreshVersions'
   | 'newVersion' | 'duplicateVersion' | 'openVersion' | 'deleteVersion'
+export type RangeKeys = 'setRange' | 'muteRange' | 'gainRangeDb' | 'fadeRangeEdge' | 'liftRangeSel' | 'extractRangeSel' | 'gainSelectedDb' | 'setEnvPointAt' | 'removeEnvPointAt'
+  | 'clearEnvSelected' | 'setFadeCurveSel' | 'extendEditToPlayhead' | 'trimStartToPlayhead' | 'trimEndToPlayhead' | 'splitAtMarkers' | 'setSmoothCuts'
+export type AutoKeys = 'detectSectionsToMarkers' | 'cutEveryBeatsAction' | 'trimSilenceSelected'
 export type PlayKeys = 'toggleLoop' | 'playRange' | 'scrubTo' | 'shuttleHold' | 'shuttleKey'
 
 type SetFn = (p: Partial<S> | ((s: S) => Partial<S>)) => void

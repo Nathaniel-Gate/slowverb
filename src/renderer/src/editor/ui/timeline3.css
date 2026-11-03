@@ -1,0 +1,60 @@
+/* Timeline wave 3 (agent H2): Resolve-style fade handles, volume rubber band, range selection. Greyscale; only transform/opacity animate. */
+
+/* fade dots (always visible on every clip's top corners) and the side drag zones */
+.tl-fade { position: absolute; top: calc(var(--tl-dot-y) - var(--tl-dot) / 2); width: var(--tl-dot); height: var(--tl-dot); z-index: 4; border-radius: 50%;
+  background: var(--white); box-shadow: 0 0 0 1px var(--ink-950); opacity: .5; cursor: ew-resize;
+  transition: opacity var(--t-fast) var(--ease), scale var(--t-fast) var(--ease); }
+.tl-fade[data-fade='in'] { left: calc(var(--tl-dot) / -2); } .tl-fade[data-fade='out'] { right: calc(var(--tl-dot) / -2); }
+.tl-fade::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
+.tl-fade[data-on] { opacity: .85; }
+.tl-clip:hover .tl-fade, .tl-clip[data-selected] .tl-fade { opacity: .95; }
+.tl-clip:hover .tl-fade { scale: 1.3; } .tl-fade:hover { opacity: 1 !important; scale: 1.7 !important; }
+.tl-fadeside { position: absolute; top: 0; height: var(--tl-fadezone); width: var(--tl-fadeside); z-index: 3; cursor: ew-resize; }
+.tl-fadeside[data-fade='in'] { left: 0; } .tl-fadeside[data-fade='out'] { right: 0; }
+.tl-fadeside::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity var(--t-fast) var(--ease); pointer-events: none; }
+.tl-fadeside[data-fade='in']::after { background: linear-gradient(90deg, rgb(255 255 255 / .24), transparent); }
+.tl-fadeside[data-fade='out']::after { background: linear-gradient(270deg, rgb(255 255 255 / .24), transparent); }
+.tl-fadeside:hover::after { opacity: 1; }
+.tl[data-tool='select'] .tl-clip:has(.tl-fadeside) .tl-edge { top: var(--tl-fadezone); }
+.tl:not([data-tool='select']) .tl-fade, .tl:not([data-tool='select']) .tl-fadeside, .tl:not([data-tool='select']) .tl-env { display: none; }
+.tl[data-drag='fade'] .tl-fade { opacity: 1; }
+
+/* curve popover */
+.tl-curvepop { padding: 4px; min-width: 150px; }
+.tl-curvepop-h { padding: 4px 8px 6px; font-size: 9px; letter-spacing: .1em; color: var(--steel-400); }
+.tl-curvepop-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 8px; font: 500 12px var(--font-sans, inherit); color: var(--steel-300); border-radius: var(--radius-sm); text-align: left;
+  transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.tl-curvepop-row:hover { background: var(--ink-800); color: var(--white); }
+.tl-curvepop-row[data-on] { color: var(--white); background: var(--ink-800); }
+
+/* volume rubber band */
+.tl-env { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; overflow: visible; }
+.tl-env-halo { fill: none; stroke: var(--ink-950); stroke-width: 3.5; opacity: .55; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.tl-env-line { fill: none; stroke: var(--white); stroke-width: 1; opacity: .38; vector-effect: non-scaling-stroke; transition: opacity var(--t-fast) var(--ease); }
+.tl-env[data-has] .tl-env-halo { fill: none; stroke: var(--ink-950); stroke-width: 3.5; opacity: .55; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.tl-env-line { opacity: .75; stroke-width: 1.5; }
+.tl-clip:hover .tl-env-halo { fill: none; stroke: var(--ink-950); stroke-width: 3.5; opacity: .55; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.tl-env-line { opacity: .6; } .tl-clip[data-selected] .tl-env-halo { fill: none; stroke: var(--ink-950); stroke-width: 3.5; opacity: .55; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.tl-env-line { opacity: .85; }
+.tl-env-hit { fill: none; stroke: transparent; stroke-linejoin: round; pointer-events: stroke; cursor: ns-resize; }
+.tl-env-ghost { fill: var(--white); stroke: var(--ink-950); stroke-width: 1; opacity: 0; pointer-events: none; }
+.tl-env-ghost[data-on] { opacity: .8; }
+.tl-env-hitpt { fill: transparent; pointer-events: all; cursor: grab; }
+.tl-env-pt { fill: var(--ink-950); stroke: var(--white); stroke-width: 1.5; pointer-events: none; opacity: 0; transition: opacity var(--t-fast) var(--ease), r var(--t-fast) var(--ease); }
+.tl-clip:hover .tl-env-pt, .tl-clip[data-selected] .tl-env-pt, .tl[data-drag='env'] .tl-env-pt { opacity: 1; }
+[data-env-pt]:hover .tl-env-pt { fill: var(--white); }
+.tl[data-drag='env'] .tl-env-hitpt, .tl[data-drag='env'] .tl-env-hit { cursor: ns-resize; }
+
+/* range selection: soft overlay over the chosen lanes, side handles, floating mini toolbar */
+.tl-rsel { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; background: rgb(255 255 255 / .12); outline: 1px solid rgb(255 255 255 / .5); outline-offset: -1px; animation: fade var(--t-fast) var(--ease) both; }
+.tl-rsel-h { position: absolute; top: 0; bottom: 0; width: var(--tl-range-handle, 9px); pointer-events: auto; cursor: ew-resize; }
+.tl-rsel-h[data-side='a'] { left: -4px; } .tl-rsel-h[data-side='b'] { right: -4px; }
+.tl-rsel-h::after { content: ''; position: absolute; top: 6px; bottom: 6px; left: 3px; width: 3px; border-radius: 2px; background: var(--white); opacity: .7; transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
+.tl-rsel-h:hover::after { opacity: 1; transform: scaleX(1.5); }
+.tl-rbar { position: absolute; left: 0; top: 0; z-index: 8; display: flex; align-items: stretch; gap: 1px; padding: 0; background: var(--ink-900); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 6px 18px rgb(0 0 0 / .5); animation: fade var(--t-fast) var(--ease) both; user-select: none; }
+.tl-rbar button { padding: 0 9px; font: 500 9px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--steel-300); white-space: nowrap;
+  transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.tl-rbar button:hover { background: var(--ink-800); color: var(--white); } .tl-rbar button:active { background: var(--ink-700); }
+.tl-rbar-len { align-self: center; padding: 0 8px; font-size: 9px; letter-spacing: .06em; color: var(--steel-500); }
+.tl[data-drag='range'] .tl-rsel-h { cursor: ew-resize; }

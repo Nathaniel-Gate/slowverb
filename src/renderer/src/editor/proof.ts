@@ -6,6 +6,7 @@ import { editorTransport } from './transport'
 import { detectBpm } from './bpm'
 import { maxAbs, maxDiff, clip, project, RATE, sleep, synth, track } from './proofKit'
 import { runProofs2 } from './proof2'
+import { runProofs3 } from './proof3'
 
 export async function runProofs(heliumPath: string) {
   const ctx = new AudioContext(), R: Record<string, unknown> = {}
@@ -81,5 +82,6 @@ export async function runProofs(heliumPath: string) {
     R.live = { ctxState: t.ctx.state, peak, posAfter600ms: pos1, elapsed, expectedPos: 0.5 + elapsed, afterSeekTo2: afterSeek, pausedAt: paused, stayedAtRest: stable === paused, seekIdle, endedFired: ended, playingAfterEnd: t.playing, finalPos: t.position() }
   }
   Object.assign(R, await runProofs2(ctx, heliumPath))
+  Object.assign(R, await runProofs3(ctx, heliumPath))
   return R
 }

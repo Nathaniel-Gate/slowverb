@@ -14,6 +14,8 @@ import { loadBuffers } from './schedule'
 import { editPlayActions } from './storePlay'
 import { editActions } from './storeEdit'
 import { projectActions } from './storeProject'
+import { rangeActions } from './storeRange'
+import { autoActions } from './storeAuto'
 import type { Ctx, RenderOpts, S } from './storeTypes'
 import { fmtTime } from './timefmt'
 import { editorTransport } from './transport'
@@ -78,7 +80,7 @@ export const useEditor = create<S>((set, get) => {
     const buffers = new Map(get().buffers), peaks = new Map<string, Peaks>(get().peaks)
     loaded.forEach((b, k) => { buffers.set(k, b); if (!peaks.has(k)) peaks.set(k, computePeaks(b)) })
     lastKey = ''
-    set({ project: p, hist: createHistory(p), buffers, peaks, selection: [], gap: null, playhead: 0, saveState: 'saved', markIn: null, markOut: null })
+    set({ project: p, hist: createHistory(p), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, saveState: 'saved', markIn: null, markOut: null })
     void get().refreshVersions()
   }
   const ctx: Ctx = { set, get, toast, edit, coalesce, stopPlayback, schedule, resync, switchTo, targets }
@@ -88,9 +90,9 @@ export const useEditor = create<S>((set, get) => {
     open: false, project: null, hist: null, buffers: new Map(), peaks: new Map(), selection: [], tool: 'select', playhead: 0, playing: false,
     pxPerSec: EDITOR.defaultPxPerSec, scrollX: 0, scrollY: 0, viewWidth: 0, snap: true, markIn: null, markOut: null,
     saveState: 'saved', busy: null, clipboard: [],
-    loop: false, gap: null, dockOpen: false, dockTab: 'inspector', toast: null, shuttle: 0, beatSnap: false, showBeats: false, versions: [], renderOpts: loadRenderOpts(),
+    loop: false, gap: null, dockOpen: false, dockTab: 'inspector', toast: null, shuttle: 0, beatSnap: false, showBeats: false, versions: [], renderOpts: loadRenderOpts(), range: null,
 
-    ...editActions(ctx), ...projectActions(ctx), ...editPlayActions(ctx, syncLoop),
+    ...editActions(ctx), ...projectActions(ctx), ...rangeActions(ctx), ...autoActions(ctx), ...editPlayActions(ctx, syncLoop),
 
     async openSong(path) {
       const s = get()
@@ -110,7 +112,7 @@ export const useEditor = create<S>((set, get) => {
         const peaks = new Map<string, Peaks>(); buffers.forEach((b, k) => peaks.set(k, computePeaks(b)))
         lastKey = ''
         set({
-          project, hist: createHistory(project), buffers, peaks, selection: [], gap: null, playhead: 0, scrollX: 0, scrollY: 0, markIn: null, markOut: null,
+          project, hist: createHistory(project), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, scrollX: 0, scrollY: 0, markIn: null, markOut: null,
           saveState: 'saved', busy: null, tool: 'select', loop: false
         })
         syncLoop(); void get().refreshVersions()

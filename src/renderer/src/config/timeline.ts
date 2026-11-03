@@ -45,10 +45,32 @@ export const TL = {
   markerDragPx: 3,
   miniH: 34, miniMinViewSec: 0.05, miniPad: 0.06,     // minimap bar height, narrowest viewport, empty tail fraction
   zoomSliderSteps: 1000,
-  tcFrameDecimals: 3     // decimals in the typed/displayed timecode (m:ss.mmm)
+  tcFrameDecimals: 3,    // decimals in the typed/displayed timecode (m:ss.mmm)
+
+  // wave 3 (agent H2): Resolve-style fades, volume rubber band, range tool
+  fadeDotPx: 9,          // px, diameter of the always-visible fade dot on each top corner
+  fadeDotY: 8,           // px from the clip top to the dot centre
+  fadeDotInset: 8,       // px: a dot never sits closer than this to the clip side (so a zero fade still shows a dot)
+  fadeSidePx: 15,        // px, width of the side drag zone (drag inward from the clip side to fade)
+  fadeZoneFrac: 0.58,    // the side zone covers the top part of the clip side; the trim handle keeps the rest
+  fadeFullPx: 10,        // px: dragging a fade this close to the opposite side snaps to a full mute
+  fadeShapeSteps: 32,    // samples used to draw a curved fade
+  fadeMinSideW: 40,      // px: clips narrower than this get no side zone
+  envHitPx: 7,           // px each side of the envelope line that grabs it
+  envPointPx: 5,         // px, radius of an envelope point
+  envPointHitPx: 9,      // px, grab radius of an envelope point
+  envMinGapSec: 0.002,   // envelope points keep at least this much time between them
+  envMaxGain: 16,        // upper limit of one envelope point's multiplier
+  rangeHandlePx: 9,      // px, grab width of a range side handle
+  rangeMinSec: 0.01,     // shortest range
+  rangeGainStepDb: 1,    // toolbar Gain -/+ step
+  rangeBarW: 420,        // px, approximate mini toolbar width (used to keep it inside the view)
+  rangeBarH: 26,         // px, mini toolbar height
+  rangeBarBelowMaxH: 200, // px: a range shorter than this gets its toolbar below it when there is no room above
+  rangeBarGap: 6         // px between the range top and the toolbar
 }
 
-export type ToolId = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd'
+export type ToolId = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd' | 'range'
 
 // Label colours (Clip.label / Marker.color are these keys). Muted so the greyscale look stays calm.
 export const LABELS: { key: string; name: string; color: string }[] = [
@@ -70,4 +92,9 @@ export const trackColor = (i: number) => TRACK_COLORS[((i % TRACK_COLORS.length)
 export const TICK_STEPS: [number, number][] = [
   [0.001, 5], [0.002, 4], [0.005, 5], [0.01, 5], [0.02, 4], [0.05, 5], [0.1, 5], [0.2, 4], [0.5, 5],
   [1, 4], [2, 4], [5, 5], [10, 5], [15, 3], [30, 6], [60, 4], [120, 4], [300, 5], [600, 5], [1800, 6], [3600, 4]
+]
+
+// Fade curve choices for the curve popover (ids match Clip.fadeInCurve / fadeOutCurve).
+export const FADE_CURVES: { id: 'lin' | 'pow' | 'log' | 's'; label: string }[] = [
+  { id: 'lin', label: 'Linear' }, { id: 'pow', label: 'Equal power' }, { id: 'log', label: 'Log' }, { id: 's', label: 'S curve' }
 ]

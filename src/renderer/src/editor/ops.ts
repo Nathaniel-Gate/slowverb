@@ -13,7 +13,10 @@ export { gapsOf, liftRange, extractRange, closeGap, closeAllGaps, trimToPlayhead
 export { setClipSpeed, rateStretch, rollEdit } from './opsSpeed'
 export { applyCrossfade, removeCrossfade, patchClips, type ClipPatch } from './opsFade'
 export { clipsInRange, clipsForward, clipsBackward, nearestEditPoint, beatGrid, clipFromSource, repeatClips, insertClips } from './ops2'
-export { SPEED_MIN, SPEED_MAX, REPEAT_MAX } from './clipmath'
+export { SPEED_MIN, SPEED_MAX, REPEAT_MAX, ENV_RAMP, ENV_GAIN_MAX, FADE_CURVES } from './clipmath'
+// wave 3 (agent E2): volume envelope, range mute/gain/fade, fade curves, Resolve-style smart edits
+export { envAt, setEnvPoint, removeEnvPoint, clearEnv, setFadeCurve, muteRange, gainRange, fadeRange } from './opsEnv'
+export { extendEdit, trimToPlayheadSel, splitAtMany, cutEveryBeats, trimEnds } from './opsRangeEdit'
 
 export const DEFAULT_PROJECT_NAME = 'Edit'
 const NEW_TRACK = { mute: false, solo: false, lock: false, gain: 1 } as const

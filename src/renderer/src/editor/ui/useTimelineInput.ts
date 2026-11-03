@@ -5,15 +5,17 @@ import { TL } from '../../config/timeline'
 import { cancelGlide, envOf, layOf, st, type Pt, type View, type ViewRefs } from './dragRunner'
 import { hideHud, showHud } from './hud'
 import { clampTrackShift, hudText, previewOf, snapMove, snapOne, type Drag } from './timelineDrags'
-import { clamp, clipBox, clipsInRect, findCut, gainToY, gapAt, laneAt, slipDelta, yToGain } from './timelineMath'
+import { clamp, clipBox, clipsInRect, findCut, gapAt, laneAt, slipDelta } from './timelineMath'
+import { commitEnv, envContext, envDouble, envDown, fadeDown } from './useFadeEnvInput'
+import { closeFadePopover } from './FadeHandles'
 import { clipMenu, gapMenu, laneMenu } from './timelineMenus'
 import type { Guides, TimelineUi } from './timelineUi'
 
 type Made = { d: Drag; at: number | null }
-const DONE: Record<Drag['kind'], string> = { move: 'Moved', trim: 'Trimmed', slip: 'Slipped', fade: 'Fade', gain: 'Gain', roll: 'Rolled', stretch: 'Stretched' }
+const DONE: Record<Drag['kind'], string> = { move: 'Moved', trim: 'Trimmed', slip: 'Slipped', fade: '', gain: 'Gain', roll: 'Rolled', stretch: 'Stretched', env: 'Envelope', envseg: 'Envelope' }
 
 /** Everything the pointer does on the lanes, per tool. Drags build a small Drag description, preview it, and commit once on release. */
-export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: Guides, ui: TimelineUi, ready: boolean) {
+export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: Guides, ui: TimelineUi, ready: boolean, rangeDown: (e: RPointerEvent, pt: Pt, base: Project) => void) {
   const { point, runDrag, scrollTo, zoomAt } = view
 
   function dragClips(e: RPointerEvent, kind: string, make: (pt: Pt, base: Project) => Made, onClick?: () => void) {
@@ -31,7 +33,8 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
       const out = final, had = new Set(base.clips.map(c => c.id)), s = st()
       if (lastD?.kind === 'roll') s.rollEdit(lastD.left, lastD.right, lastD.t)           // store actions carry the toast
       else if (lastD?.kind === 'stretch') s.rateStretch(lastD.id, lastD.newEnd)
-      else { s.apply(() => out); if (lastD) s.showToast(`${DONE[lastD.kind]} ${hudText(lastD, out)}`) }
+      else if (lastD?.kind === 'env' || lastD?.kind === 'envseg') commitEnv(lastD, out, base)
+      else { s.apply(() => out); if (lastD) s.showToast(`${DONE[lastD.kind]} ${hudText(lastD, out)}`.trim()) }
       if (kind === 'dup') st().select(out.clips.filter(c => !had.has(c.id)).map(c => c.id))
     })
   }
@@ -104,8 +107,10 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     if (tool === 'zoom') return zoomDown(e, pt)
     if (tool === 'razor') return razorDown(e, pt, base, clipEl)
     if (tool === 'roll') return rollDown(e, pt, base)
+    if (tool === 'range') return rangeDown(e, pt, base)
     const clip = clipEl && base.clips.find(c => c.id === clipEl.dataset.clip)
     if (!clip) {
+      if (tool === 'select' && e.altKey) return rangeDown(e, pt, base)           // Alt-drag on empty lane space draws a range
       if (tool === 'trackfwd') {
         const tr = base.tracks[laneAt(layOf(base), pt.y)]
         if (tr) return s.select(clipsForward(base, pt.t, e.shiftKey ? undefined : [tr.id]))
@@ -123,18 +128,9 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     } else if (!sel.includes(clip.id)) { s.select([clip.id]); sel = [clip.id] }
     if (locked) return
     const L = layOf(base), lane0 = base.tracks.findIndex(t => t.id === clip.track), box = clipBox(L, lane0)
-    if (tool === 'select' && fadeEl) {
-      const edge = fadeEl.dataset.fade as 'in' | 'out'
-      return dragClips(e, 'fade', p => {
-        const sn = st().snap ? snapOne(base, p.t, envOf(), [clip.id]) : { t: p.t, at: null }
-        const dur = edge === 'in' ? sn.t - clip.start : clipEnd(clip) - sn.t
-        return { d: { kind: 'fade', id: clip.id, edge, dur: clamp(dur, 0, clipDur(clip)) }, at: null }
-      })
-    }
-    if (tool === 'select' && gainEl) {
-      const y0 = gainToY(clip.gain, box.h)
-      return dragClips(e, 'gain', p => ({ d: { kind: 'gain', id: clip.id, gain: yToGain(y0 + (p.y - pt.y) * (e.altKey ? TL.gainFine : 1), box.h) }, at: null }))
-    }
+    const fx = { e, pt, base, clip, el, box, dragClips }
+    if (tool === 'select' && fadeEl) return fadeDown(fx, fadeEl)
+    if (tool === 'select' && gainEl) return envDown(fx)
     const edge = el.closest<HTMLElement>('[data-edge]')?.dataset.edge as 'in' | 'out' | undefined
     const ids = sel.filter(id => { const c = base.clips.find(x => x.id === id); return c && !base.tracks.find(t => t.id === c.track)?.lock })
     if (edge && (tool === 'select' || tool === 'ripple')) {
@@ -165,7 +161,10 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
   function onLanesDoubleClick(e: RMouseEvent) {
     const s = st(), el = e.target as Element, id = el.closest<HTMLElement>('[data-clip]')?.dataset.clip
     if (!s.project || !id || s.tool !== 'select') return
-    if (el.closest('[data-gain]')) s.apply(p => patchClips(p, [id], { gain: 1 }))
+    const clip = s.project.clips.find(c => c.id === id)
+    if (!clip) return
+    closeFadePopover()
+    if (el.closest('[data-gain]')) envDouble(el, clip)
     else { const f = el.closest<HTMLElement>('[data-fade]')?.dataset.fade; if (f) s.apply(p => patchClips(p, [id], f === 'in' ? { fadeIn: 0 } : { fadeOut: 0 })) }
   }
 
@@ -177,6 +176,7 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     const clip = id ? p.clips.find(c => c.id === id) : undefined
     if (clip) {
       if (!s.selection.includes(clip.id)) s.select([clip.id])
+      if ((e.target as Element).closest('[data-gain]')) return envContext(e.clientX, e.clientY, clip, e.target as Element)
       return clipMenu(e.clientX, e.clientY, clip, p)
     }
     const tr = p.tracks[laneAt(layOf(p), pt.y)], gap = tr ? gapAt(p, tr.id, pt.t) : null

@@ -75,3 +75,12 @@
 .dk-mhold { position: absolute; inset: 0; border-right: 2px solid var(--steel-300); transform: translateX(-100%); will-change: transform; }
 .dk-mscale { position: relative; height: 12px; margin-left: 16px; font-size: 8px; color: var(--steel-500); } .dk-mscale span { position: absolute; transform: translateX(-50%); }
 .dk-clip { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--hairline-strong); background: none; transition: background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); } .dk-clip.on { background: var(--white); transform: scale(1.2); }
+
+/* wave 3: inspector extras + AUTO tab */
+.dk-curves { display: flex; gap: 4px; } .dk-curves .chip { font-size: 10px; padding: 5px 8px; cursor: pointer; }
+.dk-pop { animation: slide-in var(--t) var(--ease) both; }
+.dk-stack .row > .dk-dim { text-align: right; }
+.dk-auto-list { max-height: 220px; } .dk-auto-row { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; padding: 5px 6px; border-radius: var(--radius-sm); animation: slide-in var(--t) var(--ease) both; } .dk-auto-row:hover { background: var(--ink-800); }
+.dk-bar { height: 4px; border-radius: 2px; background: var(--ink-850); overflow: hidden; } .dk-bar > i { display: block; height: 100%; background: var(--steel-300); transform-origin: left; transform: scaleX(var(--v)); transition: transform var(--t) var(--ease); }
+.dk-sil { grid-template-columns: auto 1fr auto; } .dk-sil .dk-dim { font-variant-numeric: tabular-nums; }
+.dk-grid2 .dk-btns { align-self: end; }

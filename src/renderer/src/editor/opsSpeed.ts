@@ -1,5 +1,5 @@
 import { MIN_CLIP, clipDur, clipEnd, clipSpeed, srcSpan, type Clip, type Project } from './model'
-import { SLACK, SPEED_MAX, SPEED_MIN, clamp, clearRange, finite, fitFades, lockedIds, minDur, settle, xfadePartners } from './clipmath'
+import { SLACK, SPEED_MAX, SPEED_MIN, clamp, clearRange, finite, fitFades, lockedIds, minDur, reEnv, settle, xfadePartners } from './clipmath'
 import { rippleResize } from './opsTrim'
 import type { RippleOpts } from './opsRange'
 
@@ -19,7 +19,7 @@ export function setClipSpeed(p: Project, id: string, speed: number, ripple = fal
   if (!c || !finite(speed) || speed <= 0) return p
   const s = clamp(speed, SPEED_MIN, Math.min(SPEED_MAX, srcSpan(c) / MIN_CLIP))
   if (s === clipSpeed(c)) return p
-  const next = fitFades({ ...c, speed: s })
+  const next = fitFades(reEnv(c, { ...c, speed: s }))
   if (ripple) return rippleResize(p, c, next, Math.min(clipEnd(c), clipEnd(next)), opts)
   const swapped = p.clips.map(x => (x.id === id ? next : x))
   return { ...p, clips: settle(clearRange(swapped, c.track, next.start, clipEnd(next), xfadePartners(swapped, next))) }
@@ -48,8 +48,8 @@ export function rollEdit(p: Project, leftId: string, rightId: string, t: number)
   const hi = Math.min((p.sources[l.src].duration - l.srcOut) / sl, clipDur(r) - minDur(r) - r.fadeOut - (xf ? r.fadeIn : 0))
   const dt = clamp(t - cut, Math.min(0, lo), Math.max(0, hi))
   if (Math.abs(dt) <= SLACK / 10) return p
-  const nl: Clip = fitFades({ ...l, srcOut: Math.min(p.sources[l.src].duration, l.srcOut + dt * sl) })
-  const nr: Clip = fitFades({ ...r, start: r.start + dt, srcIn: Math.max(0, r.srcIn + dt * sr) })
+  const nl: Clip = fitFades(reEnv(l, { ...l, srcOut: Math.min(p.sources[l.src].duration, l.srcOut + dt * sl) }))
+  const nr: Clip = fitFades(reEnv(r, { ...r, start: r.start + dt, srcIn: Math.max(0, r.srcIn + dt * sr) }))
   if (clipDur(nl) < minDur(l) - SLACK || clipDur(nr) < minDur(r) - SLACK) return p
   return { ...p, clips: settle(p.clips.map(c => (c.id === l.id ? nl : c.id === r.id ? nr : c))) }
 }

@@ -3,7 +3,9 @@ import { clipDur, clipSpeed, type Clip } from '../model'
 import type { Peaks } from '../peaks'
 import { TL, labelColor } from '../../config/timeline'
 import { drawWave } from './drawWave'
-import { cachedVars, clipTitle, fmtDb, gainToY } from './timelineMath'
+import { cachedVars, clipTitle, fmtDb } from './timelineMath'
+import { EnvLayer } from './EnvLayer'
+import { FadeHandles } from './FadeHandles'
 
 type Props = {
   clip: Clip; y: number; h: number; selected: boolean; locked: boolean; dim: boolean; ghost: boolean; stripe: string
@@ -29,13 +31,12 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
     const col = cachedVars(c, VARS)
     drawWave(c.getContext('2d')!, {
       w: cw, h, dpr, clipLeft: -cl, clipW: w, pk: peaks, pps, srcIn: clip.srcIn, srcOut: clip.srcOut, speed,
-      u0: (vx0 + scrollX) / pps - clip.start, gain: clip.gain, fadeIn: clip.fadeIn, fadeOut: clip.fadeOut,
+      u0: (vx0 + scrollX) / pps - clip.start, gain: clip.gain, fadeIn: clip.fadeIn, fadeOut: clip.fadeOut, fadeInCurve: clip.fadeInCurve, fadeOutCurve: clip.fadeOutCurve, env: clip.env,
       wave: selected ? col['--tl-wave-sel'] : col['--tl-wave'], fadeShade: col['--tl-fade-shade'], fadeLine: col['--tl-fade-line']
     })
-  }, [peaks, pps, scrollX, cw, cl, w, h, vx0, clip.start, clip.srcIn, clip.srcOut, clip.gain, clip.fadeIn, clip.fadeOut, speed, selected])
+  }, [peaks, pps, scrollX, cw, cl, w, h, vx0, clip.start, clip.srcIn, clip.srcOut, clip.gain, clip.fadeIn, clip.fadeOut, clip.fadeInCurve, clip.fadeOutCurve, clip.env, speed, selected])
 
   const detail = h >= TL.detailMinH && !locked && w > 3 * TL.fadeHandlePx
-  const fi = Math.min(clip.fadeIn * pps, w - TL.fadeHandlePx), fo = Math.min(clip.fadeOut * pps, w - TL.fadeHandlePx)
   const lbl = labelColor(clip.label)
   const off = Math.min(Math.max(0, -xL), Math.max(0, w - 48))
   return (
@@ -50,9 +51,8 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
       </span>
       {!locked && <i className="tl-edge" data-edge="in" />}
       {!locked && <i className="tl-edge" data-edge="out" />}
-      {detail && <i className="tl-fade" data-fade="in" style={{ transform: `translateX(${Math.max(0, fi)}px)` }} />}
-      {detail && <i className="tl-fade" data-fade="out" style={{ transform: `translateX(${-Math.max(0, fo)}px)` }} />}
-      {detail && <div className="tl-gain" data-gain style={{ transform: `translateY(${Math.round(gainToY(clip.gain, h))}px)` }}><i /></div>}
+      {detail && <EnvLayer clip={clip} w={w} h={h} pps={pps} />}
+      {detail && <FadeHandles w={w} fadeIn={clip.fadeIn * pps} fadeOut={clip.fadeOut * pps} side={w >= TL.fadeMinSideW} />}
     </div>
   )
 }

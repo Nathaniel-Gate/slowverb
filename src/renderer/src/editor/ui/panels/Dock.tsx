@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DOCK_TABS, PANELS, type DockTab } from '../../../config/panels'
 import { useEditor } from '../../editor.store'
+import { Auto } from './Auto'
 import { Bpm } from './Bpm'
 import { Inspector } from './Inspector'
 import { Markers } from './Markers'
@@ -8,7 +9,7 @@ import { Mix } from './Mix'
 import { SourceBin } from './SourceBin'
 import './panels.css'
 
-const VIEWS: Record<DockTab, () => React.ReactNode> = { inspector: Inspector, source: SourceBin, markers: Markers, mix: Mix, bpm: Bpm }
+const VIEWS: Record<DockTab, () => React.ReactNode> = { inspector: Inspector, source: SourceBin, markers: Markers, mix: Mix, bpm: Bpm, auto: Auto }
 
 /** Keep the panel mounted while its exit animation plays, so the dock keeps its width until the slide-out is done. */
 function useExit(open: boolean) {

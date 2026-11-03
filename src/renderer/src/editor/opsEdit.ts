@@ -1,5 +1,5 @@
 import { clipEnd, type Clip, type Project } from './model'
-import { EPS, SLACK, SPEED_MAX, SPEED_MIN, clamp, finite, fitFades, lockedIds, piece, placeAll, settle, spanTooShort, trackIndex, uid } from './clipmath'
+import { EPS, SLACK, SPEED_MAX, SPEED_MIN, clamp, cleanClip, finite, fitFades, lockedIds, piece, placeAll, settle, spanTooShort, trackIndex, uid } from './clipmath'
 import { removeSpan, rippleTracks, type RippleOpts } from './opsRange'
 
 // Clip-level edits. All pure: they return a NEW Project, or the SAME object when nothing changed.
@@ -125,7 +125,7 @@ export function pasteClips(p: Project, clips: Clip[], at: number, track?: string
     const dest = p.tracks[track !== undefined ? clamp((i < 0 ? 0 : i) + offset, 0, p.tracks.length - 1) : Math.max(0, i)]
     if (locked.has(dest.id)) continue
     const id = uid('c', taken); taken.add(id)
-    placed.push(fitFades({ ...c, id, track: dest.id, start: c.start + origin }))
+    placed.push(fitFades(cleanClip({ ...c, id, track: dest.id, start: c.start + origin })))
   }
   return placed.length ? { ...p, clips: placeAll(p.clips, placed) } : p
 }

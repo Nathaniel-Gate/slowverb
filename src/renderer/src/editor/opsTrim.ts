@@ -1,5 +1,5 @@
 import { clipDur, clipEnd, clipSpeed, type Clip, type Project } from './model'
-import { EPS, clamp, clearRange, finite, fitFades, lockedIds, minDur, settle, xfadePartners } from './clipmath'
+import { EPS, clamp, clearRange, finite, fitFades, lockedIds, minDur, reEnv, settle, xfadePartners } from './clipmath'
 import { rippleTracks, shiftTracks, type RippleOpts } from './opsRange'
 
 type Edge = 'in' | 'out'
@@ -13,7 +13,7 @@ function find(p: Project, id: string): { c: Clip; srcDur: number } | null {
 export const withOut = (c: Clip, srcDur: number, t: number): Clip => {
   const sp = clipSpeed(c)
   const dur = clamp(t - c.start, minDur(c), (srcDur - c.srcIn) / sp)
-  return fitFades({ ...c, srcOut: Math.min(c.srcIn + dur * sp, srcDur) })
+  return fitFades(reEnv(c, { ...c, srcOut: Math.min(c.srcIn + dur * sp, srcDur) }))
 }
 
 /** Drag an edge to timeline time t. Clamps to source bounds, minimum length and timeline 0; overwrites neighbours it grows into. */
@@ -25,7 +25,7 @@ export function trimClip(p: Project, id: string, edge: Edge, t: number): Project
   let next: Clip
   if (edge === 'in') {
     const d = clamp(t - c.start, Math.max(-c.srcIn / sp, -c.start), clipDur(c) - minDur(c))
-    next = fitFades({ ...c, start: c.start + d, srcIn: Math.max(0, c.srcIn + d * sp) })
+    next = fitFades(reEnv(c, { ...c, start: c.start + d, srcIn: Math.max(0, c.srcIn + d * sp) }))
   } else next = withOut(c, srcDur, t)
   if (next.start === c.start && next.srcIn === c.srcIn && next.srcOut === c.srcOut) return p
   const swapped = p.clips.map(x => (x.id === id ? next : x))
@@ -58,7 +58,7 @@ export function rippleTrim(p: Project, id: string, edge: Edge, t: number, opts?:
   const { c, srcDur } = f
   const sp = clipSpeed(c)
   const next = edge === 'in'
-    ? fitFades({ ...c, srcIn: Math.max(0, c.srcIn + clamp(t - c.start, -c.srcIn / sp, clipDur(c) - minDur(c)) * sp) })
+    ? fitFades(reEnv(c, { ...c, srcIn: Math.max(0, c.srcIn + clamp(t - c.start, -c.srcIn / sp, clipDur(c) - minDur(c)) * sp) }))
     : withOut(c, srcDur, t)
   const delta = clipDur(next) - clipDur(c)
   if (delta === 0) return p

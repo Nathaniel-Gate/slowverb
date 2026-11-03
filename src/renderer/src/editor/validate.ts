@@ -1,5 +1,5 @@
 import { clipDur, clipEnd, srcSpan, MIN_CLIP, type Project } from './model'
-import { SLACK, SPEED_MAX, SPEED_MIN, finite, firstBadOverlap } from './clipmath'
+import { FADE_CURVES, SLACK, SPEED_MAX, SPEED_MIN, finite, firstBadOverlap } from './clipmath'
 
 /**
  * List of invariant violations (empty = valid). Used by tests and as a dev-time assertion. Same-track overlap is legal
@@ -30,6 +30,17 @@ export function validate(p: Project): string[] {
     if (clipDur(c) < MIN_CLIP - SLACK || srcSpan(c) < MIN_CLIP - SLACK) bad.push(`clip ${c.id} shorter than MIN_CLIP`)
     if (c.gain < 0) bad.push(`clip ${c.id} negative gain`)
     if (c.fadeIn < -SLACK || c.fadeOut < -SLACK || c.fadeIn + c.fadeOut > clipDur(c) + SLACK) bad.push(`clip ${c.id} fades exceed duration`)
+    for (const k of ['fadeInCurve', 'fadeOutCurve'] as const) if (c[k] !== undefined && !FADE_CURVES.includes(c[k]!)) bad.push(`clip ${c.id} unknown ${k} ${c[k]}`)
+    if (c.env !== undefined) {
+      const d = clipDur(c), env = c.env
+      if (!Array.isArray(env)) bad.push(`clip ${c.id} envelope is not a list`)
+      else env.forEach((x, i) => {
+        if (!x || !finite(x.t) || !finite(x.g)) bad.push(`clip ${c.id} envelope point ${i} non-finite`)
+        else if (x.g < 0) bad.push(`clip ${c.id} envelope point ${i} negative gain`)
+        else if (x.t < -SLACK || x.t > d + SLACK) bad.push(`clip ${c.id} envelope point ${i} outside clip`)
+        else if (i > 0 && x.t < env[i - 1].t - SLACK) bad.push(`clip ${c.id} envelope not sorted at ${i}`)
+      })
+    }
     return true
   })
   for (const t of p.tracks) {

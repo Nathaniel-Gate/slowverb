@@ -7,17 +7,20 @@ import { TL } from './timeline'
 export const DEFAULT_KEYS: Record<string, string[]> = {
   // tools
   'tool.select': ['V'], 'tool.razor': ['C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Z'],
-  'tool.roll': ['N'], 'tool.rate': ['R'],
+  'tool.roll': ['N'], 'tool.rate': ['Shift+R'], 'tool.range': ['R'],
   // transport
   'play': ['Space'], 'playRange': ['Shift+Space'], 'loop': ['Cmd+L'],
   'shuttle.back': ['J'], 'shuttle.stop': ['K'], 'shuttle.fwd': ['L'],
   'step.back': ['Left'], 'step.fwd': ['Right'], 'step.backBig': ['Shift+Left'], 'step.fwdBig': ['Shift+Right'],
   'edit.prev': ['Up'], 'edit.next': ['Down'], 'home': ['Home'], 'end': ['End'],
   // cutting
-  'split': ['Cmd+K'], 'splitAll': ['Cmd+Shift+K'],
+  'split': ['Cmd+K', 'Cmd+\\'], 'splitAll': ['Cmd+Shift+K'],
   'trim.headRipple': ['Q'], 'trim.tailRipple': ['W'], 'trim.head': ['Alt+Q'], 'trim.tail': ['Alt+W'],
   'delete': ['Delete', 'Backspace'], 'rippleDelete': ['Shift+Delete', 'Shift+Backspace'],
   'lift': [';'], 'extract': ["'"], 'closeGaps': [],
+  // wave 3 (Resolve style). M stays Add marker, so Mute range is Alt+M.
+  'extend': ['E'], 'trimSel.start': ['Shift+['], 'trimSel.end': ['Shift+]'],
+  'range.mute': ['Alt+M'], 'range.gainUp': ['Alt+Up'], 'range.gainDown': ['Alt+Down'], 'range.fadeIn': ['Alt+F'], 'range.fadeOut': ['Alt+Shift+F'],
   'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
   'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
   // selection and clipboard
@@ -27,9 +30,9 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'markIn': ['I'], 'markOut': ['O'], 'gotoIn': ['Shift+I'], 'gotoOut': ['Shift+O'], 'clearIn': ['Alt+I'], 'clearOut': ['Alt+O'], 'clearMarks': ['Alt+X'],
   'marker': ['M'], 'marker.next': ['Shift+M'], 'marker.prev': ['Shift+Alt+M'],
   // view
-  'snap': ['S'], 'beatSnap': ['Shift+S'], 'showBeats': ['Shift+B'], 'fit': ['\\'], 'fitSelection': ['Shift+\\'],
+  'snap': ['S'], 'beatSnap': ['Shift+S'], 'showBeats': ['Shift+B'], 'fit': ['\\', 'Shift+Z'], 'fitSelection': ['Shift+\\'],
   'zoomIn': ['=', 'Shift+=', 'NumpadAdd'], 'zoomOut': ['-', 'NumpadSubtract'],
-  'dock.inspector': ['Alt+1'], 'dock.source': ['Alt+2'], 'dock.markers': ['Alt+3'], 'dock.mix': ['Alt+4'], 'dock.bpm': ['Alt+5'], 'dock.hide': ['Alt+0'],
+  'dock.inspector': ['Alt+1'], 'dock.source': ['Alt+2'], 'dock.markers': ['Alt+3'], 'dock.mix': ['Alt+4'], 'dock.bpm': ['Alt+5'], 'dock.auto': ['Alt+6'], 'dock.hide': ['Alt+0'],
   // project
   'undo': ['Cmd+Z'], 'redo': ['Cmd+Shift+Z', 'Cmd+Y'], 'history': ['Cmd+Alt+Z'], 'save': ['Cmd+S'], 'render': ['Cmd+E'],
   'version.new': [], 'version.duplicate': [], 'syncLock': [],
@@ -55,6 +58,10 @@ export const EDITOR = {
   shuttleSteps: [1, 2, 4, 8], // J/K/L: each extra tap goes one step faster
   shuttleSlow: 0.25,          // K held + J/L
   recentCommands: 6,          // palette shows this many recently used commands first
+  gainStepDb: 1,              // Alt+Up / Alt+Down gain step on a range or the selected clips
+  gainMaxDb: 12,              // selected-clip gain via keys never goes above this
+  silenceDb: -50,             // 'Trim silence' treats anything quieter than this (dBFS) as silence
+  sectionDupSec: 0.25,        // a detected section boundary this close to an existing marker is skipped
   keysStorage: 'slowverb.editor.keys', renderStorage: 'slowverb.editor.render',
   render: { bitDepth: 16 as 16 | 24 | 32, normalize: false }
 } as const

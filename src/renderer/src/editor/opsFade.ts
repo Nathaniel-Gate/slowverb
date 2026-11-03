@@ -1,5 +1,5 @@
 import { clipDur, clipEnd, clipSpeed, type Clip, type Project } from './model'
-import { EPS, SLACK, clamp, finite, lockedIds, settle, xfadeOk } from './clipmath'
+import { EPS, SLACK, clamp, finite, lockedIds, reEnv, settle, xfadeOk } from './clipmath'
 
 // Clip property patches, fades and crossfades. All pure.
 export type ClipPatch = Partial<Pick<Clip, 'gain' | 'fadeIn' | 'fadeOut' | 'name' | 'label' | 'disabled'>>
@@ -61,8 +61,8 @@ export function removeCrossfade(p: Project, leftId: string, rightId: string): Pr
   const { l, r } = pr, ov = clipEnd(l) - r.start
   if (ov <= SLACK || r.start < l.start) return p
   const m = (r.start + clipEnd(l)) / 2, sl = clipSpeed(l), sr = clipSpeed(r)
-  const nl: Clip = { ...l, srcOut: l.srcIn + (m - l.start) * sl, fadeOut: 0 }
-  const nr: Clip = { ...r, start: m, srcIn: r.srcIn + (m - r.start) * sr, fadeIn: 0 }
+  const nl: Clip = reEnv(l, { ...l, srcOut: l.srcIn + (m - l.start) * sl, fadeOut: 0 })
+  const nr: Clip = reEnv(r, { ...r, start: m, srcIn: r.srcIn + (m - r.start) * sr, fadeIn: 0 })
   return { ...p, clips: settle(p.clips.map(c => (c.id === l.id ? nl : c.id === r.id ? nr : c))) }
 }
 
@@ -81,7 +81,7 @@ export function applyCrossfade(p: Project, leftId: string, rightId: string, dur:
   const h = Math.min(dur / 2, (base.sources[l.src].duration - l.srcOut) / sl, r.srcIn / sr, cut,
     clipDur(l) - l.fadeIn, clipDur(r) - r.fadeOut)
   if (!(h > EPS)) return p
-  const nl: Clip = { ...l, srcOut: Math.min(base.sources[l.src].duration, l.srcOut + h * sl), fadeOut: 2 * h }
-  const nr: Clip = { ...r, start: cut - h, srcIn: Math.max(0, r.srcIn - h * sr), fadeIn: 2 * h }
+  const nl: Clip = reEnv(l, { ...l, srcOut: Math.min(base.sources[l.src].duration, l.srcOut + h * sl), fadeOut: 2 * h })
+  const nr: Clip = reEnv(r, { ...r, start: cut - h, srcIn: Math.max(0, r.srcIn - h * sr), fadeIn: 2 * h })
   return { ...base, clips: settle(base.clips.map(c => (c.id === l.id ? nl : c.id === r.id ? nr : c))) }
 }

@@ -15,6 +15,10 @@ import { useDropTarget } from './useDropTarget'
 import { useRulerInput } from './useRulerInput'
 import { useLaneHover } from './useLaneHover'
 import { useTimelineInput } from './useTimelineInput'
+import { useRangeInput } from './useRangeInput'
+import { RangeLayer } from './RangeLayer'
+import { FadeCurvePopover } from './FadeHandles'
+import './timeline3.css'
 
 type Flash = { id: number; t: number; y: number; h: number }
 let flashId = 0
@@ -31,6 +35,7 @@ export function Timeline() {
   const loop = useEditor(s => s.loop)
   const gap = useEditor(s => s.gap)
   const showBeats = useEditor(s => s.showBeats)
+  const hasRange = useEditor(s => !!s.range)
   const live = useLaneLive(s => s.live)
 
   const root = useRef<HTMLDivElement>(null), lanes = useRef<HTMLDivElement>(null), head = useRef<HTMLDivElement>(null)
@@ -52,7 +57,8 @@ export function Timeline() {
   const view = useMemo(() => makeView({ root, lanes }), [])
   const ui: TimelineUi = useMemo(() => ({ setPreview, setSnapAt, setMarquee, setRange, flash }), [flash])
   const guides: Guides = { razor, hot, ghost, hud }
-  const input = useTimelineInput(view, { root, lanes }, guides, ui, !!project)
+  const rangeIn = useRangeInput(view, { root, lanes }, guides)
+  const input = useTimelineInput(view, { root, lanes }, guides, ui, !!project, rangeIn.rangeDown)
   const hover = useLaneHover(view, { root, lanes }, guides)
   const ruler = useRulerInput(view, ui, hud, root)
   const drop = useDropTarget(view, ghost)
@@ -127,7 +133,7 @@ export function Timeline() {
 
   return (
     <div className="tl" ref={root} data-tool={tool} tabIndex={-1} onDragOver={drop.onDragOver} onDragLeave={drop.onDragLeave} onDrop={drop.onDrop}
-      style={{ '--tl-ruler-h': `${TL.rulerH}px`, '--tl-edge': `${TL.edgePx}px`, '--tl-handle': `${TL.fadeHandlePx}px`, '--tl-gain-hit': `${TL.gainHitPx}px`, '--tl-dim': TL.dimMuted, '--tl-flash': `${TL.flashMs}ms` } as CSSProperties}>
+      style={{ '--tl-ruler-h': `${TL.rulerH}px`, '--tl-edge': `${TL.edgePx}px`, '--tl-handle': `${TL.fadeHandlePx}px`, '--tl-gain-hit': `${TL.gainHitPx}px`, '--tl-fadezone': `${TL.fadeZoneFrac * 100}%`, '--tl-fadeside': `${TL.fadeSidePx}px`, '--tl-dot': `${TL.fadeDotPx}px`, '--tl-dot-y': `${TL.fadeDotY}px`, '--tl-dim': TL.dimMuted, '--tl-flash': `${TL.flashMs}ms` } as CSSProperties}>
       <Ruler width={viewW} pxPerSec={pps} scrollX={scrollX} markers={shown.markers} markIn={rIn} markOut={rOut} loop={loop}
         onDown={ruler.onRulerDown} onMarker={ruler.onMarker} onRange={ruler.onRange} onContext={ruler.onRulerContext} />
       <div className="tl-lanes" ref={lanes} onPointerDown={input.onLanesDown} onPointerMove={hover.onLanesMove} onPointerLeave={hover.onLanesLeave}
@@ -138,7 +144,8 @@ export function Timeline() {
               style={{ height: L.hs[i], transform: `translateY(${L.tops[i]}px)` }} />
           ))}
           {showBeats && shown.bpm ? <BeatGrid project={shown} pps={pps} scrollX={scrollX} viewW={viewW} height={L.total} /> : null}
-          {rangeOn && <div className="tl-range" data-loop={loop || undefined} style={{ transform: `translateX(${x(rIn!)}px)`, width: (rOut! - rIn!) * pps }} />}
+          {rangeOn && !hasRange && <div className="tl-range" data-loop={loop || undefined} style={{ transform: `translateX(${x(rIn!)}px)`, width: (rOut! - rIn!) * pps }} />}
+          <RangeLayer project={shown} layout={L} pps={pps} scrollX={scrollX} viewW={viewW} dragging={!!preview} onEdge={rangeIn.edgeDown} />
           {gap && gapLane !== undefined && (
             <div className="tl-gap" style={{ transform: `translate(${x(gap.start)}px, ${L.tops[gapLane]}px)`, width: (gap.end - gap.start) * pps, height: L.hs[gapLane] }} />
           )}
@@ -170,6 +177,7 @@ export function Timeline() {
           <div className="tl-razor" ref={razor} /><div className="tl-hot" ref={hot} /><div className="tl-dropghost" ref={ghost} />
         </div>
       </div>
+      <FadeCurvePopover />
       <Minimap project={base} pps={pps} scrollX={scrollX} viewW={viewW} view={view} />
       <div className="tl-overlay">
         <div className="tl-snap" data-on={snapAt !== null || undefined} style={{ transform: `translateX(${Math.round(x(lastSnap.current))}px)` }} />
