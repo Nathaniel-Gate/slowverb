@@ -2,7 +2,6 @@ import { useEditor } from '../../editor/editor.store'
 import { useFx } from '../fx/fx.store'
 import { useLibrary } from '../library/library.store'
 import { usePlayer } from './player.store'
-import { useEditor } from '../../editor/editor.store'
 
 export function NowPlaying() {
   const t = useLibrary((s) => s.tracks.find((x) => x.id === usePlayer.getState().cur))
