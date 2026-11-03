@@ -19,6 +19,38 @@ export function runShot(win: BrowserWindow) {
       e.currentTime = 10; await new Promise(r => setTimeout(r, 300))
       return { ex, seekedTo: e.currentTime, duration: e.duration, seekable: e.seekable.length && e.seekable.end(0), tracks: r.length, rate: e.playbackRate, preservesPitch: e.preservesPitch, time: e.currentTime, paused: e.paused, peak, error: e.error && e.error.message }
     })()`
+    if (process.env.SLOWVERB_ED) {
+      // Editor-audio proofs: bundle renderer/src/editor/proof.ts with rolldown (already a build dependency), run it in the page.
+      const { createRequire } = await import('module'), { join } = await import('path')
+      const { rolldown } = createRequire(process.cwd() + '/')('rolldown')
+      const bundle = await rolldown({ input: join(process.cwd(), 'src/renderer/src/editor/proof.ts'), logLevel: 'silent' })
+      const { output } = await bundle.generate({ format: 'iife', name: 'EDP' })
+      const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.HOME + '/Music/Slowverb/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_EDUI) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms))
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_EDUI)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        const out = { clips0: E.getState().project.clips.length }
+        for (const t of [45, 100, 160, 220]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        const mid = E.getState().project.clips.filter(c => c.start >= 99 && c.start < 101)
+        E.getState().select(mid.map(c => c.id)); E.getState().deleteSelection(false)
+        E.getState().setPlayhead(75); E.getState().select([])
+        E.getState().fitToView(960)
+        await wait(1200)
+        const p = E.getState().project
+        out.clips1 = p.clips.map(c => [+c.start.toFixed(1), +c.srcIn.toFixed(1), +c.srcOut.toFixed(1)])
+        E.getState().undo(); await wait(100); out.afterUndo = E.getState().project.clips.length
+        E.getState().redo(); await wait(600); out.afterRedo = E.getState().project.clips.length
+        if (${process.env.SLOWVERB_RENDER ? 'true' : 'false'}) { await E.getState().renderToLibrary(); await wait(800); out.files = (await window.api.sync()).files }
+        out.tab = document.body.innerText.slice(0, 80).replace(/\\n/g, ' | ')
+        return out })()`)
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('EDUI_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
     if (process.env.SLOWVERB_PL) {
       const pl = await win.webContents.executeJavaScript(`(async () => {
         const sv = window.__sv, P = sv.usePlaylists, out = {}

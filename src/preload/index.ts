@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld('api', {
   moveTrack: (path: string, toRel: string) => ipcRenderer.invoke('pl:move', path, toRel),
   importInto: (paths: string[], toRel: string) => ipcRenderer.invoke('pl:import', paths, toRel),
   onLibraryChanged: (cb: () => void) => { ipcRenderer.on('fs:changed', cb); return () => ipcRenderer.removeListener('fs:changed', cb) },
+  editorList: (song: string) => ipcRenderer.invoke('editor:list', song),
+  editorLoad: (song: string, name: string) => ipcRenderer.invoke('editor:load', song, name),
+  editorSave: (song: string, project: unknown) => ipcRenderer.invoke('editor:save', song, project),
+  editorDelete: (song: string, name: string) => ipcRenderer.invoke('editor:delete', song, name),
+  editorRenameVersion: (song: string, from: string, to: string) => ipcRenderer.invoke('editor:rename', song, from, to),
+  renameSong: (song: string, base: string) => ipcRenderer.invoke('editor:renameSong', song, base),
+  saveRender: (song: string, name: string, wav: ArrayBuffer) => ipcRenderer.invoke('editor:render', song, name, wav),
   cancelDownload: () => ipcRenderer.invoke('dl:cancel'),
   onDownloadProgress: (cb: (p: unknown) => void) => {
     const h = (_e: unknown, p: unknown) => cb(p); ipcRenderer.on('dl:progress', h); return () => ipcRenderer.removeListener('dl:progress', h)

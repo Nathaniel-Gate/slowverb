@@ -1,0 +1,67 @@
+/* Editor shell: header, tool strip, track headers, mode switch. Timeline visuals live in ui/timeline.css. */
+
+/* PLAYER | EDITOR switch, sits in the drag strip */
+.mode { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); -webkit-app-region: no-drag; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; width: 176px; height: 26px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); background: var(--ink-900); }
+.mode button { position: relative; z-index: 1; font: 11px var(--font-mono); letter-spacing: .08em; color: var(--steel-400); border-radius: var(--radius-sm); }
+.mode button.on { color: var(--ink-950); } .mode button:hover:not(.on):not(:disabled) { color: var(--white); } .mode button:disabled { opacity: .4; cursor: default; }
+.mode-pill { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); background: var(--white); border-radius: var(--radius-sm); transition: transform var(--t) var(--ease); }
+.mode[data-on='editor'] .mode-pill { transform: translateX(100%); }
+
+/* surface: covers the player, same blueprint grid, fades in on mount and out when closing */
+@keyframes ed-in { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }
+@keyframes ed-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.998); } }
+@keyframes ed-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes ed-left { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes ed-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.editor { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding-top: 38px; background-color: var(--ink-950); animation: ed-in var(--t-slow) var(--ease) both;
+  background-image: linear-gradient(to right, rgb(255 255 255 / var(--grid-major-a)) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / var(--grid-major-a)) 1px, transparent 1px);
+  background-size: var(--grid-major) var(--grid-major); }
+.editor.leaving { animation: ed-out var(--t) var(--ease) both; pointer-events: none; }
+.ed-loading { margin: auto; animation: ed-pulse 1.2s ease-in-out infinite; }
+
+/* header */
+.ed-head { position: relative; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-bottom: 1px solid var(--hairline); background: rgb(15 15 15 / .85); animation: ed-drop var(--t-slow) var(--ease) both; flex: none; }
+.ed-grow { flex: 1; } .ed-sep { width: 1px; height: 20px; background: var(--hairline-strong); flex: none; }
+.ed-names { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ed-name { font-size: 15px; font-weight: 500; color: var(--white); padding: 4px 8px; border-radius: var(--radius-sm); max-width: 30vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-names .ed-name:last-child { color: var(--steel-300); font-weight: 400; } .ed-name:hover { background: var(--ink-800); }
+.ed-name-in { width: auto; min-width: 120px; }
+.ed-tc { font: 500 13px var(--font-mono); color: var(--white); min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; }
+.ed-play { min-width: 58px; border: 1px solid var(--hairline-strong); }
+.ed-status { display: inline-flex; align-items: center; gap: 7px; min-width: 92px; justify-content: flex-end; }
+.ed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--steel-500); transition: background-color var(--t) var(--ease), transform var(--t) var(--ease); }
+.ed-status.dirty .ed-dot { background: var(--white); } .ed-status.saving .ed-dot, .ed-status.busy .ed-dot { background: var(--white); animation: ed-pulse .9s ease-in-out infinite; }
+.ed-status.note .ed-dot { background: var(--white); transform: scale(1.4); } .ed-status.busy, .ed-status.note { color: var(--white); }
+.ed-status-t { animation: rise var(--t) var(--ease) both; }
+.ed-render { border: 1px solid var(--white); border-radius: var(--radius-sm); padding: 6px 14px; font: 12px var(--font-mono); letter-spacing: .08em; margin-left: 6px; }
+.ed-render:hover:not(:disabled) { background: var(--white); color: var(--ink-950); } .ed-render:disabled { opacity: .5; cursor: default; }
+.ed-busy { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; opacity: 0; transition: opacity var(--t) var(--ease); pointer-events: none; } .ed-busy.on { opacity: 1; }
+
+/* body */
+.ed-body { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px; }
+.ed-tools { width: 52px; flex: none; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; padding: 6px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: rgb(15 15 15 / .85); animation: ed-left var(--t-slow) var(--ease) 60ms both; }
+.ed-tool-list { position: relative; }
+.ed-tool-pill { position: absolute; left: 0; right: 0; top: 0; height: 38px; border-radius: var(--radius); background: var(--ink-800); outline: 1px solid var(--hairline-strong); pointer-events: none; transition: transform var(--t) var(--ease); }
+.ed-tool { position: relative; width: 100%; height: 38px; display: grid; place-items: center; color: var(--steel-400); border-radius: var(--radius); }
+.ed-tool:hover, .ed-tool.on { color: var(--white); } .ed-key { position: absolute; right: 4px; bottom: 2px; font: 8px var(--font-mono); color: var(--steel-500); }
+.ed-snap { padding: 8px 0; border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); font-size: 9px; color: var(--steel-400); letter-spacing: .06em; }
+.ed-snap.on { background: var(--white); color: var(--ink-950); border-color: var(--white); } .ed-snap:hover:not(.on) { color: var(--white); border-color: var(--white); }
+.ed-main { flex: 1; min-width: 0; display: flex; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: rgb(15 15 15 / .85); overflow: hidden; animation: rise var(--t-slow) var(--ease) 100ms both; }
+.ed-timeline { flex: 1; min-width: 0; position: relative; overflow: hidden; } .ed-timeline > * { width: 100%; height: 100%; }
+
+/* track headers: row heights come from TL.laneH / TL.rulerH (set inline as --lane-h / --ruler-h) */
+.ed-th { flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--hairline-strong); background: rgb(10 10 10 / .6); min-height: 0; }
+.ed-th-ruler { height: var(--ruler-h); flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 12px; border-bottom: 1px solid var(--hairline-strong); }
+.ed-th-ruler .ghost { font-size: 10px; padding: 3px 7px; }
+.ed-th-scroll { flex: 1; min-height: 0; overflow: hidden; }
+.ed-th-row { height: var(--lane-h); box-sizing: border-box; padding: 10px 12px; border-bottom: 1px solid var(--hairline); display: flex; flex-direction: column; justify-content: space-between; animation: ed-left var(--t) var(--ease) both; transition: opacity var(--t) var(--ease); }
+.ed-th-row.locked { opacity: .6; }
+.ed-tname { font-size: 13px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
+.ed-flags { display: flex; gap: 5px; }
+.ed-flag { width: 24px; height: 20px; border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); font-size: 10px; color: var(--steel-400); display: grid; place-items: center; }
+.ed-flag:hover { color: var(--white); border-color: var(--white); } .ed-flag.on { background: var(--white); color: var(--ink-950); border-color: var(--white); }
+.ed-th-row input[type=range] { margin: 6px 0 2px; }
+.menu button:disabled { opacity: .4; cursor: default; }
+
+/* EDIT button next to the speed/reverb tags on the player */
+.tag-btn { background: none; cursor: pointer; color: var(--white); border-color: var(--white); } .tag-btn:hover { background: var(--white); color: var(--ink-950); }

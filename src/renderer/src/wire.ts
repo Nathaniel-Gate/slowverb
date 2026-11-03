@@ -1,6 +1,7 @@
 // Glue between stores, the audio engine and disk. Everything cross-cutting lives here, nowhere else.
 import type { Saved } from '../../shared/types'
 import { engine } from './audio/engine'
+import { useEditor } from './editor/editor.store'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
@@ -22,7 +23,7 @@ export async function wire() {
     const cur = usePlayer.getState().cur
     if (s.touched !== touched) { touched = s.touched; if (cur) useLibrary.getState().setTrackFx(cur, s.fx) }
   })
-  engine.el.addEventListener('play', () => usePlayer.setState({ playing: true }))
+  engine.el.addEventListener('play', () => { usePlayer.setState({ playing: true }); if (useEditor.getState().playing) void useEditor.getState().togglePlay() })   // never both at once
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => usePlayer.getState().next(1))
   // persist (debounced)
@@ -33,10 +34,11 @@ export async function wire() {
     window.api.save(data)
   }, 400) }
   useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save)
+  window.addEventListener('beforeunload', () => void useEditor.getState().flush())   // last edit never lost on quit
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { engine, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
+;(window as any).__sv = { engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()

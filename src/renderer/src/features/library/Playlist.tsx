@@ -1,3 +1,4 @@
+import { useEditor } from '../../editor/editor.store'
 import { fmt } from '../../lib/format'
 import { useFlip } from '../../ui/useFlip'
 import { DownloadBar } from '../download/DownloadBar'
@@ -27,14 +28,14 @@ export function Playlist() {
             onDragStart={(e) => { e.dataTransfer.setData(TRACK_MIME, t.id); e.dataTransfer.effectAllowed = 'move' }}
             onDragOver={(e) => { if (e.dataTransfer.types.includes(TRACK_MIME)) e.preventDefault() }}
             onDrop={(e) => { const id = e.dataTransfer.getData(TRACK_MIME); if (id) { e.preventDefault(); e.stopPropagation(); moveBefore(id, t.id) } }}
-            onClick={() => play(t.id)} onContextMenu={(e) => { e.preventDefault(); if (t.id === cur) usePlayer.getState().stop(); remove(t.id) }}>
+            onClick={() => play(t.id)} onDoubleClick={() => void useEditor.getState().openSong(t.path)} onContextMenu={(e) => { e.preventDefault(); if (t.id === cur) usePlayer.getState().stop(); remove(t.id) }}>
             <span className="n">{t.id === cur ? <span className={`eq ${playing ? '' : 'paused'}`}><i /><i /><i /></span> : String(i + 1).padStart(2, '0')}</span>
             <div style={{ minWidth: 0 }}><div className="t">{t.title}</div><div className="a">{[t.artist, t.fx && t.fx.speed !== 1 ? `${t.fx.speed.toFixed(2)}x` : ''].filter(Boolean).join(' · ')}</div></div>
             <span className="n">{fmt(t.duration)}</span>
           </div>
         ))}
       </div>
-      <div className="side-head"><span className="mono">Right-click removes · drag onto a playlist to move</span></div>
+      <div className="side-head"><span className="mono">Double-click edits · right-click removes · drag to a playlist to move</span></div>
     </aside>
   )
 }

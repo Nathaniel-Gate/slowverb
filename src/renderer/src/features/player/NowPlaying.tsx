@@ -1,3 +1,4 @@
+import { useEditor } from '../../editor/editor.store'
 import { useFx } from '../fx/fx.store'
 import { useLibrary } from '../library/library.store'
 import { usePlayer } from './player.store'
@@ -12,7 +13,7 @@ export function NowPlaying() {
       <span className="mono">01 / Now playing</span>
       <h1 className="title" key={track?.id ?? 'none'}>{track?.title ?? 'Drop a song anywhere'}</h1>
       <div className="artist" key={(track?.id ?? 'none') + 'a'}>{track ? track.artist : 'mp3 · m4a · wav · flac · ogg · folders too'}</div>
-      {track && <><span className="tag mono">{(bypass ? 1 : fx.speed).toFixed(2)}x</span><span className="tag mono">Reverb {Math.round((bypass ? 0 : fx.wet) * 100)}%</span></>}
+      {track && <><span className="tag mono">{(bypass ? 1 : fx.speed).toFixed(2)}x</span><span className="tag mono">Reverb {Math.round((bypass ? 0 : fx.wet) * 100)}%</span><button className="tag mono tag-btn" title="Open this song in the editor" onClick={() => void useEditor.getState().openSong(track.path)}>Edit</button></>}
     </div>
   )
 }

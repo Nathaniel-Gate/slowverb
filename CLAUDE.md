@@ -25,3 +25,15 @@ Icon: `build/icon.svg` is the source; `npx electron build/render-icon.cjs` regen
 Corner softness: `--radius-sm/--radius/--radius-lg` in theme/tokens.css (0 = sharp).
 Live editing: `npm run live` opens a window that hot-reloads on every save (UI changes instantly; main-process changes restart the app). Use it instead of the installed app while editing; run `npm run deploy` when happy.
 Playlists = folders: library root is `~/Music/Slowverb` (shared/config.ts). main/playlists.ts does all file ops (create/rename/trash/move/import + folder watcher); renderer `features/playlists/` (store + PlaylistTree). Drops COPY into the selected playlist (IMPORT_MODE in shared/config.ts); downloads land in the selected playlist's folder. `useFlip` (ui/useFlip.ts) + the sliding highlight come from the Forge plugin's list-motion / slide-pill ideas. Harness: SLOWVERB_ROOT=<dir> SLOWVERB_PL=1 runs a playlist file-ops test.
+
+## Timeline editor (Editor tab, Premiere-style)
+Contract + design: `src/renderer/src/editor/CONTRACT.md`, plan `~/.claude/plans/sequential-pondering-blum.md`. Non-destructive: an edit is JSON at `<playlist>/.edits/<Song>/<Version>.json` (source file untouched); RENDER writes `Song (Version).wav` into the playlist.
+| Want to change | Go to |
+|---|---|
+| Cutting rules (split/ripple/trim/overwrite/snap), undo | `editor/ops.ts` (+ opsEdit, opsTrim, clipmath, snap.ts, history.ts); tests beside them |
+| Live playback + render (same graph) | `editor/schedule.ts`, `transport.ts`, `render.ts`, `peaks.ts`, knobs `config/editorAudio.ts` |
+| Editor state, keys, header, tools, track list | `editor/editor.store.ts`, `useEditorKeys.ts` + `config/editorKeys.ts`, `editor/ui/{EditorView,HeaderBar,ToolStrip,TrackHeaders}.tsx` |
+| Timeline drawing + mouse interactions | `editor/ui/Timeline.tsx`, `Ruler`, `ClipView`, `useTimelineInput`, `timelineDrags.ts`, knobs `config/timeline.ts`, look `timeline.css` |
+| Sidecar saves, rename song, save render | `src/main/editor.ts` + `editorPaths.ts` (IPC `editor:*`) |
+Harness: `SLOWVERB_ED=1` audio proofs; `SLOWVERB_EDUI=<song path>` scripted edit + screenshot (add `SLOWVERB_RENDER=1` to render, `SLOWVERB_ROOT=<dir>` to keep it off your real library).
+Done: phases 1-2 (shell, playback, render, razor/split/delete/ripple/move/trim/undo/snap). Not yet: fade-handle dragging, crossfades UI, source bin, markers UI polish, BPM grid, peaks cache, rename UI polish (phases 3-5).

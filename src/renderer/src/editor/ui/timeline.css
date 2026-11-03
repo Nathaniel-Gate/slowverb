@@ -1,0 +1,86 @@
+/* Timeline view (agent D2). Greyscale blueprint look; retheme through the --tl-* variables on .tl. Only transform/opacity animate. */
+.tl {
+  --tl-bg: var(--ink-950); --tl-ruler-bg: var(--ink-900); --tl-ruler-line: var(--hairline-strong);
+  --tl-tick: rgb(251 251 250 / .55); --tl-tick-minor: rgb(251 251 250 / .22); --tl-label: var(--steel-400);
+  --tl-lane-odd: rgb(255 255 255 / .018); --tl-grid: rgb(255 255 255 / .035); --tl-lane-line: var(--hairline);
+  --tl-clip-bg: var(--ink-700); --tl-clip-bg-hover: color-mix(in srgb, var(--white) 6%, var(--ink-700));
+  --tl-clip-bg-sel: color-mix(in srgb, var(--white) 17%, var(--ink-700));
+  --tl-clip-border: var(--hairline-strong); --tl-clip-border-hover: var(--steel-500); --tl-sel-outline: var(--white);
+  --tl-wave: var(--steel-400); --tl-wave-sel: var(--white);
+  --tl-fade-shade: rgb(10 10 10 / .5); --tl-fade-line: rgb(251 251 250 / .55);
+  --tl-playhead: var(--white); --tl-snap: var(--steel-300); --tl-marker: var(--steel-300);
+  --tl-range: rgb(255 255 255 / .045); --tl-marquee-fill: rgb(255 255 255 / .06);
+  --tl-lock-hatch: rgb(255 255 255 / .035);
+  position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--tl-bg); user-select: none; touch-action: none;
+}
+
+/* ruler */
+.tl-ruler { position: relative; flex: none; height: var(--tl-ruler-h); background: var(--tl-ruler-bg); overflow: hidden; cursor: pointer; }
+.tl-ruler canvas { display: block; }
+.tl-ruler-range { position: absolute; left: 0; bottom: 1px; height: 3px; background: var(--hairline-strong); pointer-events: none; }
+.tl-bracket { position: absolute; left: 0; bottom: 1px; width: 7px; height: 10px; border: 1px solid var(--white); pointer-events: none; }
+.tl-bracket.in { border-right: 0; } .tl-bracket.out { margin-left: -7px; border-left: 0; }
+.tl-marker { position: absolute; left: 0; top: 0; height: 100%; width: 0; cursor: pointer; }
+.tl-marker::after { content: ''; position: absolute; left: 0; top: 14px; bottom: 0; width: 1px; background: var(--tl-marker); opacity: .5; }
+.tl-marker i { position: absolute; left: -4px; top: 2px; width: 9px; height: 12px; background: var(--tl-marker); clip-path: polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%); transition: background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
+.tl-marker span { position: absolute; left: 8px; top: 3px; font: 500 9px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--tl-marker); white-space: nowrap; }
+.tl-marker:hover i { background: var(--white); transform: scale(1.15); }
+
+/* lanes */
+.tl-lanes { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative; scrollbar-width: none; }
+.tl-lanes::-webkit-scrollbar { display: none; }
+.tl-content { position: relative; min-height: 100%; background-image: linear-gradient(90deg, var(--tl-grid) 1px, transparent 1px); }
+.tl-lane { position: absolute; left: 0; right: 0; top: 0; height: var(--tl-lane-h); border-bottom: 1px solid var(--tl-lane-line); pointer-events: none; }
+.tl-lane[data-odd] { background: var(--tl-lane-odd); }
+.tl-lane[data-lock] { background: repeating-linear-gradient(135deg, var(--tl-lock-hatch) 0 6px, transparent 6px 12px); }
+.tl-range { position: absolute; left: 0; top: 0; bottom: 0; background: var(--tl-range); border-inline: 1px solid var(--hairline-strong); pointer-events: none; }
+.tl-mline { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: var(--tl-marker); opacity: .22; pointer-events: none; }
+
+/* clips */
+.tl-clip {
+  position: absolute; left: 0; top: 0; overflow: hidden; background: var(--tl-clip-bg);
+  border: 1px solid var(--tl-clip-border); border-radius: var(--radius-sm);
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), opacity var(--t) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.tl-clip canvas { position: absolute; top: 0; pointer-events: none; }
+.tl-clip:hover { background: var(--tl-clip-bg-hover); border-color: var(--tl-clip-border-hover); }
+.tl-clip[data-selected] { background: var(--tl-clip-bg-sel); border-color: var(--tl-sel-outline); outline: 1px solid var(--tl-sel-outline); outline-offset: -2px; }
+.tl-clip[data-dim] { opacity: var(--tl-dim); }
+.tl-clip[data-locked] { background-image: repeating-linear-gradient(135deg, var(--tl-lock-hatch) 0 6px, transparent 6px 12px); }
+.tl-clip[data-ghost] { z-index: 3; box-shadow: 0 8px 22px rgb(0 0 0 / .55); }
+.tl-clip-label {
+  position: absolute; left: 6px; top: 3px; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--stone-100);
+  text-shadow: 0 0 4px var(--ink-950), 0 0 2px var(--ink-950); pointer-events: none;
+}
+.tl-edge { position: absolute; top: 0; bottom: 0; width: min(var(--tl-edge), 33%); }
+.tl-edge[data-edge='in'] { left: 0; } .tl-edge[data-edge='out'] { right: 0; }
+.tl-edge::after { content: ''; position: absolute; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--white); opacity: 0; transform: scaleY(.6); transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
+.tl-edge[data-edge='in']::after { left: 2px; } .tl-edge[data-edge='out']::after { right: 2px; }
+.tl-edge:hover::after { opacity: .9; transform: none; }
+.tl[data-tool='ripple'] .tl-edge::after { width: 5px; border-radius: 0; }
+.tl:not([data-tool='select']):not([data-tool='ripple']) .tl-edge { pointer-events: none; }
+
+/* overlays: playhead, snap line, razor guide, marquee */
+.tl-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 6; }
+.tl-playhead { position: absolute; left: 0; top: 0; bottom: 0; width: 0; will-change: transform; }
+.tl-playhead::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; margin-left: -.5px; background: var(--tl-playhead); }
+.tl-playhead-cap { position: absolute; left: -6px; top: 0; width: 13px; height: 14px; background: var(--tl-playhead); clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); }
+.tl-snap { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; opacity: 0; transition: opacity var(--t-fast) var(--ease); background: repeating-linear-gradient(to bottom, var(--tl-snap) 0 4px, transparent 4px 8px); }
+.tl-snap[data-on] { opacity: 1; }
+.tl-razor { display: none; position: absolute; left: 0; top: 0; width: 1px; background: var(--white); box-shadow: 0 0 6px rgb(255 255 255 / .5); pointer-events: none; z-index: 4; will-change: transform; }
+.tl-marquee { position: absolute; left: 0; top: 0; border: 1px dashed var(--steel-300); background: var(--tl-marquee-fill); pointer-events: none; z-index: 5; }
+
+/* cursors per tool, and while dragging */
+.tl[data-tool='razor'] .tl-lanes, .tl[data-tool='razor'] .tl-clip { cursor: crosshair; }
+.tl[data-tool='slip'] .tl-clip { cursor: col-resize; }
+.tl[data-tool='hand'] .tl-lanes, .tl[data-tool='hand'] .tl-clip { cursor: grab; }
+.tl[data-tool='zoom'] .tl-lanes, .tl[data-tool='zoom'] .tl-clip { cursor: zoom-in; }
+.tl[data-tool='select'] .tl-edge, .tl[data-tool='ripple'] .tl-edge { cursor: ew-resize; }
+.tl[data-drag='pan'], .tl[data-drag='pan'] * { cursor: grabbing !important; }
+.tl[data-drag='move'], .tl[data-drag='move'] * { cursor: grabbing !important; }
+.tl[data-drag='dup'], .tl[data-drag='dup'] * { cursor: copy !important; }
+.tl[data-drag='trim'], .tl[data-drag='trim'] *, .tl[data-drag='slip'], .tl[data-drag='slip'] * { cursor: ew-resize !important; }
+.tl[data-drag='scrub'], .tl[data-drag='scrub'] * { cursor: ew-resize !important; }
+.tl[data-drag] .tl-clip { transition: none; }
