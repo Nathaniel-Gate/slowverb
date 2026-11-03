@@ -1,3 +1,4 @@
+import { trackReverbTail } from './trackFx'
 import { masterOf } from './master'
 import { encodeWav, type BitDepth } from '../audio/wav'
 import { DEFAULT_FX, REVERB } from '../config/fx'
@@ -25,7 +26,7 @@ export async function renderProject(p: Project, buffers: Buffers, opts: RenderOp
   const a = Math.max(0, Math.min(opts.range?.a ?? 0, total)), b = Math.max(a, Math.min(opts.range?.b ?? total, total))
   const used = p.clips.map((c) => buffers.get(c.src)).filter((x): x is AudioBuffer => !!x)
   const rate = used.reduce((m, x) => Math.max(m, x.sampleRate), 0) || EDITOR_AUDIO.defaultRate
-  const tail = fx.wet > 0 ? fx.decay + REVERB.preDelay : 0
+  const tail = Math.max(fx.wet > 0 ? fx.decay + REVERB.preDelay : 0, ...p.tracks.map((t) => trackReverbTail(t.fx)))
   const length = Math.max(1, Math.ceil(((b - a) / Math.max(fx.speed, EDITOR_AUDIO.minSpeed) + tail) * rate - 1e-6))
   const ctx = new OfflineAudioContext(EDITOR_AUDIO.channels, length, rate)
   buildGraph(ctx, p, buffers, a, 0, { until: b })

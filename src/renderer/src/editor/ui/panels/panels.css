@@ -84,3 +84,20 @@
 .dk-bar { height: 4px; border-radius: 2px; background: var(--ink-850); overflow: hidden; } .dk-bar > i { display: block; height: 100%; background: var(--steel-300); transform-origin: left; transform: scaleX(var(--v)); transition: transform var(--t) var(--ease); }
 .dk-sil { grid-template-columns: auto 1fr auto; } .dk-sil .dk-dim { font-variant-numeric: tabular-nums; }
 .dk-grid2 .dk-btns { align-self: end; }
+
+/* wave 4: loop section. Steppers wrap the number boxes; the loop wave reuses .dk-mini-wave / .dk-handle / .dk-shade. */
+.dk-loop { gap: 12px; } .dk-loop .dk-grid2 { gap: 12px 10px; }
+.dk-lf { display: flex; flex-direction: column; gap: 5px; min-width: 0; } .dk-lf > .mono { font-size: 9px; letter-spacing: .08em; color: var(--steel-500); white-space: nowrap; }
+.dk-step { display: grid; grid-template-columns: 22px minmax(0, 1fr) 22px; align-items: stretch; min-width: 0; } .dk-step.off { opacity: .55; }
+.dk-step .dk-field { min-width: 0; } .dk-step .dk-input { border-radius: 0; text-align: center; padding: 5px 2px; }
+.dk-stepbtn { border: 1px solid var(--hairline-strong); background: var(--ink-850); color: var(--steel-300); font: 13px/1 var(--font-mono); cursor: pointer; user-select: none; touch-action: none; padding: 0;
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
+.dk-stepbtn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); border-right: 0; } .dk-stepbtn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: 0; }
+.dk-stepbtn:hover { color: var(--white); background: var(--ink-800); border-color: var(--steel-500); } .dk-stepbtn:active { color: var(--ink-950); background: var(--white); }
+.dk-lw { cursor: crosshair; }
+.dk-lw .dk-handle { width: 13px; margin-left: -6px; } .dk-lw .dk-handle::after { left: 6px; transition: width var(--t-fast) var(--ease); } .dk-lw .dk-handle::before { left: 6px; }
+.dk-lw .dk-handle.out::before { left: 2px; } .dk-lw .dk-handle.drag::after { width: 2px; left: 5px; } .dk-lw .dk-handle:hover::after { width: 2px; left: 5px; }
+.dk-xf { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgb(251 251 250 / .16), rgb(251 251 250 / .04)); pointer-events: none; border-bottom: 2px solid rgb(251 251 250 / .35); }
+.dk-hl { position: absolute; top: 12px; left: 12px; padding: 1px 5px; font-size: 10px; color: var(--ink-950); background: var(--white); border-radius: var(--radius-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.dk-hl.r { left: auto; right: 12px; }
+.dk-lz { display: flex; align-items: center; gap: 5px; } .dk-lz .chip { font-size: 10px; padding: 4px 8px; min-width: 24px; cursor: pointer; } .dk-lz-gap { flex: 1; } .dk-lz-w { min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }

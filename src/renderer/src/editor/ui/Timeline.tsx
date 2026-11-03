@@ -18,6 +18,9 @@ import { useTimelineInput } from './useTimelineInput'
 import { useRangeInput } from './useRangeInput'
 import { RangeLayer } from './RangeLayer'
 import { FadeCurvePopover } from './FadeHandles'
+import { LoopLayer } from './LoopLayer'
+import { expandLoopSelection, groupLoops, memberIndex, selectedLoopId } from './loopMath'
+import { useLoopInput } from './useLoopInput'
 import './timeline3.css'
 
 type Flash = { id: number; t: number; y: number; h: number }
@@ -62,6 +65,15 @@ export function Timeline() {
   const hover = useLaneHover(view, { root, lanes }, guides)
   const ruler = useRulerInput(view, ui, hud, root)
   const drop = useDropTarget(view, ghost)
+  const loopIn = useLoopInput(view, { root, lanes }, guides, ui)
+  const groups = useMemo(() => groupLoops((preview ?? project)?.clips ?? []), [preview?.clips, project?.clips])   // eslint-disable-line react-hooks/exhaustive-deps -- preview/project identity is enough
+  const members = useMemo(() => memberIndex(groups), [groups])
+
+  // Selecting any repeat selects the whole loop (also after a click that narrowed a multi-selection).
+  useEffect(() => {
+    const next = expandLoopSelection(groupLoops(project?.clips ?? []), selection)
+    if (next) useEditor.getState().select(next)
+  }, [selection, project?.clips])
 
   useEffect(() => {
     const el = root.current
@@ -119,6 +131,7 @@ export function Timeline() {
   const base = project, shown = preview ?? project
   const baseById = new Map(base.clips.map(c => [c.id, c]))
   const sel = new Set(selection)
+  const selLoop = selectedLoopId(base, preview ? groupLoops(base.clips) : groups, selection)   // the loop whose handles show
   const anySolo = shown.tracks.some(t => t.solo)
   const L = layoutOf(shown.tracks, live)
   const laneOf = new Map(shown.tracks.map((t, i) => [t.id, i]))
@@ -137,7 +150,7 @@ export function Timeline() {
       <Ruler width={viewW} pxPerSec={pps} scrollX={scrollX} markers={shown.markers} markIn={rIn} markOut={rOut} loop={loop}
         onDown={ruler.onRulerDown} onMarker={ruler.onMarker} onRange={ruler.onRange} onContext={ruler.onRulerContext} />
       <div className="tl-lanes" ref={lanes} onPointerDown={input.onLanesDown} onPointerMove={hover.onLanesMove} onPointerLeave={hover.onLanesLeave}
-        onDoubleClick={input.onLanesDoubleClick} onContextMenu={input.onLanesContext}>
+        onDoubleClick={input.onLanesDoubleClick} onContextMenu={input.onLanesContext} onPointerDownCapture={loopIn.onSelectCapture}>
         <div className="tl-content" style={{ height: L.total, backgroundSize: `${stepPx}px 100%`, backgroundPosition: `${-scrollX}px 0` }}>
           {shown.tracks.map((t, i) => (
             <div key={t.id} className="tl-lane" data-odd={i % 2 || undefined} data-lock={t.lock || undefined} data-collapsed={t.collapsed || undefined}
@@ -153,8 +166,8 @@ export function Timeline() {
           {visible.map(c => {
             const lane = laneOf.get(c.track) ?? 0, tr = trackOf.get(c.track), b = clipBox(L, lane)
             return (
-              <ClipView key={c.id} clip={c} y={b.y} h={b.h} selected={sel.has(c.id)} locked={!!tr?.lock} stripe={trackColor(lane)}
-                dim={!!tr && (tr.mute || (anySolo && !tr.solo))} ghost={!!preview && baseById.get(c.id) !== c}
+              <ClipView key={c.id} clip={c} y={b.y} h={b.h} selected={sel.has(c.id) || (!!c.loop && c.loop === selLoop)} rep={members.get(c.id)?.rep} locked={!!tr?.lock} stripe={trackColor(lane)}
+                dim={!!tr && (tr.mute || (anySolo && !tr.solo))} ghost={!!preview && !c.loop && baseById.get(c.id) !== c}
                 peaks={peaks.get(c.src)} pxPerSec={pps} scrollX={scrollX} viewW={viewW} />
             )
           })}
@@ -162,11 +175,12 @@ export function Timeline() {
             const lane = laneOf.get(o.track) ?? 0, b = clipBox(L, lane)
             if (x(o.end) < 0 || x(o.start) > viewW) return null
             return (
-              <div key={o.id} className="tl-xfade" style={{ transform: `translate(${x(o.start)}px, ${b.y}px)`, width: Math.max(2, (o.end - o.start) * pps), height: b.h }}>
+              <div key={o.id} className="tl-xfade" data-loop={members.has(o.id.split('>')[0]) || undefined} style={{ transform: `translate(${x(o.start)}px, ${b.y}px)`, width: Math.max(2, (o.end - o.start) * pps), height: b.h }}>
                 <svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 10L10 0M0 0L10 10" vectorEffect="non-scaling-stroke" /></svg>
               </div>
             )
           })}
+          <LoopLayer project={shown} groups={groups} layout={L} pps={pps} scrollX={scrollX} viewW={viewW} selectedId={selLoop} handles={tool === 'select'} onHandle={loopIn.onHandle} />
           {marquee && (
             <div className="tl-marquee" style={{
               transform: `translate(${x(Math.min(marquee.t0, marquee.t1))}px, ${Math.min(marquee.y0, marquee.y1)}px)`,

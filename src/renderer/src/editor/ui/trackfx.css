@@ -1,0 +1,5 @@
+.tfx-pop { width: 300px; padding: 14px 16px 6px; background: var(--ink-850); border: 1px solid var(--hairline-strong); border-radius: var(--radius); box-shadow: 0 14px 40px rgb(0 0 0 / .55); }
+.tfx-h { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+.tfx-knobs { display: grid; grid-template-columns: 1fr; gap: 0; }
+.tfx-knobs .knob { margin-top: 12px; }
+.ed-flag.fx.on { color: var(--neon, var(--white)); border-color: var(--neon, var(--white)); box-shadow: 0 0 6px color-mix(in srgb, var(--neon, #fff) 50%, transparent); }

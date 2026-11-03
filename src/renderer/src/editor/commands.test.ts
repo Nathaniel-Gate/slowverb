@@ -39,6 +39,30 @@ describe('command registry', () => {
     expect(calls).toEqual(['muteRange()', 'fadeRangeEdge(in)', 'fadeRangeEdge(out)', 'gainRangeDb(1)', 'gainRangeDb(-1)', 'extendEditToPlayhead()', 'trimStartToPlayhead()',
       'trimEndToPlayhead()', 'splitAtMarkers()', 'setSmoothCuts(true)', 'setFadeCurveSel(in,log)', 'clearEnvSelected()', 'cutEveryBeatsAction(4)', 'liftRangeSel()', 'extractRangeSel()'])
   })
+  it('wave 4 loop keys are bound without collisions', () => {
+    const keyOf = (id: string) => COMMANDS.find((c) => c.id === id)?.keys
+    expect(keyOf('loop.make')).toEqual(['Alt+L']); expect(keyOf('loop.unloop')).toEqual(['Alt+Shift+L'])
+    expect(keyOf('loop.in-')).toEqual(['Alt+[']); expect(keyOf('loop.in+')).toEqual(['Alt+]'])
+    expect(keyOf('loop.out-')).toEqual(['Alt+Shift+[']); expect(keyOf('loop.out+')).toEqual(['Alt+Shift+]'])
+    expect(keyOf('loop.in-fine')).toEqual(['Cmd+Alt+[']); expect(keyOf('loop.out+fine')).toEqual(['Cmd+Alt+Shift+]'])
+    expect(keyOf('loop.count+')).toEqual(['Alt+=']); expect(keyOf('loop.count-')).toEqual(['Alt+-'])
+    expect(COMMANDS.find((c) => c.id === 'loop.fill')).toBeDefined()
+    for (const k of ['Alt+L', 'Alt+[', 'Alt+Shift+]', 'Alt+=']) expect(collisions(k).length, k).toBe(1)
+    expect(collisions('L')[0]?.id).toBe('shuttle.fwd'); expect(collisions('Cmd+L')[0]?.id).toBe('loop')   // untouched
+  })
+  it('loop commands call the exact store actions', () => {
+    const calls: string[] = []
+    const loop = { id: 'lp1', count: 4, xfade: 0.04 }
+    const base = { selection: ['c1'], selectedLoop: () => loop }
+    const s = new Proxy(base, { get: (t, k: string) => (k in t ? (t as Record<string, unknown>)[k] : (...a: unknown[]) => calls.push(`${k}(${a.join()})`)) }) as never
+    const run = (id: string) => COMMANDS.find((c) => c.id === id)!.run(s)
+    for (const id of ['loop.in-', 'loop.in+', 'loop.out-', 'loop.out+', 'loop.in-fine', 'loop.out+fine', 'loop.fill', 'loop.unloop', 'loop.count+', 'loop.count-']) run(id)
+    expect(calls).toEqual(['nudgeLoop(in,-0.001)', 'nudgeLoop(in,0.001)', 'nudgeLoop(out,-0.001)', 'nudgeLoop(out,0.001)', 'nudgeLoop(in,-0.01)', 'nudgeLoop(out,0.01)',
+      'loopFillToPlayhead()', 'unloopSelection()', 'updateLoopLive(lp1,[object Object],loopcount:lp1)', 'showToast(Loop x4, crossfade 40 ms)', 'updateLoopLive(lp1,[object Object],loopcount:lp1)', 'showToast(Loop x4, crossfade 40 ms)'])
+    const mk: string[] = []
+    const m = new Proxy({ selection: ['c1'] }, { get: (t, k: string) => (k in t ? (t as Record<string, unknown>)[k] : (...a: unknown[]) => mk.push(`${k}(${a.join()})`)) }) as never
+    COMMANDS.find((c) => c.id === 'loop.make')!.run(m); expect(mk).toEqual(['makeLoopFromSelection()'])
+  })
   it('collisions() finds a taken key', () => { expect(collisions('Cmd+Z', 'redo').map((c) => c.id)).toEqual(['undo']); expect(collisions('Cmd+Alt+9')).toEqual([]) })
 })
 describe('key strings', () => {

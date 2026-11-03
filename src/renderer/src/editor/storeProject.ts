@@ -1,3 +1,5 @@
+import { TRACK_EQ, TRACK_REVERB } from '../config/editorAudio'
+import type { TrackFx } from './model'
 import type { Fx } from '../../../shared/types'
 import { EDITOR } from '../config/editorKeys'
 import { uid } from './clipmath'
@@ -12,6 +14,14 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 const uniqueName = (base: string, taken: string[]) => { let n = 2, name = base; while (taken.includes(name)) name = `${base} ${n++}`; return name }
 
 /** Project-level actions: sources, master, BPM, versions, view helpers, dock. */
+const clampDb = (v: number) => Math.min(TRACK_EQ.maxDb, Math.max(TRACK_EQ.minDb, v))
+/** Merge a slider patch into a track's fx; an all-flat EQ and no reverb collapse to "no fx" so the audio graph stays untouched. */
+export function mergeTrackFx(cur: TrackFx | undefined, patch: { low?: number; mid?: number; high?: number; reverb?: Partial<NonNullable<TrackFx['reverb']>> | null }): TrackFx | undefined {
+  const rv = patch.reverb === null ? undefined : patch.reverb ? { wet: TRACK_REVERB.defaultWet, decay: TRACK_REVERB.defaultDecay, damping: TRACK_REVERB.defaultDamping, ...cur?.reverb, ...patch.reverb } : cur?.reverb
+  const next: TrackFx = { low: clampDb(patch.low ?? cur?.low ?? 0), mid: clampDb(patch.mid ?? cur?.mid ?? 0), high: clampDb(patch.high ?? cur?.high ?? 0), ...(rv ? { reverb: rv } : {}) }
+  return !next.low && !next.mid && !next.high && !(next.reverb && next.reverb.wet > 0) ? undefined : next
+}
+
 export function projectActions(c: Ctx): Pick<S, ProjectKeys> {
   const { get, set, toast, edit, coalesce, targets, switchTo } = c
   return {
@@ -33,6 +43,11 @@ export function projectActions(c: Ctx): Pick<S, ProjectKeys> {
         }, `${mode === 'insert' ? 'Inserted' : 'Overwrote'} ${(b - a).toFixed(1)}s at ${fmtTime(t)}`, 'Nothing to place (track locked?)')
       } catch (e) { console.error('[editor] insertSource failed', path, e); toast('Could not load that audio') }
     },
+    /** Per-track EQ and reverb (the track's "FX"). Sliders pass through coalesce so a whole drag is one undo step. */
+    setTrackFx(id: string, patch: { low?: number; mid?: number; high?: number; reverb?: Partial<NonNullable<TrackFx['reverb']>> | null }) {
+      coalesce(`trackfx:${id}`, (p) => ops.setTrack(p, id, { fx: mergeTrackFx(p.tracks.find((t) => t.id === id)?.fx, patch) }))
+    },
+    resetTrackFx(id: string) { edit((p) => ops.setTrack(p, id, { fx: undefined }), 'Track effects cleared', 'No effects on this track') },
     applyMaster(fx: Fx | null) { coalesce('master', (p) => ({ ...p, master: fx })); toast(fx ? 'Mix updated' : 'Mix reset') },
     setBpm(bpm, offset) {
       coalesce('bpm', (p) => ({ ...p, bpm, bpmOffset: offset ?? p.bpmOffset }))

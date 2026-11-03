@@ -10,11 +10,12 @@ import { FadeHandles } from './FadeHandles'
 type Props = {
   clip: Clip; y: number; h: number; selected: boolean; locked: boolean; dim: boolean; ghost: boolean; stripe: string
   peaks: Peaks | undefined; pxPerSec: number; scrollX: number; viewW: number
+  rep?: number   // index of this repeat inside its loop (alternate tint); only for clips with clip.loop
 }
 const VARS = ['--tl-wave', '--tl-wave-sel', '--tl-fade-shade', '--tl-fade-line']
 
 // One clip: a DOM box (hover, outline, label, handles) with a canvas that draws only the visible slice.
-function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxPerSec: pps, scrollX, viewW }: Props) {
+function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxPerSec: pps, scrollX, viewW, rep }: Props) {
   const cv = useRef<HTMLCanvasElement>(null)
   const dur = clipDur(clip), speed = clipSpeed(clip)
   const xL = Math.round(clip.start * pps - scrollX), xR = Math.round((clip.start + dur) * pps - scrollX)
@@ -36,13 +37,14 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
     })
   }, [peaks, pps, scrollX, cw, cl, w, h, vx0, clip.start, clip.srcIn, clip.srcOut, clip.gain, clip.fadeIn, clip.fadeOut, clip.fadeInCurve, clip.fadeOutCurve, clip.env, speed, selected])
 
-  const detail = h >= TL.detailMinH && !locked && w > 3 * TL.fadeHandlePx
+  const inLoop = !!clip.loop   // repeats are edited through the loop handles / Inspector (Unloop first to cut one): no trim edges, fades or gain band
+  const detail = h >= TL.detailMinH && !locked && !inLoop && w > 3 * TL.fadeHandlePx
   const lbl = labelColor(clip.label)
   const off = Math.min(Math.max(0, -xL), Math.max(0, w - 48))
   return (
     <div className="tl-clip" data-clip={clip.id} data-selected={selected || undefined} data-locked={locked || undefined}
       data-dim={dim || undefined} data-ghost={ghost || undefined} data-disabled={clip.disabled || undefined} data-label={lbl ? '' : undefined}
-      data-tiny={tiny || undefined}
+      data-tiny={tiny || undefined} data-loop={inLoop ? clip.loop : undefined} data-rep={inLoop ? ((rep ?? 0) % 2 ? 'odd' : 'even') : undefined}
       style={{ width: w, height: h, transform: `translate(${xL}px, ${y}px)`, '--lbl': lbl || undefined, '--stripe': stripe, '--hit-pad': tiny ? `${(TL.minHitPx - w) / 2}px` : undefined } as React.CSSProperties}>
       <canvas ref={cv} style={{ left: cl, width: cw, height: h }} />
       <span className="tl-clip-label" style={{ transform: `translateX(${off}px)` }}>
@@ -50,8 +52,8 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
         {speed !== 1 && <b className="tl-badge">{Math.round(speed * 100)}%</b>}
         {Math.abs(clip.gain - 1) > 0.006 && <b className="tl-badge">{fmtDb(clip.gain)}</b>}
       </span>
-      {!locked && !tiny && <i className="tl-edge" data-edge="in" />}
-      {!locked && !tiny && <i className="tl-edge" data-edge="out" />}
+      {!locked && !tiny && !inLoop && <i className="tl-edge" data-edge="in" />}
+      {!locked && !tiny && !inLoop && <i className="tl-edge" data-edge="out" />}
       {detail && <EnvLayer clip={clip} w={w} h={h} pps={pps} />}
       {detail && <FadeHandles w={w} fadeIn={clip.fadeIn * pps} fadeOut={clip.fadeOut * pps} side={w >= TL.fadeMinSideW} />}
     </div>

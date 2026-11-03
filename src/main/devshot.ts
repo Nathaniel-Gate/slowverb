@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,50 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_LOOP) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_LOOP)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        for (const t of [10, 12]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        const mid = E.getState().project.clips.find(c => Math.abs(c.start - 10) < 0.01)
+        E.getState().select([mid.id]); const h0 = E.getState().hist.past.length
+        E.getState().makeLoopFromSelection(4, 0.05); await wait(300)
+        const L0 = E.getState().project.loops[0], members = E.getState().project.clips.filter(c => c.loop)
+        out.made = { loops: E.getState().project.loops.length, repeats: members.length, span: +(L0.count * (L0.srcOut - L0.srcIn - L0.xfade) + L0.xfade).toFixed(3), starts: members.map(c => +c.start.toFixed(3)), fades: members.map(c => c.fadeIn) }
+        out.valid = sv.ops.validate(E.getState().project)
+        const h1 = E.getState().hist.past.length
+        for (let i = 0; i < 5; i++) { E.getState().nudgeLoop('in', 0.001); await wait(20) }
+        const L1 = E.getState().project.loops[0]; out.nudgedIn = +(L1.srcIn - L0.srcIn).toFixed(4); out.undoStepsForFiveNudges = E.getState().hist.past.length - h1
+        E.getState().updateLoopLive(L1.id, { xfade: 0.08 }, 'xf'); E.getState().updateLoopLive(L1.id, { xfade: 0.09 }, 'xf'); await wait(50)
+        out.xfade = E.getState().project.loops[0].xfade; out.fadeNow = E.getState().project.clips.filter(c => c.loop)[1].fadeIn
+        E.getState().updateLoopLive(L1.id, { count: 8 }); await wait(100); out.count8 = E.getState().project.clips.filter(c => c.loop).length
+        out.valid2 = sv.ops.validate(E.getState().project)
+        const r2 = await sv.renderProject(E.getState().project, E.getState().buffers, { bitDepth: 16 })
+        out.renderLen = +(r2.channels[0].length / r2.rate).toFixed(2)
+        E.getState().unloopSelection(); await wait(100); out.afterUnloop = { loops: (E.getState().project.loops || []).length, loopTagged: E.getState().project.clips.filter(c => c.loop).length }
+        E.getState().undo(); await wait(100); out.undoRestoresLoop = (E.getState().project.loops || []).length
+        return out })()`)
+      console.log('LOOP_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_TRACKFX) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, song = ${JSON.stringify(process.env.SLOWVERB_TRACKFX)}, out = {}
+        const base = sv.ops.newProject(song, 3), id = base.tracks[0].id
+        const buffers = await sv.loadBuffers(base, sv.editorTransport.ctx)
+        const rms = (ch, a, b) => { let s = 0; for (let i = a; i < b; i++) s += ch[i] * ch[i]; return Math.sqrt(s / Math.max(1, b - a)) }
+        const run = async (fx) => { const p = sv.ops.setTrack(base, id, { fx }); const r = await sv.renderProject(p, buffers, { bitDepth: 16 }); return r }
+        const plain = await run(undefined), rate = plain.rate, n = Math.floor(rate * 2.5)
+        out.plainRms = +rms(plain.channels[0], Math.floor(rate * 0.5), n).toFixed(4)
+        const low = await run({ low: 12, mid: 0, high: 0 }); out.lowShelfRatio = +(rms(low.channels[0], Math.floor(rate * 0.5), n) / out.plainRms).toFixed(2)
+        const high = await run({ low: 0, mid: 0, high: 12 }); out.highShelfRatio = +(rms(high.channels[0], Math.floor(rate * 0.5), n) / out.plainRms).toFixed(2)
+        const cut = await run({ low: -12, mid: 0, high: 0 }); out.lowCutRatio = +(rms(cut.channels[0], Math.floor(rate * 0.5), n) / out.plainRms).toFixed(2)
+        const rev = await run({ low: 0, mid: 0, high: 0, reverb: { wet: 0.5, decay: 2, damping: 0.3 } })
+        out.plainLen = +(plain.channels[0].length / rate).toFixed(2); out.reverbLen = +(rev.channels[0].length / rate).toFixed(2)
+        out.tailRms = +rms(rev.channels[0], Math.floor(rate * 3.2), Math.floor(rate * 3.8)).toFixed(4); out.plainTailRms = +rms(plain.channels[0], Math.min(plain.channels[0].length - 1, Math.floor(rate * 3.2)), plain.channels[0].length).toFixed(4)
+        return out })()`)
+      console.log('TRACKFX_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_SAVECLOSE) {
       await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_SAVECLOSE)})

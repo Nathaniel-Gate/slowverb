@@ -72,7 +72,16 @@ export const TL = {
   rangeBarW: 420,        // px, approximate mini toolbar width (used to keep it inside the view)
   rangeBarH: 26,         // px, mini toolbar height
   rangeBarBelowMaxH: 200, // px: a range shorter than this gets its toolbar below it when there is no room above
-  rangeBarGap: 6         // px between the range top and the toolbar
+  rangeBarGap: 6,        // px between the range top and the toolbar
+
+  // wave 4 (agent H3): loop groups
+  loopHandlePx: 14,      // px, grab width of a loop handle (begin, end, crossfade, repeats)
+  loopHandleMinW: 48,    // px: loops whose first repeat is narrower than this show no handles (zoom in to micro-adjust)
+  loopDividerMinPx: 5,   // px: no repeat dividers when repeats are closer than this
+  loopFine: 0.1,         // Alt = fine: pointer movement multiplier for loop handles
+  loopTopFrac: 0.68,     // begin and end handles cover this top share of the clip; crossfade and repeats handles take the rest
+  loopEase: 0.55,        // 0..1 how fast loop handle drags glide to the pointer each frame (1 = none)
+  loopEaseEps: 0.00002   // seconds: stop gliding when this close
 }
 
 export type ToolId = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd' | 'range'

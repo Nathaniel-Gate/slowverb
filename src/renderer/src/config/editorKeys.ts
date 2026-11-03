@@ -23,6 +23,10 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'range.mute': ['Alt+M'], 'range.gainUp': ['Alt+Up'], 'range.gainDown': ['Alt+Down'], 'range.fadeIn': ['Alt+F'], 'range.fadeOut': ['Alt+Shift+F'],
   'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
   'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
+  // wave 4: loop clips. Alt+[ ] move the begin point, Alt+Shift+[ ] the end point (1 ms); add Cmd for 10 ms.
+  'loop.make': ['Alt+L'], 'loop.unloop': ['Alt+Shift+L'], 'loop.in-': ['Alt+['], 'loop.in+': ['Alt+]'], 'loop.out-': ['Alt+Shift+['], 'loop.out+': ['Alt+Shift+]'],
+  'loop.in-fine': ['Cmd+Alt+['], 'loop.in+fine': ['Cmd+Alt+]'], 'loop.out-fine': ['Cmd+Alt+Shift+['], 'loop.out+fine': ['Cmd+Alt+Shift+]'],
+  'loop.fill': [], 'loop.count+': ['Alt+='], 'loop.count-': ['Alt+-'],
   // selection and clipboard
   'bounce': ['Cmd+Alt+B'], 'selectAll': ['Cmd+A'], 'selectAtPlayhead': ['C'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
   'copy': ['Cmd+C'], 'cut': ['Cmd+X'], 'paste': ['Cmd+V'], 'pasteInsert': ['Cmd+Shift+V'],
@@ -62,6 +66,19 @@ export const EDITOR = {
   gainMaxDb: 12,              // selected-clip gain via keys never goes above this
   silenceDb: -50,             // 'Trim silence' treats anything quieter than this (dBFS) as silence
   sectionDupSec: 0.25,        // a detected section boundary this close to an existing marker is skipped
+  loop: {
+    nudgeSec: 0.001, nudgeBigSec: 0.01,   // loop point keys: 1 ms; the Cmd variants 10 ms
+    defaultCount: 4,                      // MAKE LOOP repeats (the crossfade default lives in the ops)
+    maxCount: 200,                        // matches LOOP_MAX in opsLoop.ts
+    stepMs: 1, stepBigMs: 10,             // Inspector steppers: click = 1 ms, Shift-click = 10 ms
+    holdDelayMs: 380, holdEveryMs: 60,    // hold a stepper: first repeat after the delay, then this often
+    wavePadFrac: 0.25, wavePadMinSec: 0.02,  // FIT shows the loop plus this fraction of its length either side
+    refitBelowFrac: 0.04,                 // the wave refits itself when the loop is under this fraction of the window
+    pointWinSec: 0.2,                     // IN / OUT zoom chips: window centred on the point
+    zoomMinWinSec: 0.002,                 // closest the mini wave zooms (about 90 samples at 44.1 kHz)
+    zoomStep: 2, wheelZoom: 1.0018,       // zoom buttons factor; wheel zoom factor per delta unit
+    fineDrag: 0.1                         // Alt while dragging a handle = this fraction of the pointer movement
+  },
   keysStorage: 'slowverb.editor.keys', renderStorage: 'slowverb.editor.render',
   render: { bitDepth: 16 as 16 | 24 | 32, normalize: false }
 } as const

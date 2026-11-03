@@ -4,6 +4,7 @@ import { analyseClip, gainToTarget } from '../../analysis'
 import { clipDur, clipSpeed, type Clip } from '../../model'
 import * as ops from '../../ops'
 import { Field, TextField } from './Field'
+import { InspectorLoop } from './InspectorLoop'
 import { EnvSection, FadeCurves, RangeSection, SmoothCuts } from './InspectorExtras'
 import { usePanels } from './panels.store'
 import { clamp, dbOf, fmtTime, gainOf, parseNum, parseTime } from './timecode'
@@ -34,6 +35,7 @@ export function Inspector() {
   return (
     <div className="dk-stack">
       <RangeSection />
+      <InspectorLoop />
       <div className="dk-sec">
         <span className="mono">{one ? 'CLIP' : `${clips.length} CLIPS`}</span>
         <TextField value={common(clips, (c) => c.name ?? '')} placeholder="Name" onCommit={(name) => patch({ name })} />

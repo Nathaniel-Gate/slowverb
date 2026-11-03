@@ -1,22 +1,43 @@
 import { clipEnd, MIN_CLIP, type Clip, type Marker, type Project, type Track } from './model'
 import { EPS, finite, uid } from './clipmath'
-import { patchClips } from './opsFade'
+import { syncLoops } from './loopSync'
+import * as E from './opsEdit'
+import * as T from './opsTrim'
+import * as R from './opsRange'
+import * as S from './opsSpeed'
+import * as F from './opsFade'
+import * as O2 from './ops2'
+import * as EV from './opsEnv'
+import * as RE from './opsRangeEdit'
 
 // Pure edit operations for the audio timeline (agent A). Every function returns a NEW Project (or the SAME object
 // when the op changes nothing, so history can drop no-ops). Invariants are listed in CONTRACT.md and checked by validate().
-export { splitAt, deleteClips, rippleDelete, moveClips, duplicateClips, pasteClips } from './opsEdit'
-export { trimClip, rippleTrim } from './opsTrim'
+// Wave 4: every op that edits clips is wrapped by `L` so live loops stay consistent (loopSync.ts): touched repeats are
+// detached, a loop moved whole stays live. Import ops from HERE, not from the sub-modules, or loops can go stale.
+const L = <A extends unknown[]>(f: (p: Project, ...a: A) => Project) => (p: Project, ...a: A): Project => syncLoops(p, f(p, ...a))
+
+export const splitAt = L(E.splitAt), deleteClips = L(E.deleteClips), rippleDelete = L(E.rippleDelete), moveClips = L(E.moveClips)
+export const duplicateClips = L(E.duplicateClips), pasteClips = L(E.pasteClips)
+export const trimClip = L(T.trimClip), rippleTrim = L(T.rippleTrim)
 export { validate } from './validate'
 export { snapTime, snapTargets, type SnapOpts } from './snap'
 // wave 2 (agent E): ranges, gaps, sync lock, speed, crossfades, queries
-export { gapsOf, liftRange, extractRange, closeGap, closeAllGaps, trimToPlayhead, rippleTracks, targetTracks, type Gap, type RippleOpts } from './opsRange'
-export { setClipSpeed, rateStretch, rollEdit } from './opsSpeed'
-export { applyCrossfade, removeCrossfade, patchClips, type ClipPatch } from './opsFade'
-export { clipsInRange, clipsForward, clipsBackward, nearestEditPoint, beatGrid, clipFromSource, repeatClips, insertClips } from './ops2'
+export { gapsOf, rippleTracks, targetTracks, type Gap, type RippleOpts } from './opsRange'
+export const liftRange = L(R.liftRange), extractRange = L(R.extractRange), closeGap = L(R.closeGap), closeAllGaps = L(R.closeAllGaps), trimToPlayhead = L(R.trimToPlayhead)
+export const setClipSpeed = L(S.setClipSpeed), rateStretch = L(S.rateStretch), rollEdit = L(S.rollEdit)
+export const applyCrossfade = L(F.applyCrossfade), removeCrossfade = L(F.removeCrossfade), patchClips = L(F.patchClips)
+export type { ClipPatch } from './opsFade'
+export { clipsInRange, clipsForward, clipsBackward, nearestEditPoint, beatGrid, clipFromSource } from './ops2'
+export const repeatClips = L(O2.repeatClips), insertClips = L(O2.insertClips)
 export { SPEED_MIN, SPEED_MAX, REPEAT_MAX, ENV_RAMP, ENV_GAIN_MAX, FADE_CURVES } from './clipmath'
 // wave 3 (agent E2): volume envelope, range mute/gain/fade, fade curves, Resolve-style smart edits
-export { envAt, setEnvPoint, removeEnvPoint, clearEnv, setFadeCurve, muteRange, gainRange, fadeRange } from './opsEnv'
-export { extendEdit, trimToPlayheadSel, splitAtMany, cutEveryBeats, trimEnds } from './opsRangeEdit'
+export { envAt } from './opsEnv'
+export const setEnvPoint = L(EV.setEnvPoint), removeEnvPoint = L(EV.removeEnvPoint), clearEnv = L(EV.clearEnv), setFadeCurve = L(EV.setFadeCurve)
+export const muteRange = L(EV.muteRange), gainRange = L(EV.gainRange), fadeRange = L(EV.fadeRange)
+export const extendEdit = L(RE.extendEdit), trimToPlayheadSel = L(RE.trimToPlayheadSel), splitAtMany = L(RE.splitAtMany), cutEveryBeats = L(RE.cutEveryBeats), trimEnds = L(RE.trimEnds)
+// wave 4 (agent E3): live loops
+export { loopLen, loopSpan, makeLoop, updateLoop, loopFill, unloop, loopOfClip, loopClips, nudgeLoopPoint, LOOP_MAX, LOOP_MIN_LEN, type LoopPatch } from './opsLoop'
+export { syncLoops } from './loopSync'
 
 export const DEFAULT_PROJECT_NAME = 'Edit'
 const NEW_TRACK = { mute: false, solo: false, lock: false, gain: 1 } as const
@@ -50,7 +71,7 @@ export function addTrack(p: Project, name?: string): Project {
 export function removeTrack(p: Project, id: string): Project {
   const t = p.tracks.find(x => x.id === id)
   if (!t || t.lock || p.tracks.length <= 1) return p
-  return { ...p, tracks: p.tracks.filter(x => x.id !== id), clips: p.clips.filter(c => c.track !== id) }
+  return syncLoops(p, { ...p, tracks: p.tracks.filter(x => x.id !== id), clips: p.clips.filter(c => c.track !== id) })
 }
 
 export function setTrack(p: Project, id: string, patch: Partial<Omit<Track, 'id'>>): Project {

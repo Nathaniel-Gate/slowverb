@@ -1,5 +1,5 @@
 import type { Fx } from '../../../shared/types'
-import type { Clip, FadeCurve, Project, Tool } from './model'
+import type { Clip, FadeCurve, Loop, Project, Tool, TrackFx } from './model'
 import type { History } from './history'
 import type { Buffers } from './schedule'
 import type { Peaks } from './peaks'
@@ -29,7 +29,7 @@ export type S = {
   setPlayhead(t: number): void; now(): number; toggleSnap(): void; togglePlay(): Promise<void>
   splitAtPlayhead(): void; splitAllAtPlayhead(): void; deleteSelection(ripple: boolean): void; resetToOriginal(): void; selectAll(): void; selectAtPlayhead(): void
   copy(): void; cut(): void; paste(): void; pasteInsert(): void; setMark(which: 'in' | 'out', t: number | null): void; addMarkerAtPlayhead(): void
-  renderToLibrary(): Promise<void>; bounceSelection(): Promise<void>; setRenderOpts(o: Partial<RenderOpts>): void; renameVersion(name: string): Promise<void>; renameSong(name: string): Promise<void>
+  setTrackFx(id: string, patch: { low?: number; mid?: number; high?: number; reverb?: Partial<NonNullable<TrackFx['reverb']>> | null }): void; resetTrackFx(id: string): void; renderToLibrary(): Promise<void>; bounceSelection(): Promise<void>; setRenderOpts(o: Partial<RenderOpts>): void; renameVersion(name: string): Promise<void>; renameSong(name: string): Promise<void>
 
   insertSource(path: string, t: number, track: string | undefined, mode: 'insert' | 'overwrite', range?: { in: number; out: number }): Promise<void>
   patchSelected(patch: ClipPatch): void; applyMaster(fx: Fx | null): void; setBpm(bpm: number | null, offset?: number): void
@@ -51,15 +51,24 @@ export type S = {
   setFadeCurveSel(which: 'in' | 'out', curve: FadeCurve): void
   extendEditToPlayhead(): void; trimStartToPlayhead(): void; trimEndToPlayhead(): void; splitAtMarkers(): void; setSmoothCuts(on: boolean): void
   detectSectionsToMarkers(): Promise<void>; cutEveryBeatsAction(beats: number): void; trimSilenceSelected(): void
+
+  // wave 4: loop clips (one Loop record, expanded into crossfaded repeat clips on one track)
+  makeLoopFromSelection(count?: number, xfade?: number): void
+  /** Continuous gestures (drag, stepper hold, key burst) pass a coalesceKey so the whole gesture is ONE undo step. */
+  updateLoopLive(loopId: string, patch: LoopPatch, coalesceKey?: string): void
+  nudgeLoop(which: 'in' | 'out' | 'both', dt: number): void
+  loopFillToPlayhead(): void; unloopSelection(): void; selectedLoop(): Loop | undefined
 }
+export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain'>>
 
 export type EditKeys = 'patchSelected' | 'toggleDisable' | 'liftRange' | 'extractRange' | 'closeGapAtSelection' | 'closeAllGaps' | 'trimToPlayhead' | 'rollEdit' | 'rateStretch'
   | 'repeatSelection' | 'crossfadeSelection' | 'uncrossfadeSelection' | 'nudge' | 'selectForward' | 'selectBackward' | 'selectGap' | 'targetTrack' | 'toggleSyncLock' | 'markerAt' | 'renameMarker' | 'removeMarker'
-export type ProjectKeys = 'insertSource' | 'applyMaster' | 'setBpm' | 'toggleBeatSnap' | 'toggleShowBeats' | 'setDock' | 'fitSelection' | 'gotoTime' | 'listVersions' | 'refreshVersions'
+export type ProjectKeys = 'insertSource' | 'setTrackFx' | 'resetTrackFx' | 'applyMaster' | 'setBpm' | 'toggleBeatSnap' | 'toggleShowBeats' | 'setDock' | 'fitSelection' | 'gotoTime' | 'listVersions' | 'refreshVersions'
   | 'newVersion' | 'duplicateVersion' | 'openVersion' | 'deleteVersion'
 export type RangeKeys = 'setRange' | 'muteRange' | 'gainRangeDb' | 'fadeRangeEdge' | 'liftRangeSel' | 'extractRangeSel' | 'gainSelectedDb' | 'setEnvPointAt' | 'removeEnvPointAt'
   | 'clearEnvSelected' | 'setFadeCurveSel' | 'extendEditToPlayhead' | 'trimStartToPlayhead' | 'trimEndToPlayhead' | 'splitAtMarkers' | 'setSmoothCuts'
 export type AutoKeys = 'detectSectionsToMarkers' | 'cutEveryBeatsAction' | 'trimSilenceSelected'
+export type LoopKeys = 'makeLoopFromSelection' | 'updateLoopLive' | 'nudgeLoop' | 'loopFillToPlayhead' | 'unloopSelection' | 'selectedLoop'
 export type PlayKeys = 'toggleLoop' | 'playRange' | 'scrubTo' | 'shuttleHold' | 'shuttleKey'
 
 type SetFn = (p: Partial<S> | ((s: S) => Partial<S>)) => void

@@ -5,6 +5,7 @@ import type { Track } from '../model'
 import { useEditor } from '../editor.store'
 import * as ops from '../ops'
 import { TimeField } from './TimeField'
+import { TrackFxButton } from './TrackFx'
 import { useLaneLive } from './laneLive'
 import { clamp, laneHeight } from './timelineMath'
 import { trackMenu } from './timelineMenus'
@@ -97,7 +98,7 @@ export function TrackHeaders() {
               <div className="ed-flags">
                 <button className={`ed-flag mono ${t.target ? 'on target' : ''}`} title="Target track for inserts and ripple (Alt-click: only this track)" onPointerUp={blurOnUp}
                   onClick={(e) => useEditor.getState().targetTrack(t.id, e.altKey)}>T</button>
-                {flag(t, 'mute', 'M', 'Mute')}{flag(t, 'solo', 'S', 'Solo')}{flag(t, 'lock', 'L', 'Lock')}
+                {flag(t, 'mute', 'M', 'Mute')}{flag(t, 'solo', 'S', 'Solo')}{flag(t, 'lock', 'L', 'Lock')}<TrackFxButton track={t} />
               </div>
               {!tight && <Gain track={t} />}
               <Grip track={t} />

@@ -82,3 +82,28 @@
 .tl-clip[data-tiny]::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(var(--hit-pad, 0px) * -1); right: calc(var(--hit-pad, 0px) * -1); }
 .tl-clip[data-tiny]:hover { box-shadow: 0 0 0 1px var(--stripe, var(--white)), 0 0 12px color-mix(in srgb, var(--stripe, var(--white)) 70%, transparent); }
 .tl-clip[data-tiny] .tl-clip-label { display: none; }
+
+/* ---- wave 4 (agent H3): loop groups. Repeats are ordinary clips; the group outline, badge, dividers and handles are drawn by LoopLayer.tsx ---- */
+.tl-clip[data-loop] .tl-clip-label { display: none; }
+.tl-clip[data-loop][data-rep='odd'] { background-color: color-mix(in srgb, var(--white) 5%, var(--tl-clip-bg)); }
+.tl-loop { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; border: 1px solid color-mix(in srgb, var(--stripe, var(--white)) 55%, transparent); border-radius: var(--radius-sm);
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+.tl-loop[data-selected] { border-color: var(--stripe, var(--neon)); box-shadow: 0 0 12px color-mix(in srgb, var(--stripe, var(--neon)) 55%, transparent); }
+.tl-loop-badge { position: absolute; left: 4px; top: 3px; display: flex; gap: 6px; align-items: baseline; padding: 1px 6px; font-size: 9px; letter-spacing: .08em; white-space: nowrap; text-transform: uppercase;
+  color: var(--white); background: color-mix(in srgb, var(--ink-950) 82%, transparent); border: 1px solid color-mix(in srgb, var(--stripe, var(--white)) 70%, transparent); border-radius: var(--radius-sm); }
+.tl-loop-badge b { font-weight: 600; } .tl-loop-badge em { font-style: normal; color: var(--steel-300); }
+.tl-loop-div { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; overflow: visible; }
+.tl-loop-div path { fill: none; stroke: var(--white); stroke-opacity: .32; stroke-width: 1; stroke-dasharray: 3 4; shape-rendering: crispEdges; }
+.tl-xfade[data-loop] { background: linear-gradient(90deg, rgb(255 255 255 / .06), rgb(255 255 255 / .2) 50%, rgb(255 255 255 / .06)); border-inline-color: rgb(255 255 255 / .3); }
+
+/* handles of the selected loop: begin and end bars on the top part, crossfade and repeats grips on the bottom part of the clip */
+.tl-lh { position: absolute; left: 0; top: 0; z-index: 7; cursor: ew-resize; touch-action: none; }
+.tl:not([data-tool='select']) .tl-lh { display: none; }
+.tl-lh i { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--white); box-shadow: 0 0 6px rgb(0 0 0 / .8), 0 0 8px var(--neon);
+  opacity: .85; transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
+.tl-lh:hover i, .tl[data-drag='loop'] .tl-lh:active i { opacity: 1; transform: scaleX(1.6); }
+.tl-lh[data-loop-handle='in'] i::after, .tl-lh[data-loop-handle='out'] i::after { content: ''; position: absolute; top: 0; width: 7px; height: 3px; background: inherit; border-radius: 2px; }
+.tl-lh[data-loop-handle='in'] i::after { left: 0; } .tl-lh[data-loop-handle='out'] i::after { right: 0; }
+.tl-lh[data-bottom] i { top: 18%; bottom: 18%; background: transparent; border: 1.5px solid var(--white); border-radius: 3px; width: 8px; margin-left: -4px; background: color-mix(in srgb, var(--ink-950) 70%, transparent); }
+.tl-lh[data-loop-handle='count'] i { border-color: var(--neon); }
+.tl[data-drag='loop'], .tl[data-drag='loop'] * { cursor: ew-resize !important; }

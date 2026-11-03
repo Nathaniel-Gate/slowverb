@@ -10,9 +10,21 @@ const SEP: MenuItem = { label: '', sep: true }
 const st = () => useEditor.getState()
 const openMenu = openContextMenu
 
+// Loop entries: on a repeat, the loop's own actions; on a plain clip, Loop clip.
+function loopItems(clip: Clip, locked: boolean): MenuItem[] {
+  const s = st()
+  if (!clip.loop) return [{ label: 'Loop clip', keys: 'Alt+L', run: () => s.makeLoopFromSelection(), disabled: locked }, SEP]
+  return [
+    { label: 'Loop settings', run: () => s.setDock('inspector') },
+    { label: 'Loop to playhead', run: () => s.loopFillToPlayhead(), disabled: locked },
+    { label: 'Unloop', keys: 'Alt+Shift+L', run: () => s.unloopSelection(), disabled: locked }, SEP
+  ]
+}
+
 export function clipMenu(x: number, y: number, clip: Clip, p: Project) {
   const s = st(), tr = p.tracks.find(t => t.id === clip.track)
   openMenu(x, y, [
+    ...loopItems(clip, !!tr?.lock),
     { label: 'Cut', keys: 'Cmd+X', run: s.cut }, { label: 'Copy', keys: 'Cmd+C', run: s.copy }, { label: 'Paste at playhead', keys: 'Cmd+V', run: s.paste }, SEP,
     { label: 'Split at playhead', keys: 'Cmd+K', run: s.splitAtPlayhead },
     { label: 'Crossfade at cut', keys: 'Cmd+D', run: () => s.crossfadeSelection() },

@@ -1,5 +1,8 @@
 // Editor audio tunables. Change a number here, the editor audio follows.
 export type FadeCurve = 'lin' | 'pow' | 'log' | 's'   // same union as Clip.fadeInCurve/fadeOutCurve in editor/model.ts
+/** Track EQ: low shelf, one peaking mid band, high shelf. dB range and corner frequencies. */
+export const TRACK_EQ = { lowHz: 120, midHz: 1000, midQ: 0.9, highHz: 6000, minDb: -12, maxDb: 12 }
+export const TRACK_REVERB = { decayMin: 0.3, decayMax: 8, defaultWet: 0.25, defaultDecay: 2.2, defaultDamping: 0.4 }
 export const EDITOR_AUDIO = {
   fadeCurve: 'pow' as FadeCurve, // default for clips without a curve: equal power keeps a crossfade's loudness steady (uncorrelated material); 'lin' dips in the middle
   logFadeDb: 60,          // 'log' fade: gain rises like a straight line in dB over this many dB (ends are pinned to exact 0 and 1)

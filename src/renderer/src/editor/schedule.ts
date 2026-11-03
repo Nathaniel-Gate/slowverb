@@ -1,8 +1,9 @@
+import { trackFxChain } from './trackFx'
 import { masterOf } from './master'
 import type { Fx } from '../../../shared/types'
 import { buildChain } from '../audio/chain'
 import { DEFAULT_FX } from '../config/fx'
-import { EDITOR_AUDIO, type FadeCurve } from '../config/editorAudio'
+import { EDITOR_AUDIO, TRACK_EQ, type FadeCurve } from '../config/editorAudio'
 import { clipDur, clipEnd, clipSpeed, projectEnd, type Clip, type EnvPoint, type Project } from './model'
 
 export type Buffers = Map<string, AudioBuffer>
@@ -137,7 +138,7 @@ export function buildGraph(ctx: BaseAudioContext, p: Project, buffers: Buffers, 
     const lo = rev ? start : Math.max(start, fromSec), hi = rev ? Math.min(end, fromSec) : Math.min(end, limit)
     if (hi <= lo) continue
     let tg = trackGains.get(track.id)
-    if (!tg) { tg = ctx.createGain(); tg.gain.value = track.gain; tg.connect(input); trackGains.set(track.id, tg) }
+    if (!tg) { tg = ctx.createGain(); tg.gain.value = track.gain; trackFxChain(ctx, track.fx, tg, TRACK_EQ).connect(input); trackGains.set(track.id, tg) }   // track gain -> EQ -> reverb -> master
     const src = ctx.createBufferSource(); src.buffer = rev ? reversedOf(buf0) : buf0; src.playbackRate.value = factor * s
     const fIn = ctx.createGain(), fOut = ctx.createGain(), cg = ctx.createGain(); cg.gain.value = clip.gain
     const ef = edgeFades(p, clip, buf0.length / buf0.sampleRate)

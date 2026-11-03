@@ -1,5 +1,6 @@
 import { clipDur, clipEnd, srcSpan, MIN_CLIP, type Project } from './model'
 import { FADE_CURVES, SLACK, SPEED_MAX, SPEED_MIN, finite, firstBadOverlap } from './clipmath'
+import { validateLoops } from './validateLoops'
 
 /**
  * List of invariant violations (empty = valid). Used by tests and as a dev-time assertion. Same-track overlap is legal
@@ -48,5 +49,5 @@ export function validate(p: Project): string[] {
     const hit = firstBadOverlap(on)
     if (hit) bad.push(`clips ${on[hit[0]].id} and ${on[hit[1]].id} overlap on ${t.id}`)
   }
-  return bad
+  return [...bad, ...validateLoops(p)]
 }

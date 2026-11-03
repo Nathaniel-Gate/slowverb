@@ -5,6 +5,7 @@ import { projectEnd, type FadeCurve, type Tool } from './model'
 import { editPoints } from './ops'
 import { useOverlay } from './overlayStore'
 import type { S } from './storeTypes'
+import { loopLabel } from './storeLoop'
 
 /** One thing the editor can do. Drives the keys, the command palette, context menus and the shortcuts dialog. */
 export type Command = { id: string; label: string; group: string; keys: string[]; run: (s: S) => void; when?: (s: S) => boolean; repeat?: boolean }
@@ -31,6 +32,19 @@ const DOCKS = [['inspector', 'Inspector'], ['source', 'Source bin'], ['markers',
 const CURVES: [FadeCurve, string][] = [['lin', 'linear'], ['pow', 'equal power'], ['log', 'log'], ['s', 'S curve']]
 const BEATS: [number, string][] = [[1, '1 beat'], [2, '2 beats'], [4, '1 bar (4 beats)']]
 const rep = { repeat: true }
+const inLoop = (s: S) => !!s.selectedLoop()
+/** Nudge a loop point by `dt` seconds (the store coalesces a held key into one undo step). */
+const nudgeLp = (which: 'in' | 'out', dt: number) => (s: S) => s.nudgeLoop(which, dt)
+/** Repeats +/- n, then say what the loop is now. */
+const loopCount = (s: S, n: number) => {
+  const l = s.selectedLoop(); if (!l) return s.showToast('Select a loop first')
+  const count = Math.min(EDITOR.loop.maxCount, Math.max(1, l.count + n)); if (count === l.count) return s.showToast(`Loop already has ${count} repeat${count === 1 ? '' : 's'}`)
+  s.updateLoopLive(l.id, { count }, `loopcount:${l.id}`)
+  const now = s.selectedLoop(); if (now) s.showToast(loopLabel(now))
+}
+const LOOP_POINTS: [string, string, 'in' | 'out', number][] = [
+  ['in-', 'Loop start 1 ms earlier', 'in', -1], ['in+', 'Loop start 1 ms later', 'in', 1], ['out-', 'Loop end 1 ms earlier', 'out', -1], ['out+', 'Loop end 1 ms later', 'out', 1]
+]
 
 export const COMMANDS: Command[] = [
   ...TOOLS.map(([id, label]) => cmd(`tool.${id}`, `${label} tool`, 'Tools', (s) => s.setTool(id as Tool))),
@@ -88,6 +102,14 @@ export const COMMANDS: Command[] = [
   cmd('auto.sections', 'Detect sections and add markers', 'Auto', (s) => void s.detectSectionsToMarkers()),
   cmd('auto.trimSilence', 'Trim silence at clip start and end', 'Auto', (s) => s.trimSilenceSelected()),
   ...BEATS.map(([n, label]) => cmd(`auto.cut${n}`, `Cut every ${label}`, 'Auto', (s) => s.cutEveryBeatsAction(n))),
+
+  cmd('loop.make', 'Loop clip (repeat with crossfade)', 'Loop', (s) => s.makeLoopFromSelection(), { when: (s) => hasSel(s) && !inLoop(s) }),
+  cmd('loop.unloop', 'Unloop (keep the repeats as plain clips)', 'Loop', (s) => s.unloopSelection(), { when: inLoop }),
+  ...LOOP_POINTS.map(([id, label, w, d]) => cmd(`loop.${id}`, label, 'Loop', nudgeLp(w, d * EDITOR.loop.nudgeSec), { ...rep, when: inLoop })),
+  ...LOOP_POINTS.map(([id, label, w, d]) => cmd(`loop.${id}fine`, label.replace('1 ms', '10 ms'), 'Loop', nudgeLp(w, d * EDITOR.loop.nudgeBigSec), { ...rep, when: inLoop })),
+  cmd('loop.fill', 'Loop to playhead', 'Loop', (s) => s.loopFillToPlayhead(), { when: inLoop }),
+  cmd('loop.count+', 'Loop: one more repeat', 'Loop', (s) => loopCount(s, 1), { ...rep, when: inLoop }),
+  cmd('loop.count-', 'Loop: one fewer repeat', 'Loop', (s) => loopCount(s, -1), { ...rep, when: inLoop }),
 
   cmd('bounce', 'Bounce in place (merge selected clips, effects baked in)', 'Edit', (s) => void s.bounceSelection(), { when: hasSel }),
   cmd('selectAll', 'Select all', 'Selection', (s) => s.selectAll()),

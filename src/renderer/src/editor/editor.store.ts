@@ -21,6 +21,7 @@ import { editActions } from './storeEdit'
 import { projectActions } from './storeProject'
 import { rangeActions } from './storeRange'
 import { autoActions } from './storeAuto'
+import { loopActions } from './storeLoop'
 import type { Ctx, RenderOpts, S } from './storeTypes'
 import { fmtDur, fmtTime } from './timefmt'
 import { editorTransport } from './transport'
@@ -121,7 +122,7 @@ export const useEditor = create<S>((set, get) => {
     saveState: 'saved', busy: null, clipboard: [],
     loop: false, gap: null, dockOpen: false, dockTab: 'inspector', toast: null, shuttle: 0, beatSnap: false, showBeats: false, versions: [], renderOpts: loadRenderOpts(), range: null,
 
-    ...editActions(ctx), ...projectActions(ctx), ...rangeActions(ctx), ...autoActions(ctx), ...editPlayActions(ctx, syncLoop),
+    ...editActions(ctx), ...projectActions(ctx), ...rangeActions(ctx), ...autoActions(ctx), ...loopActions(ctx), ...editPlayActions(ctx, syncLoop),
 
     /** Load the newest saved edit of a song WITHOUT opening the editor tab (the player uses this so it can play the current edit).
      *  null when the song has no saved edit, or the editor is open on another song. */
