@@ -1,0 +1,4 @@
+.dl { padding: 0 20px 16px; }
+.dl-input { width: 100%; background: var(--ink-950); color: var(--white); border: 1px solid var(--hairline-strong); border-radius: var(--radius); padding: 10px 12px; font: 12px var(--font-mono); outline: none; user-select: text; }
+.dl-input:focus { border-color: var(--white); } .dl-input::placeholder { color: var(--steel-500); } .dl-input:disabled { opacity: .5; }
+.dl-status { margin-top: 8px; } .dl-status.err { color: #e5867a; text-transform: none; letter-spacing: 0; }

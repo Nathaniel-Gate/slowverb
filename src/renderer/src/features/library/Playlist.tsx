@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { fmt } from '../../lib/format'
 import { usePlayer } from '../player/player.store'
+import { DownloadBar } from '../download/DownloadBar'
 import { useLibrary } from './library.store'
 
 export function Playlist() {
@@ -10,6 +11,7 @@ export function Playlist() {
   return (
     <aside className="side">
       <div className="side-head"><span className="mono">Playlist · {tracks.length}</span></div>
+      <DownloadBar />
       <div className="list">
         {!tracks.length && <div className="empty mono">Empty.<br />Drag audio files or folders into the window.</div>}
         {tracks.map((t, i) => (

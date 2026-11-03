@@ -1,5 +1,5 @@
 // Types + constants shared by main, preload and renderer.
-export const AUDIO_EXTS = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac', 'opus', 'aiff']
+export const AUDIO_EXTS = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac', 'opus', 'aiff', 'webm']
 
 export type Fx = {
   speed: number      // playback rate, 1 = original
