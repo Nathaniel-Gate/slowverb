@@ -1,3 +1,4 @@
+import { masterOf } from './master'
 import { OUTPUT } from '../config/audioOutput'
 import { EDITOR_AUDIO } from '../config/editorAudio'
 import { DEFAULT_FX } from '../config/fx'
@@ -76,7 +77,7 @@ export class EditorTransport {
   private stopGraphs() { clearTimeout(this.timer); this.graphs.forEach((g) => g.stop()); this.graphs = [] }
 
   private launch(p: Project, buffers: Buffers, from: number, lead: number, ramp: boolean) {
-    const ctx = this.ctx, fx = p.master ?? DEFAULT_FX, rev = this.rate < 0, mag = Math.abs(this.rate)
+    const ctx = this.ctx, fx = masterOf(p), rev = this.rate < 0, mag = Math.abs(this.rate)
     const total = projectEnd(p), cap = this.rangeEnd === null ? total : Math.min(total, this.rangeEnd)
     const loop = !rev && this.loopSet && from >= this.loopSet.a && from < this.loopSet.b ? this.loopSet : null
     this.active = loop; this.loops = 0

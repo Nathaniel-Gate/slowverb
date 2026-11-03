@@ -1,3 +1,4 @@
+import { masterOf } from './master'
 import type { Fx } from '../../../shared/types'
 import { buildChain } from '../audio/chain'
 import { DEFAULT_FX } from '../config/fx'
@@ -114,7 +115,7 @@ export function fadeSegment(w0: number, w1: number, lo: number, hi: number, reve
  *  Fades use the clip's curve (edgeFades also adds the smooth-cut micro-fades); the envelope (clip.env) is gain automation in timeline time.
  *  Disabled clips are skipped. Same-track crossfade overlaps need nothing special: each clip owns its fade curves. */
 export function buildGraph(ctx: BaseAudioContext, p: Project, buffers: Buffers, fromSec: number, atCtxTime: number, opts: GraphOpts = {}): Graph {
-  const fx: Fx = p.master ?? DEFAULT_FX, rev = !!opts.reverse, n = EDITOR_AUDIO.curvePoints
+  const fx: Fx = masterOf(p), rev = !!opts.reverse, n = EDITOR_AUDIO.curvePoints
   const factor = (opts.bare ? 1 : Math.max(fx.speed, EDITOR_AUDIO.minSpeed)) * Math.max(opts.rate ?? 1, EDITOR_AUDIO.shuttleMin), k = 1 / factor
   const input = ctx.createGain()
   let out: GainNode

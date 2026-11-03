@@ -1,3 +1,4 @@
+import { masterOf } from './master'
 import { encodeWav, type BitDepth } from '../audio/wav'
 import { DEFAULT_FX, REVERB } from '../config/fx'
 import { EDITOR_AUDIO } from '../config/editorAudio'
@@ -20,7 +21,7 @@ export function normalizeChannels(channels: Float32Array[], targetDb = EDITOR_AU
  *  Length = (range or whole project) / speed + reverb tail. Rate = the highest source rate (no resampling for the usual single-rate case).
  *  opts.range renders only timeline a..b; opts.normalize scales the peak to config normalizeDb; bitDepth is echoed for encodeWav. */
 export async function renderProject(p: Project, buffers: Buffers, opts: RenderOpts = {}): Promise<{ channels: Float32Array[]; rate: number; bitDepth: BitDepth; gain: number }> {
-  const fx = p.master ?? DEFAULT_FX, total = projectEnd(p)
+  const fx = masterOf(p), total = projectEnd(p)
   const a = Math.max(0, Math.min(opts.range?.a ?? 0, total)), b = Math.max(a, Math.min(opts.range?.b ?? total, total))
   const used = p.clips.map((c) => buffers.get(c.src)).filter((x): x is AudioBuffer => !!x)
   const rate = used.reduce((m, x) => Math.max(m, x.sampleRate), 0) || EDITOR_AUDIO.defaultRate

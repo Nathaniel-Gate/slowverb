@@ -3,6 +3,8 @@ import type { Saved } from '../../shared/types'
 import { engine } from './audio/engine'
 import { useEditor } from './editor/editor.store'
 import { editorTransport } from './editor/transport'
+import { setMasterFallback } from './editor/master'
+import { DEFAULT_FX } from './config/fx'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
@@ -25,6 +27,10 @@ export async function wire() {
     if (s.touched !== touched) { touched = s.touched; if (cur) useLibrary.getState().setTrackFx(cur, s.fx) }
   })
   engine.el.addEventListener('play', () => { usePlayer.setState({ playing: true }); if (useEditor.getState().playing) void useEditor.getState().togglePlay(); editorTransport.idle() })   // never both at once; the editor's output stream sleeps while the player plays
+  // The editor sounds like the player: it follows this song's player version (speed + reverb) unless the Mix panel sets its own.
+  setMasterFallback((p) => { const t = useLibrary.getState().tracks.find((x) => x.path === p.song); return useFx.getState().bypass ? DEFAULT_FX : (t?.fx ?? useFx.getState().fx) })
+  const resync = () => { const e = useEditor.getState(); if (e.open && e.playing && e.project && !e.project.master) editorTransport.seek(e.project, e.buffers, editorTransport.position()) }
+  useFx.subscribe((s, prev) => { if (s.fx !== prev.fx || s.bypass !== prev.bypass) resync() })
   useEditor.subscribe((s, prev) => { if (s.playing && !prev.playing) engine.idle() })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => usePlayer.getState().next(1))

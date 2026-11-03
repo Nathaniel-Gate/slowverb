@@ -48,3 +48,4 @@ Contract: `editor/CONTRACT3.md`. Ops: `opsEnv.ts` (volume envelope, mute/gain/fa
 Harness: `SLOWVERB_EDUI3=<song>` (with SLOWVERB_ROOT temp) drives envelope/curve/mute/sections and prints EDUI3_RESULT.
 Known unverified by hand: side-drag fades and rubber band with a real mouse (agent drove them over CDP), mute leaves a hard-edged envelope step that the scheduler smooths.
 Zoom: X zoom in, Z zoom out (Alt+Z = zoom tool); mouse wheel zooms at the cursor, Shift+wheel or sideways swipe scrolls left/right, Alt+wheel scrolls tracks vertically (TL.wheelMode in config/timeline.ts). Output stream: config/audioOutput.ts (latencyHint playback for Bluetooth), idle context suspended while the other plays.
+Editor master: project.master null (default) = FOLLOW the player version for that song (editor/master.ts masterOf + fallback set in wire.ts); an Fx = explicit mix from the Mix panel; A/B ORIGINAL sets an explicit unity Fx.

@@ -3,6 +3,9 @@ import { DEFAULT_FX, REVERB, SPEED } from '../../../config/fx'
 import { PRESETS } from '../../../config/presets'
 import { Knob } from '../../../features/fx/Knob'
 import { useEditor } from '../../editor.store'
+import { masterOf } from '../../master'
+import { useFx } from '../../../features/fx/fx.store'
+import { useLibrary } from '../../../features/library/library.store'
 import { MasterMeter } from '../MasterMeter'
 import { usePanels } from './panels.store'
 
@@ -10,16 +13,20 @@ const same = (a: Fx, b: Fx) => a.speed === b.speed && a.wet === b.wet && a.decay
 
 /** The whole-mix Version (speed + reverb), applied after every clip. null master = bypassed (A/B original). */
 export function Mix() {
-  const master = useEditor((s) => (s.project ? s.project.master : undefined)), stash = usePanels((s) => s.stash)
-  const bypass = master === null, fx = master ?? stash ?? DEFAULT_FX
+  const project = useEditor((s) => s.project), stash = usePanels((s) => s.stash)
+  useFx((s) => s.fx); useFx((s) => s.bypass); useLibrary((s) => s.tracks)          // re-render when the followed player version changes
+  const master = project ? project.master : undefined, following = master === null
+  const fx = project ? masterOf(project) : DEFAULT_FX
+  const bypass = !following && !!master && same(master, DEFAULT_FX)
   const set = (patch: Partial<Fx>) => useEditor.getState().applyMaster({ ...fx, ...patch })
   const toggleBypass = () => {
-    if (bypass) { useEditor.getState().applyMaster(stash ?? DEFAULT_FX); return }
-    usePanels.getState().set({ stash: master ?? DEFAULT_FX }); useEditor.getState().applyMaster(null)
+    if (bypass) { useEditor.getState().applyMaster(stash ?? null); return }
+    usePanels.getState().set({ stash: master ?? null }); useEditor.getState().applyMaster({ ...DEFAULT_FX })
   }
   return (
     <div className="dk-stack">
       <div className="row"><span className="mono">MASTER VERSION</span>
+        <button className={`ghost ${following ? 'on' : ''}`} onClick={() => useEditor.getState().applyMaster(null)} title="Use the same speed and reverb as the player view for this song">{following ? 'FOLLOWING PLAYER' : 'FOLLOW PLAYER'}</button>
         <button className={`ghost ${bypass ? 'on' : ''}`} onClick={toggleBypass} title="Hear the mix without speed and reverb">{bypass ? 'ORIGINAL' : 'A/B ORIGINAL'}</button></div>
       <div className="presets" style={{ marginTop: 0 }}>
         {PRESETS.map((p) => <button key={p.name} className={`chip ${!bypass && same(p.fx, fx) ? 'on' : ''}`} onClick={() => useEditor.getState().applyMaster(p.fx)}>{p.name}</button>)}

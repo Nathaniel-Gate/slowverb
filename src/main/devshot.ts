@@ -118,6 +118,7 @@ export function runShot(win: BrowserWindow) {
     if (process.env.SLOWVERB_EDUI) {
       const r = await win.webContents.executeJavaScript(`(async () => {
         const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms))
+        if (${JSON.stringify(process.env.SLOWVERB_PRESET || '')}) sv.useFx.getState().applyPreset(${JSON.stringify(process.env.SLOWVERB_PRESET || '')})
         await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_EDUI)})
         for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
         const out = { clips0: E.getState().project.clips.length }
