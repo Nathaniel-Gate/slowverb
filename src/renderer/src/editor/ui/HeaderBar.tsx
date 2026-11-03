@@ -20,7 +20,8 @@ const tip = (text: string, id: string) => { const k = keysOf(id)[0]; return k ? 
 /** PLAYER | EDITOR switch for the top drag area. The pill slides between the two halves with a transform. */
 export function ModeSwitch() {
   const open = useEditor((s) => s.open), cur = usePlayer((s) => s.cur)
-  const path = useLibrary((s) => s.tracks.find((t) => t.id === cur)?.path)
+  // With no song selected in the player, the Editor tab opens the first song in the library instead of staying dead.
+  const path = useLibrary((s) => (s.tracks.find((t) => t.id === cur) ?? s.tracks[0])?.path)
   const hasProject = useEditor((s) => !!s.project)
   const goEditor = () => { const s = useEditor.getState(); if (s.open) return; if (s.project && (!path || s.project.song === path)) s.show(); else if (path) void s.openSong(path) }
   const canEdit = open || hasProject || !!path

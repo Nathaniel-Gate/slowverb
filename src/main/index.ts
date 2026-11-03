@@ -17,6 +17,8 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 const MIME: Record<string, string> = { '.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.aac': 'audio/aac', '.webm': 'audio/webm', '.aiff': 'audio/aiff' }
+// Test runs (SLOWVERB_ROOT set) must never touch the real app data: a harness once wrote its test songs into the real library.json.
+if (process.env.SLOWVERB_ROOT) app.setPath('userData', join(process.env.SLOWVERB_ROOT, '.userdata'))
 const libraryFile = () => join(app.getPath('userData'), 'library.json')
 
 function createWindow() {
