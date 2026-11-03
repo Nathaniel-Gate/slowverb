@@ -4,7 +4,7 @@ export const TL = {
   laneH: 84,             // px, height of one track lane (TrackHeaders must use the same value)
   clipPadY: 4,           // px, gap above/below a clip inside its lane
   edgePx: 9,             // px, width of a trim handle (capped at a third of the clip width, see timeline.css)
-  dragSmooth: 0.4,       // 0..1 how fast fade/gain/envelope drags glide to the pointer each frame (1 = no smoothing)
+  dragSmooth: 0.6,       // 0..1 how fast fade/gain/envelope drags glide to the pointer each frame (1 = no smoothing)
   dragSmoothEps: 0.0005, // seconds: stop animating when this close to the pointer
   dragStartPx: 3,        // px the pointer must travel before a click becomes a drag
   snapThresholdPx: 9,    // px, snap magnetism
@@ -55,7 +55,7 @@ export const TL = {
   fadeDotInset: 8,       // px: a dot never sits closer than this to the clip side (so a zero fade still shows a dot)
   fadeSidePx: 15,        // px, width of the side drag zone (drag inward from the clip side to fade)
   fadeZoneFrac: 0.58,    // the side zone covers the top part of the clip side; the trim handle keeps the rest
-  fadeFullPx: 10,        // px: dragging a fade this close to the opposite side snaps to a full mute
+  fadeFullPx: 2,         // px: dragging a fade this close to the opposite side snaps to a full mute
   fadeShapeSteps: 32,    // samples used to draw a curved fade
   fadeMinSideW: 40,      // px: clips narrower than this get no side zone
   envHitPx: 7,           // px each side of the envelope line that grabs it

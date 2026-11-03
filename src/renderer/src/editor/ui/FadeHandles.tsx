@@ -19,7 +19,7 @@ export function FadeHandles({ w, fadeIn, fadeOut, side }: Props) {
   const lim = Math.max(TL.fadeDotInset, w - TL.fadeDotInset)
   const dot = (edge: 'in' | 'out', len: number) => {
     const x = Math.min(lim, Math.max(TL.fadeDotInset, len))
-    return <i className="tl-fade" data-fade={edge} data-dot="" data-on={len > 0.5 || undefined} style={{ transform: `translateX(${edge === 'in' ? x : -x}px)` }} />
+    return <i className="tl-fade" data-fade={edge} data-on={len > 0.5 || undefined} style={{ transform: `translateX(${edge === 'in' ? x : -x}px)` }} />
   }
   return (
     <>

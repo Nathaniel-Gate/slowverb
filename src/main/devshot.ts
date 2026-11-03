@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,27 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_DRAGPERF) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms))
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_DRAGPERF)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        E.getState().fitToView(1300); await wait(800)
+        const side = document.querySelector('.tl-fadeside[data-fade="out"]'); if (!side) return { error: 'no side zone' }
+        const r0 = side.getBoundingClientRect(), x0 = r0.left + 6, y0 = r0.top + 10
+        const frames = []; let on = true, last = performance.now()
+        const loop = (t) => { frames.push(t - last); last = t; if (on) requestAnimationFrame(loop) }; requestAnimationFrame(loop)
+        side.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x0, clientY: y0, pointerId: 1, button: 0, buttons: 1, pointerType: 'mouse' }))
+        const N = 240, t0 = performance.now()
+        for (let i = 1; i <= N; i++) { window.dispatchEvent(new PointerEvent('pointermove', { clientX: x0 - i * 1.2, clientY: y0, pointerId: 1, buttons: 1, pointerType: 'mouse' })); await new Promise(r => setTimeout(r, 4)) }
+        window.dispatchEvent(new PointerEvent('pointerup', { clientX: x0 - N * 1.2, clientY: y0, pointerId: 1 }))
+        await wait(300); on = false
+        const f = frames.slice(2).sort((a, b) => a - b), q = (p) => +f[Math.min(f.length - 1, Math.floor(f.length * p))].toFixed(1)
+        const c = E.getState().project.clips[0]
+        return { frames: f.length, p50: q(0.5), p95: q(0.95), max: q(0.999), over25ms: f.filter(x => x > 25).length, fadeOut: +c.fadeOut.toFixed(2), ms: Math.round(performance.now() - t0) }
+      })()`)
+      console.log('DRAGPERF_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_EDUI3) {
       const r = await win.webContents.executeJavaScript(`(async () => {

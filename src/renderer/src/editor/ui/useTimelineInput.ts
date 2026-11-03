@@ -33,7 +33,10 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
       if (snapAt !== at) { snapAt = at; ui.setSnapAt(at) }
       if (!r.done) raf = requestAnimationFrame(frame)
     }
-    runDrag(e, kind, { auto: true }, pt => {
+    // Edge auto-scroll is for moving/trimming clips. Fades and volume points live right at the clip ends, which are often at the view edge,
+    // so auto-scroll there made the view lurch under the pointer while you dragged.
+    const auto = !['fade', 'gain', 'env', 'envseg'].includes(kind)
+    runDrag(e, kind, { auto }, pt => {
       const m = make(pt, base)
       lastD = m.d; at = m.at
       if (!raf) raf = requestAnimationFrame(frame)

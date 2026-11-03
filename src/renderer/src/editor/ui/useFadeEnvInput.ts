@@ -19,10 +19,12 @@ export function fadeDown({ e, pt, base, clip, dragClips }: Ctx, fadeEl: HTMLElem
   const edge = fadeEl.dataset.fade as 'in' | 'out', side = fadeEl.hasAttribute('data-side'), dur = clipDur(clip)
   const cur = edge === 'in' ? clip.fadeIn : clip.fadeOut, end = clipEnd(clip)
   closeFadePopover()
+  const modKey = e.metaKey || e.ctrlKey
   dragClips(e, 'fade', p => {
     const grabbed = edge === 'in' ? clip.start + cur : end - cur
     const raw = side ? p.t : grabbed + (p.t - pt.t)
-    const sn = st().snap ? snapOne(base, raw, envOf(), [clip.id]) : { t: raw, at: null }
+    // fades follow the pointer exactly (no magnet jumps); hold Cmd to snap to cuts and beats
+    const sn = st().snap && modKey ? snapOne(base, raw, envOf(), [clip.id]) : { t: raw, at: null }
     let len = clamp(edge === 'in' ? sn.t - clip.start : end - sn.t, 0, dur)
     if (dur - len < TL.fadeFullPx / st().pxPerSec) len = dur            // dragged right across: mute out
     return { d: { kind: 'fade', id: clip.id, edge, dur: len }, at: sn.at }
