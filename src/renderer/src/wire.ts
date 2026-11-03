@@ -33,4 +33,12 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { engine, useLibrary, useFx, usePlayer }
+;(window as any).__sv = { engine, useLibrary, useFx, usePlayer, exportCheck: async () => {
+  const { renderVersion } = await import('./audio/offline')
+  const { DEFAULT_FX } = await import('./config/fx')
+  const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()
+  const src = await new AudioContext().decodeAudioData(bytes), orig = await renderVersion(t.path, DEFAULT_FX)
+  let maxDiff = 0; const a = src.getChannelData(0); for (let i = 0; i < a.length; i++) maxDiff = Math.max(maxDiff, Math.abs(a[i] - orig.channels[0][i]))
+  const slow = await renderVersion(t.path, { ...DEFAULT_FX, speed: 0.8, wet: 0.4, decay: 4.5 })
+  return { nullMaxDiff: maxDiff, srcSec: src.duration, origSec: orig.channels[0].length / orig.rate, slowSec: slow.channels[0].length / slow.rate, expectSlow: src.duration / 0.8 + 4.52 }
+} }

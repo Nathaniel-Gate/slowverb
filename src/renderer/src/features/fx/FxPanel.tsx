@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { REVERB, SPEED } from '../../config/fx'
 import { allPresets, useFx } from './fx.store'
 import { Knob } from './Knob'
+import { ExportButton } from '../export/ExportButton'
 
 export function FxPanel() {
   const { fx, preset, bypass, userPresets, set, applyPreset, toggleBypass, saveUserPreset, deleteUserPreset } = useFx()
@@ -30,6 +31,7 @@ export function FxPanel() {
         <span className="mono">Pitch follows speed</span>
         <button className={`ghost ${!fx.pitchLock ? 'on' : ''}`} onClick={() => set({ pitchLock: !fx.pitchLock })}>{fx.pitchLock ? 'OFF (locked)' : 'ON'}</button>
       </div>
+      <div className="row" style={{ marginTop: 14 }}><span className="mono">Save this version</span><ExportButton /></div>
     </div>
   )
 }

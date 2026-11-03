@@ -15,8 +15,9 @@ export function runShot(win: BrowserWindow) {
       const buf = new Float32Array(an.fftSize); let peak = 0
       for (let i = 0; i < 20; i++) { await new Promise(r => setTimeout(r, 100)); an.getFloatTimeDomainData(buf); for (const v of buf) peak = Math.max(peak, Math.abs(v)) }
       const e = sv.engine.el
+      const ex = await sv.exportCheck()
       e.currentTime = 10; await new Promise(r => setTimeout(r, 300))
-      return { seekedTo: e.currentTime, duration: e.duration, seekable: e.seekable.length && e.seekable.end(0), tracks: r.length, rate: e.playbackRate, preservesPitch: e.preservesPitch, time: e.currentTime, paused: e.paused, peak, error: e.error && e.error.message }
+      return { ex, seekedTo: e.currentTime, duration: e.duration, seekable: e.seekable.length && e.seekable.end(0), tracks: r.length, rate: e.playbackRate, preservesPitch: e.preservesPitch, time: e.currentTime, paused: e.paused, peak, error: e.error && e.error.message }
     })()`
     const result = await win.webContents.executeJavaScript(js)
     const img = await win.webContents.capturePage()
