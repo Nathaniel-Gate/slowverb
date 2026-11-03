@@ -6,7 +6,7 @@ import { TL } from './timeline'
 // Users can override any of these in the Shortcuts dialog (Cmd+Alt+K); overrides persist in localStorage.
 export const DEFAULT_KEYS: Record<string, string[]> = {
   // tools
-  'tool.select': ['V'], 'tool.razor': ['C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Alt+Z'],
+  'tool.select': ['V'], 'tool.razor': ['Shift+C'], 'tool.ripple': ['B'], 'tool.slip': ['Y'], 'tool.hand': ['H'], 'tool.zoom': ['Alt+Z'],
   'tool.roll': ['N'], 'tool.rate': ['Shift+R'], 'tool.range': ['R'],
   // transport
   'play': ['Space'], 'playRange': ['Shift+Space'], 'loop': ['Cmd+L'],
@@ -14,9 +14,9 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'step.back': ['Left'], 'step.fwd': ['Right'], 'step.backBig': ['Shift+Left'], 'step.fwdBig': ['Shift+Right'],
   'edit.prev': ['Up'], 'edit.next': ['Down'], 'home': ['Home'], 'end': ['End'],
   // cutting
-  'split': ['Cmd+K', 'Cmd+\\'], 'splitAll': ['Cmd+Shift+K'],
+  'split': ['F', 'Cmd+K', 'Cmd+\\'], 'splitAll': ['Cmd+Shift+K'],
   'trim.headRipple': ['Q'], 'trim.tailRipple': ['W'], 'trim.head': ['Alt+Q'], 'trim.tail': ['Alt+W'],
-  'delete': ['Delete', 'Backspace'], 'rippleDelete': ['Shift+Delete', 'Shift+Backspace'],
+  'delete': ['D', 'Delete', 'Backspace'], 'rippleDelete': ['Shift+Delete', 'Shift+Backspace'],
   'lift': [';'], 'extract': ["'"], 'closeGaps': [],
   // wave 3 (Resolve style). M stays Add marker, so Mute range is Alt+M.
   'extend': ['E'], 'trimSel.start': ['Shift+['], 'trimSel.end': ['Shift+]'],
@@ -24,7 +24,7 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
   'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
   // selection and clipboard
-  'selectAll': ['Cmd+A'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
+  'selectAll': ['Cmd+A'], 'selectAtPlayhead': ['C'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
   'copy': ['Cmd+C'], 'cut': ['Cmd+X'], 'paste': ['Cmd+V'], 'pasteInsert': ['Cmd+Shift+V'],
   // marks and markers
   'markIn': ['I'], 'markOut': ['O'], 'gotoIn': ['Shift+I'], 'gotoOut': ['Shift+O'], 'clearIn': ['Alt+I'], 'clearOut': ['Alt+O'], 'clearMarks': ['Alt+X'],

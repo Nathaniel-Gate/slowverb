@@ -6,7 +6,7 @@ import { useLibrary } from '../features/library/library.store'
 import { runCommandById } from './commands'
 import { describeStep } from './describe'
 import { createHistory, pushHistory, redo as redoH, undo as undoH, type History } from './history'
-import { clipDur, projectEnd, type Project } from './model'
+import { clipDur, clipEnd, projectEnd, type Project } from './model'
 import * as ops from './ops'
 import { computePeaks, type Peaks } from './peaks'
 import { renderProject } from './render'
@@ -204,6 +204,11 @@ export const useEditor = create<S>((set, get) => {
       const ids = get().selection; if (!ids.length) return toast('Select a clip first')
       const n = ids.length
       if (edit((p) => (ripple ? ops.rippleDelete(p, ids) : ops.deleteClips(p, ids)), `${ripple ? 'Ripple deleted' : 'Deleted'} ${n} clip${n > 1 ? 's' : ''}`, 'Clips are locked')) set({ selection: [] })
+    },
+    selectAtPlayhead() {
+      const p = get().project; if (!p) return
+      const t = get().now(), ids = p.clips.filter((c) => c.start <= t + 1e-6 && t < clipEnd(c) - 1e-6).map((c) => c.id)
+      set({ selection: ids, gap: null }); toast(ids.length ? `Selected ${ids.length} clip${ids.length === 1 ? '' : 's'} at the playhead` : 'No clips at the playhead')
     },
     selectAll() { const n = get().project?.clips.length ?? 0; set({ selection: get().project?.clips.map((c) => c.id) ?? [], gap: null }); toast(`Selected ${n} clip${n === 1 ? '' : 's'}`) },
     copy() {

@@ -6,7 +6,7 @@ import { useEditor } from '../editor.store'
 const I = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 const TOOLS: { id: ToolId; label: string; key: string; icon: React.ReactNode }[] = [
   { id: 'select', label: 'Select', key: 'V', icon: <path d="M4.5 3l8 5.5-3.6.9 2 3.6-1.6.9-2-3.6-2.6 2.5z" {...I} /> },
-  { id: 'razor', label: 'Razor', key: 'C', icon: <path d="M8 2v12M4 5l4-3 4 3M4 11l4 3 4-3" {...I} /> },
+  { id: 'razor', label: 'Razor', key: '⇧C', icon: <path d="M8 2v12M4 5l4-3 4 3M4 11l4 3 4-3" {...I} /> },
   { id: 'ripple', label: 'Ripple trim', key: 'B', icon: <path d="M4 3v10M4 8h8M9.5 5.5L12 8l-2.5 2.5" {...I} /> },
   { id: 'roll', label: 'Rolling edit (drag a cut)', key: 'N', icon: <path d="M8 2.5v11M5.5 5L3 8l2.5 3M10.5 5L13 8l-2.5 3" {...I} /> },
   { id: 'range', label: 'Range (drag across lanes; Alt-drag from Select)', key: 'R', icon: <><path d="M3 4.5v7M13 4.5v7" {...I} /><path d="M5 6.5h6v3H5z" {...I} strokeDasharray="2 1.6" /></> },

@@ -89,6 +89,7 @@ export const COMMANDS: Command[] = [
   ...BEATS.map(([n, label]) => cmd(`auto.cut${n}`, `Cut every ${label}`, 'Auto', (s) => s.cutEveryBeatsAction(n))),
 
   cmd('selectAll', 'Select all', 'Selection', (s) => s.selectAll()),
+  cmd('selectAtPlayhead', 'Select clips at the playhead', 'Selection', (s) => s.selectAtPlayhead()),
   cmd('deselect', 'Deselect', 'Selection', (s) => { s.select([]); s.selectGap(null); s.setRange(null) }),
   cmd('selectFwd', 'Select forward from playhead', 'Selection', (s) => s.selectForward()),
   cmd('selectBack', 'Select backward from playhead', 'Selection', (s) => s.selectBackward()),
