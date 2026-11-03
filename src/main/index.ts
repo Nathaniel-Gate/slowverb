@@ -28,6 +28,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // The live dev window runs inside Electron's own app bundle, so give it our icon in the Dock too (the packaged app already has it).
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   protocol.handle('media', async (req) => {
     const res = await net.fetch(pathToFileURL(decodeURIComponent(new URL(req.url).pathname)).toString(), { headers: req.headers, method: req.method })
     const h = new Headers(res.headers); h.set('Access-Control-Allow-Origin', '*')
