@@ -79,17 +79,17 @@ export type ToolId = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 
 // Label colours (Clip.label / Marker.color are these keys). Muted so the greyscale look stays calm.
 export const LABELS: { key: string; name: string; color: string }[] = [
   { key: 'none', name: 'None', color: '' },
-  { key: 'blue', name: 'Blue', color: '#7d97bd' },
-  { key: 'teal', name: 'Teal', color: '#6fa9a3' },
-  { key: 'sage', name: 'Sage', color: '#8fae82' },
-  { key: 'sand', name: 'Sand', color: '#c4a76c' },
-  { key: 'rose', name: 'Rose', color: '#c08585' },
-  { key: 'violet', name: 'Violet', color: '#a08cc0' },
-  { key: 'stone', name: 'Stone', color: '#b2aea2' }
+  { key: 'blue', name: 'Blue', color: '#3d8bff' },
+  { key: 'teal', name: 'Teal', color: '#00f5d4' },
+  { key: 'sage', name: 'Sage', color: '#7dff4d' },
+  { key: 'sand', name: 'Sand', color: '#ffd60a' },
+  { key: 'rose', name: 'Rose', color: '#ff4d8d' },
+  { key: 'violet', name: 'Violet', color: '#b05cff' },
+  { key: 'stone', name: 'Stone', color: '#e6e6e6' }
 ]
 export const labelColor = (key?: string): string => LABELS.find(l => l.key === key)?.color ?? ''
 // Track stripe colours, picked by track index.
-export const TRACK_COLORS = ['#7d97bd', '#6fa9a3', '#8fae82', '#c4a76c', '#c08585', '#a08cc0', '#b2aea2']
+export const TRACK_COLORS = ['#00e5ff', '#ff2bd6', '#b6ff00', '#ffe600', '#ff6a00', '#a64dff', '#ff3d6e']   // neon: always lit, picked by track index
 export const trackColor = (i: number) => TRACK_COLORS[((i % TRACK_COLORS.length) + TRACK_COLORS.length) % TRACK_COLORS.length]
 
 // Ruler tick table: [step in seconds, subdivisions drawn between labelled ticks]

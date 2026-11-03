@@ -47,14 +47,34 @@ function Grip({ track }: { track: Track }) {
 }
 
 /** Left column. Same row order and heights as the Timeline lanes (layout in timelineMath); the scroller is mirrored by the Timeline via data-sync-scroll-y. */
+/** Option + drag down in the empty space below the last header: previews NEW TRACK rows, creates them on release. */
+function useGhostTracks() {
+  const [ghost, setGhost] = useState(0)
+  const down = (e: RPointerEvent<HTMLElement>) => {
+    if (!e.altKey || e.button !== 0 || (e.target as Element).closest('.ed-th-row, .ed-th-ruler')) return
+    e.preventDefault()
+    const y0 = e.clientY; let n = 0
+    const move = (ev: PointerEvent) => { const dy = ev.clientY - y0; n = dy < 4 ? 0 : clamp(1 + Math.floor(dy / TL.laneH), 1, TL.maxNewTracks); setGhost(n) }
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setGhost(0)
+      if (!n) return
+      useEditor.getState().apply((p) => { let o = p; for (let i = 0; i < n; i++) o = ops.addTrack(o); return o })
+      useEditor.getState().showToast(`Added ${n} track${n > 1 ? 's' : ''}`)
+    }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
+  }
+  return { ghost, down }
+}
+
 export function TrackHeaders() {
+  const { ghost, down } = useGhostTracks()
   const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false)
   const live = useLaneLive(s => s.live)
   const apply = useEditor.getState().apply
   const flag = (t: Track, k: 'mute' | 'solo' | 'lock', label: string, tip: string) =>
     <button className={`ed-flag mono ${t[k] ? 'on ' + k : ''}`} title={tip} onPointerUp={blurOnUp} onClick={() => apply((p) => ops.setTrack(p, t.id, { [k]: !t[k] }))}>{label}</button>
   return (
-    <div className="ed-th" style={{ width: EDITOR.headerW, '--lane-h': TL.laneH + 'px', '--ruler-h': TL.rulerH + 'px' } as CSSProperties}>
+    <div className="ed-th" onPointerDown={down} style={{ width: EDITOR.headerW, '--lane-h': TL.laneH + 'px', '--ruler-h': TL.rulerH + 'px' } as CSSProperties}>
       <div className="ed-th-ruler tl-th-corner">
         <TimeField />
         <button className={`ed-flag mono tl-sync ${syncLock ? 'on' : ''}`} title="Sync lock: ripple edits also shift the other tracks" onPointerUp={blurOnUp} onClick={() => useEditor.getState().toggleSyncLock()}>SYNC</button>
@@ -84,6 +104,9 @@ export function TrackHeaders() {
             </div>
           )
         })}
+        {Array.from({ length: ghost }, (_, i) => (
+          <div key={'g' + i} className="ed-th-row tl-th-row ed-ghost mono" style={{ height: TL.laneH, '--stripe': trackColor(tracks.length + i) } as CSSProperties}>NEW TRACK</div>
+        ))}
       </div>
     </div>
   )

@@ -60,3 +60,18 @@
 .tl-rbar button:hover { background: var(--ink-800); color: var(--white); } .tl-rbar button:active { background: var(--ink-700); }
 .tl-rbar-len { align-self: center; padding: 0 8px; font-size: 9px; letter-spacing: .06em; color: var(--steel-500); }
 .tl[data-drag='range'] .tl-rsel-h { cursor: ew-resize; }
+
+
+/* NEON: highlights are always lit, drawn as thin 1-2px lines with a soft glow. Track colours (per track, --stripe) light the header stripe,
+   clip underline and selection; --neon is the one accent for playhead, range, snap and marquee. Colours: config/timeline.ts (TRACK_COLORS, LABELS) or --neon here.
+   Line thickness: --neon-line below. */
+:root { --neon: #2dffe9; --neon-line: 1px; --neon-glow: 0 0 6px color-mix(in srgb, var(--neon) 60%, transparent); }
+.tl-th-row::before { width: 2px; opacity: 1; background: var(--stripe); box-shadow: 0 0 6px color-mix(in srgb, var(--stripe) 70%, transparent); }
+.tl-clip { box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, transparent), 0 0 6px color-mix(in srgb, var(--stripe, transparent) 28%, transparent); }
+.tl-clip[data-selected] { border-color: var(--stripe, var(--neon)); outline: none;
+  box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, var(--neon)), 0 0 10px color-mix(in srgb, var(--stripe, var(--neon)) 45%, transparent); }
+.tl { --tl-playhead: var(--neon); --tl-snap: var(--neon); --tl-marker: var(--neon); --tl-range: color-mix(in srgb, var(--neon) 8%, transparent); --tl-marquee-fill: color-mix(in srgb, var(--neon) 9%, transparent); }
+.tl-playhead::before { width: var(--neon-line); box-shadow: var(--neon-glow); } .tl-range { border-inline-color: var(--neon); box-shadow: inset 0 0 10px color-mix(in srgb, var(--neon) 10%, transparent); }
+.tl-range[data-loop] { border-inline-color: var(--neon); }
+.ed-th-row.ed-ghost { border: 1px dashed var(--stripe); border-radius: var(--radius-sm); display: grid; place-items: center; color: var(--stripe); animation: pop var(--t-fast) var(--ease) both; }
+.ed-th-row.ed-ghost::before { content: ''; }

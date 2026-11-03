@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,28 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_NEWTRACK) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_NEWTRACK)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        E.getState().fitToView(1300) })()`)
+      await wait(1200)
+      const info = await win.webContents.executeJavaScript(`(() => { const ln = document.querySelector('.tl-lanes'); if (!ln) return { error: 'no .tl-lanes', classes: [...document.querySelectorAll('[class*=tl-]')].slice(0, 12).map(e => e.className) }
+        const r = ln.getBoundingClientRect(), clip = document.querySelector('.tl-clip').getBoundingClientRect()
+        const x = Math.round(r.left + 300), y = Math.round(clip.bottom + 60)
+        return { lanes: [r.left, r.top, r.width, r.height].map(Math.round), clipBottom: Math.round(clip.bottom), x, y, hit: (document.elementFromPoint(x, y) || {}).className, tracks: window.__sv.useEditor.getState().project.tracks.length } })()`)
+      if (info.error) { console.log('NEWTRACK_RESULT ' + JSON.stringify(info)); app.quit(); return }
+      const mods = ['alt'] as const
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: info.x, y: info.y, modifiers: [...mods] })
+      win.webContents.sendInputEvent({ type: 'mouseDown', x: info.x, y: info.y, button: 'left', clickCount: 1, modifiers: [...mods] })
+      for (let i = 1; i <= 30; i++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: info.x, y: info.y + i * 6, button: 'left', modifiers: [...mods, 'leftbuttondown'] }); await wait(16) }
+      const mid = await win.webContents.executeJavaScript(`window.__sv.useEditor.getState().project.tracks.length + ' lanes in DOM: ' + document.querySelectorAll('[data-track]').length`)
+      win.webContents.sendInputEvent({ type: 'mouseUp', x: info.x, y: info.y + 180, button: 'left', clickCount: 1, modifiers: [...mods] })
+      await wait(500)
+      const after = await win.webContents.executeJavaScript(`window.__sv.useEditor.getState().project.tracks.map(t => t.name)`)
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('NEWTRACK_RESULT ' + JSON.stringify({ info, mid, after })); app.quit(); return
     }
     if (process.env.SLOWVERB_PERF) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
