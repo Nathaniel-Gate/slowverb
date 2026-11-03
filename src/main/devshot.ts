@@ -47,6 +47,7 @@ export function runShot(win: BrowserWindow) {
         out.clips1 = p.clips.map(c => [+c.start.toFixed(1), +c.srcIn.toFixed(1), +c.srcOut.toFixed(1)])
         E.getState().undo(); await wait(100); out.afterUndo = E.getState().project.clips.length
         E.getState().redo(); await wait(600); out.afterRedo = E.getState().project.clips.length
+        E.getState().resetToOriginal(); await wait(200); out.afterReset = E.getState().project.clips.length; E.getState().undo(); await wait(200); out.afterResetUndo = E.getState().project.clips.length; E.getState().redo(); await wait(200)
         if (${process.env.SLOWVERB_RENDER ? 'true' : 'false'}) { await E.getState().renderToLibrary(); await wait(800); out.files = (await window.api.sync()).files }
         out.tab = document.body.innerText.slice(0, 80).replace(/\\n/g, ' | ')
         return out })()`)

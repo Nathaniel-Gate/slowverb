@@ -193,6 +193,11 @@ export const useEditor = create<S>((set, get) => {
       edit((q) => ops.splitAt(q, t, hit.length ? hit : undefined), `Cut at ${fmtTime(t)}`, 'Nothing to cut here')
     },
     splitAllAtPlayhead() { const t = get().now(); edit((q) => ops.splitAt(q, t), `Cut all tracks at ${fmtTime(t)}`, 'Nothing to cut here') },
+    resetToOriginal() {
+      const dur = get().project ? (get().buffers.get(get().project!.song)?.duration ?? get().project!.sources[get().project!.song]?.duration ?? 0) : 0
+      if (!dur) return toast('Nothing to reset')
+      if (edit((p) => ({ ...ops.newProject(p.song, dur, p.name), id: p.id }), 'Reset to the original song (undo brings the cuts back)', 'Already original')) set({ selection: [], gap: null })
+    },
     deleteSelection(ripple) {
       const ids = get().selection; if (!ids.length) return toast('Select a clip first')
       const n = ids.length

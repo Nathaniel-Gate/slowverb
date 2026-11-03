@@ -23,7 +23,7 @@ export type S = {
   select(ids: string[], additive?: boolean): void; setTool(t: Tool): void
   setZoom(pxPerSec: number, anchorSec?: number): void; setScroll(x: number): void; setScrollY(y: number): void; setViewWidth(w: number): void; fitToView(viewWidth: number): void
   setPlayhead(t: number): void; now(): number; toggleSnap(): void; togglePlay(): Promise<void>
-  splitAtPlayhead(): void; splitAllAtPlayhead(): void; deleteSelection(ripple: boolean): void; selectAll(): void
+  splitAtPlayhead(): void; splitAllAtPlayhead(): void; deleteSelection(ripple: boolean): void; resetToOriginal(): void; selectAll(): void
   copy(): void; cut(): void; paste(): void; pasteInsert(): void; setMark(which: 'in' | 'out', t: number | null): void; addMarkerAtPlayhead(): void
   renderToLibrary(): Promise<void>; setRenderOpts(o: Partial<RenderOpts>): void; renameVersion(name: string): Promise<void>; renameSong(name: string): Promise<void>
 

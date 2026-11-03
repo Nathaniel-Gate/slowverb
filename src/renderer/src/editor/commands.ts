@@ -99,6 +99,7 @@ export const COMMANDS: Command[] = [
   cmd('save', 'Save now', 'Project', (s) => void s.flush().then(() => s.showToast('Saved'))),
   cmd('render', 'Render to library', 'Project', (s) => void s.renderToLibrary()),
   cmd('version.new', 'New version', 'Project', (s) => void s.newVersion()),
+  cmd('edit.reset', 'Reset to original (one clip)', 'Edit', (s) => s.resetToOriginal()),
   cmd('version.duplicate', 'Duplicate version', 'Project', (s) => void s.duplicateVersion()),
   cmd('syncLock', 'Toggle sync lock', 'Project', (s) => s.toggleSyncLock()),
   cmd('history', 'Undo history', 'Project', () => { const o = useOverlay.getState(); o.set({ history: !o.history }) }),
