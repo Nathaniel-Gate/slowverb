@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../shared/mediaUrl'
 // Wave-2 harness proofs (speed, disabled, crossfade, scrub, loop, reverse, bpm, peaks cache, wav depths, meter, range/normalise).
 // Run inside Electron by main/devshot.ts under SLOWVERB_ED=1. Not shipped in the app.
 import { encodeWav, readWavHeader } from '../audio/wav'
@@ -104,7 +105,7 @@ export async function runProofs2(ctx: AudioContext, heliumPath: string) {
   // H. peaks cache: the second request for the same file never decodes
   try {
     let decodes = 0
-    const decode = async () => { decodes++; const r = await fetch('media://local' + encodeURI(heliumPath)); return ctx.decodeAudioData(await r.arrayBuffer()) }
+    const decode = async () => { decodes++; const r = await fetch(mediaUrl(heliumPath)); return ctx.decodeAudioData(await r.arrayBuffer()) }
     const t0 = performance.now(), a = await cachedPeaks(heliumPath, decode), ta = performance.now() - t0
     await sleep(300)   // the put is fire-and-forget
     const t1 = performance.now(), c = await cachedPeaks(heliumPath, decode), tc = performance.now() - t1

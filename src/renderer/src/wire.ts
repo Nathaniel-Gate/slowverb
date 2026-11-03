@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../shared/mediaUrl'
 // Glue between stores, the audio engine and disk. Everything cross-cutting lives here, nowhere else.
 import type { Saved } from '../../shared/types'
 import { engine } from './audio/engine'
@@ -80,7 +81,7 @@ export async function wire() {
 ;(window as any).__sv = { buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, useLists, placeFiles, useAmbience, ambienceEngine, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
-  const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()
+  const t = useLibrary.getState().tracks[0], bytes = await (await fetch(mediaUrl(t.path))).arrayBuffer()
   const src = await new OfflineAudioContext(2, 1, 44100).decodeAudioData(bytes), orig = await renderVersion(t.path, DEFAULT_FX)
   let maxDiff = 0; const a = src.getChannelData(0); for (let i = 0; i < a.length; i++) maxDiff = Math.max(maxDiff, Math.abs(a[i] - orig.channels[0][i]))
   const slow = await renderVersion(t.path, { ...DEFAULT_FX, speed: 0.8, wet: 0.4, decay: 4.5 })

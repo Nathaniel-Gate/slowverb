@@ -25,7 +25,7 @@ Invariants after EVERY op: same-track clips never overlap; every clip has srcOut
 
 ## audio (agent B: editor/schedule.ts, editor/render.ts, editor/peaks.ts, editor/transport.ts, config/editorAudio.ts, harness tests in src/main/devshot.ts ONLY for the SLOWVERB_ED env branch)
 - type Buffers = Map<string, AudioBuffer>                                         // by source path
-- loadBuffers(p: Project, ctx: BaseAudioContext, only?: string[]): Promise<Buffers>  // fetch('media://local' + encodeURI(path)) then ctx.decodeAudioData; skips already-loaded
+- loadBuffers(p: Project, ctx: BaseAudioContext, only?: string[]): Promise<Buffers>  // fetch(mediaUrl(path)) then ctx.decodeAudioData; skips already-loaded
 - buildGraph(ctx: BaseAudioContext, p: Project, buffers: Buffers, fromSec: number, atCtxTime: number): { endCtxTime: number; stop(): void }
     // for each clip overlapping [fromSec, end): source node start(when, offset, duration) sample-accurate; clip gain node with fadeIn/fadeOut (config curve: equal-power default) ; track gain/mute/solo; all into ONE master input that goes through buildChain(ctx, input) from audio/chain.ts with p.master ?? DEFAULT_FX applied (chain.apply)
 - renderProject(p: Project, buffers: Buffers): Promise<{ channels: Float32Array[]; rate: number }>   // OfflineAudioContext, SAME buildGraph; length = projectEnd/speed + reverb tail

@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../shared/mediaUrl'
 import type { Fx } from '../../../shared/types'
 import { OUTPUT } from '../config/audioOutput'
 import { buildChain } from './chain'
@@ -19,7 +20,7 @@ class Engine {
   }
   async load(path: string, fx: Fx, autoplay = true) {
     await this.ctx.resume()
-    this.el.src = 'media://local' + encodeURI(path)
+    this.el.src = mediaUrl(path)
     this.apply(fx)
     if (autoplay) await this.el.play()
   }

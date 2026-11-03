@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../shared/mediaUrl'
 import { trackFxChain } from './trackFx'
 import { masterOf } from './master'
 import type { Fx } from '../../../shared/types'
@@ -66,7 +67,7 @@ export async function loadBuffers(p: Project, ctx: BaseAudioContext, only?: stri
   await Promise.all(paths.map(async (path) => {
     let job = mine.get(path)
     if (!job) {
-      job = fetch('media://local' + encodeURI(path)).then((r) => {
+      job = fetch(mediaUrl(path)).then((r) => {
         if (!r.ok) throw new Error(`cannot read ${path} (${r.status})`)
         return r.arrayBuffer()
       }).then((b) => ctx.decodeAudioData(b))

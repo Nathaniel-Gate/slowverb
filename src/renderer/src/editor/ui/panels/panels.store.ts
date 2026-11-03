@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../../../shared/mediaUrl'
 import { create } from 'zustand'
 import type { Fx } from '../../../../../shared/types'
 import { PANELS } from '../../../config/panels'
@@ -32,7 +33,7 @@ export const cachedSource = (path: string): SrcData | null => {
 async function decode(path: string): Promise<SrcData | null> {
   const hit = cachedSource(path); if (hit) return hit
   try {
-    const res = await fetch('media://local' + encodeURI(path)); if (!res.ok) throw new Error(String(res.status))
+    const res = await fetch(mediaUrl(path)); if (!res.ok) throw new Error(String(res.status))
     const buf = await editorTransport.ctx.decodeAudioData(await res.arrayBuffer()), data = { buf, peaks: computePeaks(buf) }
     cache.set(path, data); while (cache.size > PANELS.sourceCacheMax) cache.delete(cache.keys().next().value as string)
     return data

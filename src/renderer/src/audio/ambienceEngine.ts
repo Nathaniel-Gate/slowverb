@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../shared/mediaUrl'
 import { AMBIENCE, clampMasterDb, clampSoundDb, dbToGain, loopChannels } from './ambience'
 
 export type AmbienceLayer = { key: string; url: string; db: number }   // key = rel path, url = absolute file path, db = this sound's own level
@@ -85,7 +86,7 @@ export class AmbienceEngine {
     if (!p) {
       p = (async () => {
         try {
-          const bytes = await (await fetch('media://local' + encodeURI(l.url))).arrayBuffer()
+          const bytes = await (await fetch(mediaUrl(l.url))).arrayBuffer()
           const src = await this.ctx!.decodeAudioData(bytes)
           const chans = loopChannels(Array.from({ length: src.numberOfChannels }, (_, c) => src.getChannelData(c)), src.sampleRate)
           const b = this.ctx!.createBuffer(chans.length, chans[0].length, src.sampleRate)

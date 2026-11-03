@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../shared/mediaUrl'
 import type { Fx } from '../../../shared/types'
 import { REVERB } from '../config/fx'
 import { buildChain } from './chain'
@@ -5,7 +6,7 @@ import { buildChain } from './chain'
 /** Faster-than-real-time render of a track through the SAME chain used live. Pitch follows speed
  *  (a buffer source can't time-stretch), so pitch-lock versions are not exportable. */
 export async function renderVersion(path: string, fx: Fx): Promise<{ channels: Float32Array[]; rate: number }> {
-  const bytes = await (await fetch('media://local' + encodeURI(path))).arrayBuffer()
+  const bytes = await (await fetch(mediaUrl(path))).arrayBuffer()
   const src = await new OfflineAudioContext(2, 1, 44100).decodeAudioData(bytes)   // not a live context: no output stream, nothing to leak
   const tail = fx.wet > 0 ? fx.decay + REVERB.preDelay : 0
   const length = Math.ceil((src.duration / fx.speed + tail) * src.sampleRate)
