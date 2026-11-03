@@ -1,6 +1,8 @@
 import { BrowserWindow, shell } from 'electron'
 import { watch } from 'fs'
 import { copyFile, mkdir, readdir, rename, stat } from 'fs/promises'
+import { CATEGORIES } from '../shared/config'
+import { editsDir } from './editorPaths'
 import { basename, dirname, extname, join, relative, sep } from 'path'
 import { AUDIO_EXTS } from '../shared/types'
 import { IMPORT_MODE } from '../shared/config'
@@ -8,11 +10,12 @@ import { libraryRoot } from './paths'
 
 // A playlist IS a folder under the library root. Everything here is plain file operations, so Finder and the app always agree.
 const isAudio = (p: string) => AUDIO_EXTS.includes(extname(p).slice(1).toLowerCase())
-const safeName = (n: string) => n.replace(/[\/:\\]/g, '-').trim().replace(/^\.+/, '')
-const inRoot = (rel: string) => { const p = join(libraryRoot(), rel); if (relative(libraryRoot(), p).startsWith('..')) throw new Error('Outside library'); return p }
+export const safeName = (n: string) => n.replace(/[\/:\\]/g, '-').trim().replace(/^\.+/, '')
+export const inRoot = (rel: string) => { const p = join(libraryRoot(), rel); if (relative(libraryRoot(), p).startsWith('..')) throw new Error('Outside library'); return p }
 
 export async function sync(): Promise<{ root: string; folders: string[]; files: string[] }> {
   const root = libraryRoot(); await mkdir(root, { recursive: true })
+  for (const c of CATEGORIES) await mkdir(join(root, c), { recursive: true })   // the two homes always exist
   const folders: string[] = [], files: string[] = []
   const walk = async (dir: string) => {
     for (const e of (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -29,10 +32,14 @@ export async function renameFolder(rel: string, name: string) {
   const to = join(dirname(rel), safeName(name)); await rename(inRoot(rel), inRoot(to)); return to
 }
 export async function trashFolder(rel: string) { await shell.trashItem(inRoot(rel)) }   // recoverable from Trash
+/** Move a song to another folder of the library, taking its editor sidecar (.edits/<song>) with it. Never overwrites. Returns the new path. */
 export async function moveFile(path: string, toRel: string) {
-  const dest = await uniqueDest(inRoot(toRel), basename(path)); await rename(path, dest); return dest
+  const dest = await uniqueDest(inRoot(toRel), basename(path)); await rename(path, dest)
+  const from = editsDir(path), to = editsDir(dest)
+  if (await stat(from).then(() => true, () => false) && !(await stat(to).then(() => true, () => false))) { await mkdir(dirname(to), { recursive: true }); await rename(from, to) }
+  return dest
 }
-async function uniqueDest(dir: string, name: string) {
+export async function uniqueDest(dir: string, name: string) {
   await mkdir(dir, { recursive: true })
   let dest = join(dir, name), n = 1
   while (await stat(dest).then(() => true, () => false)) dest = join(dir, `${basename(name, extname(name))} (${n++})${extname(name)}`)
@@ -57,5 +64,6 @@ export async function importInto(paths: string[], toRel: string): Promise<string
 /** Tell the UI when the library folder changes on disk (Finder edits, downloads). */
 export function watchLibrary(win: BrowserWindow) {
   let t: NodeJS.Timeout | undefined
-  try { watch(libraryRoot(), { recursive: true }, () => { clearTimeout(t); t = setTimeout(() => !win.isDestroyed() && win.webContents.send('fs:changed'), 500) }) } catch { /* root missing: created on first sync */ }
+  try { watch(libraryRoot(), { recursive: true }, (_ev, name) => { if (name && name.split(sep).some((s) => s.startsWith('.'))) return   // our own bookkeeping (.slowverb, .edits) is not a library change
+     clearTimeout(t); t = setTimeout(() => !win.isDestroyed() && win.webContents.send('fs:changed'), 500) }) } catch { /* root missing: created on first sync */ }
 }

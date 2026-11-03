@@ -1,11 +1,14 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLibrary } from '../library/library.store'
+import { CATEGORIES } from '../../../../shared/config'
+import { Seg } from '../lists/Seg'
 import { usePlaylists, relOf } from './playlists.store'
 
 type Row = { rel: string | null; label: string; depth: number }
 const base = (rel: string) => rel.slice(rel.lastIndexOf('/') + 1)
 
-/** Folder tree = playlists. Sliding highlight (idea from Forge's slide-pill), drop targets, inline new/rename, right-click menu. */
+/** FILES view: the folder tree = where each song lives (Songs, Sound bites, sub-folders). Sliding highlight (idea from Forge's slide-pill), drop targets, inline new/rename, right-click menu. */
 export function PlaylistTree() {
   const { root, folders, sel, select, create, rename, trash, moveTrack, importFiles } = usePlaylists()
   const tracks = useLibrary((s) => s.tracks)
@@ -35,13 +38,13 @@ export function PlaylistTree() {
     if (paths.length) await importFiles(paths, rel ?? '')
   }
   const input = (initial: string, onDone: (v: string) => void) => (
-    <input autoFocus className="pl-input" defaultValue={initial} placeholder="Playlist name" spellCheck={false}
+    <input autoFocus className="pl-input" defaultValue={initial} placeholder="Folder name" spellCheck={false}
       onBlur={() => setEditing(null)} onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null); if (e.key === 'Enter') { onDone(e.currentTarget.value); setEditing(null) } }} />
   )
   return (
     <div className="pl">
-      <div className="side-head row"><span className="mono">Playlists</span><button className="ghost" title="New playlist" onClick={() => setEditing({ kind: 'new', parent: '' })}>+ NEW</button></div>
+      <div className="side-head row"><Seg /><button className="ghost" title="New folder" onClick={() => setEditing({ kind: 'new', parent: sel && sel !== '' ? sel : '' })}>+ FOLDER</button></div>
       <div className="pl-list" ref={box}>
         <div className="pl-pill" ref={pill} />
         {rows.map((r) => {
@@ -51,7 +54,7 @@ export function PlaylistTree() {
             : (
               <div key={key} data-sel={isSel ? 1 : 0} className={`pl-row ${isSel ? 'on' : ''} ${over === key ? 'over' : ''}`} style={{ paddingLeft: 14 + r.depth * 16 }}
                 onClick={() => select(r.rel)} onContextMenu={(e) => { e.preventDefault(); if (r.rel) setMenu({ x: e.clientX, y: e.clientY, rel: r.rel }) }}
-                onDragOver={(e) => { e.preventDefault(); setOver(key) }} onDragLeave={() => setOver(null)} onDrop={(e) => drop(e, r.rel)}>
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(key) }} onDragLeave={() => setOver(null)} onDrop={(e) => drop(e, r.rel)}>
                 <span className="pl-name">{r.label}</span>
                 <span className="n">{counts.get(r.rel) ?? 0}</span>
               </div>
@@ -59,13 +62,13 @@ export function PlaylistTree() {
         })}
         {editing?.kind === 'new' && <div className="pl-row" style={{ paddingLeft: 14 + (editing.parent ? editing.parent.split('/').length : 0) * 16 }}>{input('', (v) => create(editing.parent, v))}</div>}
       </div>
-      {menu && (
+      {menu && createPortal(
         <div className="menu" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => { setEditing({ kind: 'new', parent: menu.rel }); setMenu(null) }}>New playlist inside</button>
-          <button onClick={() => { setEditing({ kind: 'rename', rel: menu.rel }); setMenu(null) }}>Rename</button>
-          <button className="danger" onClick={() => { trash(menu.rel); setMenu(null) }}>Move to Trash</button>
-        </div>
-      )}
+          <button onClick={() => { setEditing({ kind: 'new', parent: menu.rel }); setMenu(null) }}>New folder inside</button>
+          {!(CATEGORIES as readonly string[]).includes(menu.rel) && <>
+            <button onClick={() => { setEditing({ kind: 'rename', rel: menu.rel }); setMenu(null) }}>Rename</button>
+            <button className="danger" onClick={() => { trash(menu.rel); setMenu(null) }}>Move to Trash</button></>}
+        </div>, document.body)}
     </div>
   )
 }

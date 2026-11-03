@@ -1,0 +1,53 @@
+/* FILES | PLAYLISTS switch */
+.seg { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--ink-950); }
+.seg button { position: relative; z-index: 1; padding: 5px 12px; font: 10.5px var(--font-mono); letter-spacing: .08em; color: var(--steel-500); border-radius: 999px; transition: color var(--t-fast) var(--ease); }
+.seg button[aria-selected="true"] { color: var(--white); } .seg button:hover { color: var(--white); }
+.seg-pill { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 999px; background: var(--ink-800); outline: 1px solid var(--hairline-strong); transition: transform var(--t) var(--ease); }
+.seg[data-mode="lists"] .seg-pill { transform: translateX(100%); }
+.pl-hint { padding: 10px 14px 4px; line-height: 1.6; color: var(--steel-500); font-size: 11px; }
+
+/* search + sort row above the song list */
+.find { display: flex; gap: 8px; align-items: center; padding: 8px 12px 0; }
+.find-in { flex: 1; min-width: 0; background: var(--ink-950); color: var(--white); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 6px 10px; font: 12.5px var(--font-sans); outline: none; user-select: text; transition: border-color var(--t-fast) var(--ease); }
+.find-in:focus { border-color: var(--hairline-strong); } .find-in::placeholder { color: var(--steel-600, var(--steel-500)); }
+
+/* chips under a song */
+.chips { display: flex; gap: 4px; margin-top: 4px; overflow: hidden; }
+.chip { flex: none; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 7px; border: 1px solid var(--hairline); border-radius: 999px; font: 9.5px var(--font-mono); letter-spacing: .04em; color: var(--steel-400); }
+.chip.home { color: var(--white); border-color: var(--hairline-strong); }
+
+/* right-click menu additions */
+.menu-h { padding: 8px 10px 4px; font-size: 9.5px; letter-spacing: .1em; color: var(--steel-500); }
+.menu-sep { height: 1px; margin: 5px 4px; background: var(--hairline); }
+.menu-check { display: flex !important; align-items: center; gap: 10px; }
+.ap-box { flex: none; width: 14px; height: 14px; border: 1px solid var(--hairline-strong); border-radius: 4px; display: grid; place-items: center; transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
+.ap-box i { width: 6px; height: 6px; border-radius: 2px; background: var(--ink-950); transform: scale(0); transition: transform var(--t-fast) var(--ease); }
+.ap-box.on, .ap-list.on .ap-box { background: var(--white); border-color: var(--white); } .ap-box.on i, .ap-list.on .ap-box i { transform: scale(1); }
+.ap-dot { flex: none; width: 14px; height: 14px; border: 1px solid var(--hairline-strong); border-radius: 50%; position: relative; }
+.ap-dot.on { border-color: var(--white); } .ap-dot.on::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--white); }
+
+/* "Where does this go?" popup */
+.ap-scrim { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgb(0 0 0 / .55); animation: fade var(--t-fast) var(--ease) both; }
+.ap { width: 360px; max-width: calc(100vw - 32px); padding: 18px; background: var(--ink-850); border: 1px solid var(--hairline-strong); border-radius: var(--radius-lg); box-shadow: 0 24px 70px rgb(0 0 0 / .65); outline: none; animation: pop var(--t) var(--ease) both; display: grid; gap: 12px; }
+.ap-title { font-size: 16px; font-weight: 500; color: var(--white); } .ap-what { margin-top: -8px; color: var(--steel-500); font-size: 11px; }
+.ap-cats { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--ink-950); }
+.ap-cats button { position: relative; z-index: 1; padding: 10px 8px; font-size: 13px; color: var(--steel-400); border-radius: var(--radius-sm); transition: color var(--t-fast) var(--ease); }
+.ap-cats button.on, .ap-cats button:hover { color: var(--white); }
+.ap-pill { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: var(--radius-sm); background: var(--ink-800); outline: 1px solid var(--white); transition: transform var(--t) var(--ease); }
+.ap-cats[data-i="1"] .ap-pill { transform: translateX(100%); }
+.ap-sub { font-size: 10px; letter-spacing: .1em; color: var(--steel-500); display: flex; justify-content: space-between; } .ap-sub span { opacity: .6; }
+.ap-lists { display: grid; gap: 2px; max-height: 190px; overflow-y: auto; margin: -4px -6px; padding: 4px 6px; }
+.ap-list { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: var(--radius-sm); text-align: left; color: var(--steel-300); } .ap-list:hover, .ap-list.on { background: var(--ink-800); color: var(--white); }
+.ap-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-new { background: transparent; border: 1px dashed var(--hairline-strong); border-radius: var(--radius-sm); padding: 8px 10px; color: var(--white); font: 13px var(--font-sans); outline: none; user-select: text; margin-top: 4px; } .ap-new:focus { border-style: solid; border-color: var(--white); }
+.ap-foot { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+.ap-go { padding: 8px 22px; border-radius: var(--radius); background: var(--white); color: var(--ink-950); font: 600 11px var(--font-mono); letter-spacing: .08em; transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); } .ap-go:hover { opacity: .88; } .ap-go:active { transform: scale(.97); }
+
+/* per-row options button */
+.item { grid-template-columns: 32px 1fr auto 26px; }
+.more { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--radius-sm); color: var(--steel-500); transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease); }
+.more:hover { color: var(--white); background: var(--ink-700); } .item.cur .more { color: var(--steel-300); }
+.menu-trash { display: flex !important; align-items: center; gap: 9px; }
+.menu-confirm { padding: 8px 10px 6px; display: grid; gap: 10px; } .menu-confirm .mono { font-size: 11px; line-height: 1.5; color: var(--steel-300); word-break: break-word; }
+.menu-confirm > div:last-child { display: flex; gap: 8px; } .menu-confirm button { flex: 1; text-align: center !important; border: 1px solid var(--hairline-strong); }
+.menu-confirm .solid { background: #8f3b33; border-color: #8f3b33; color: var(--white); } .menu-confirm .solid:hover { background: #a8453c; color: var(--white); }

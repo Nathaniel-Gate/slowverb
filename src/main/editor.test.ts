@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
-import { editsDir, renamedSongName, renderName, safeName, uniquePath, versionFile } from './editorPaths'
+import { editsDir, relocateVersion, renamedSongName, renderName, safeName, uniquePath, versionFile } from './editorPaths'
 
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir() }, shell: {}, BrowserWindow: class {} }))
 
@@ -35,6 +35,16 @@ describe('library scan', () => {
     const { sync } = await import('./playlists')
     const r = await sync()
     expect(r.files).toEqual([join(root, 'Pl', 'x.mp3')])
-    expect(r.folders).toEqual(['Pl'])
+    expect(r.folders).toEqual(['Pl', 'Songs', 'Sound bites'])   // the two category homes always exist
   })
+})
+
+describe('relocateVersion', () => {
+  it('repoints the song and its bounces after the song moved', () => {
+    const old = '/L/Helium.m4a', now = '/L/Songs/Helium.m4a'
+    const text = JSON.stringify({ song: old, sources: { [old]: { duration: 1 }, '/L/.edits/Helium/bounces/B 1.wav': { duration: 2 } }, clips: [{ src: '/L/.edits/Helium/bounces/B 1.wav' }] })
+    const p = JSON.parse(relocateVersion(text, now))
+    expect(p.song).toBe(now); expect(Object.keys(p.sources)).toEqual([now, '/L/Songs/.edits/Helium/bounces/B 1.wav']); expect(p.clips[0].src).toBe('/L/Songs/.edits/Helium/bounces/B 1.wav')
+  })
+  it('leaves an up-to-date version untouched', () => { const t = JSON.stringify({ song: '/L/a.m4a' }); expect(relocateVersion(t, '/L/a.m4a')).toBe(t) })
 })

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { AUDIO_EXTS } from '../../../../shared/types'
 import { afterAdd } from '../settings/afterAdd'
+import { useLists } from '../lists/lists.store'
+import { placeFiles } from '../lists/place'
 import { usePlaylists } from '../playlists/playlists.store'
 
-/** Window-level drop zone for files/folders from Finder. They are placed INTO the selected playlist's folder
- *  (copy or move per IMPORT_MODE in shared/config.ts), so the library on disk always matches the app. */
+/** Window-level drop zone for files/folders from Finder. A popup asks where they go (Songs or Sound bites, plus playlists), then they are
+ *  copied or moved there (IMPORT_MODE in shared/config.ts), so the library on disk always matches the app. */
 export function useDrop() {
   const [over, setOver] = useState(false)
   const external = (e: React.DragEvent) => !e.dataTransfer.types.includes('application/x-slowverb-track')
@@ -16,7 +18,8 @@ export function useDrop() {
       const paths = [...e.dataTransfer.files].filter((f) => { const x = f.name.split('.'); return x.length < 2 || AUDIO_EXTS.includes(x.pop()!.toLowerCase()) })
         .map((f) => window.api.pathFor(f)).filter(Boolean)
       if (!paths.length) return
-      const added = await usePlaylists.getState().importFiles(paths, usePlaylists.getState().sel ?? '')
+      const L = useLists.getState(), sel = usePlaylists.getState().sel
+      const added = await placeFiles(paths, `${paths.length} file${paths.length === 1 ? '' : 's'}`, L.mode === 'lists' && L.listSel ? [L.listSel] : [], sel?.split('/')[0])
       if (added.length) afterAdd(added[0].id)
     }
   }

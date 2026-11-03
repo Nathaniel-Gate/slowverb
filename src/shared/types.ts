@@ -12,9 +12,17 @@ export type Track = {
   id: string; path: string; title: string; artist: string; duration: number
   fx?: Fx // this track's remembered version
 }
-export type Settings = { playOnClick: boolean; playAfterAdd: boolean; autoAdvance: boolean }
+/** One chosen Sound bite for the ambience layer: its path relative to the library root ('Sound bites/Rain.wav') and its own level in dB. */
+export type AmbienceSound = { rel: string; level: number }
+export type Settings = {
+  playOnClick: boolean; playAfterAdd: boolean; autoAdvance: boolean
+  ambienceOn: boolean; ambienceLevel: number; ambienceSounds: AmbienceSound[] // looped Sound bites under the music: switch, master level (dB), chosen sounds
+}
 export type Saved = { tracks: Track[]; cur: string | null; fx: Fx; preset: string | null; userPresets: { name: string; fx: Fx }[]; settings?: Partial<Settings> }
 export type ScanResult = Omit<Track, 'id' | 'fx'>
 
 /** Download progress sent main -> UI. pct null = unknown duration (show a moving bar, not a number). */
 export type DlProgress = { stage: string; pct: number | null; item?: { i: number; n: number } }
+
+/** A virtual playlist: an ordered list of songs by path relative to the library root. A song can be in many; deleting a playlist never touches files. */
+export type Playlist = { id: string; name: string; created: number; songs: string[] }

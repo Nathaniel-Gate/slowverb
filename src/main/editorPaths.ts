@@ -17,3 +17,11 @@ export async function uniquePath(dir: string, name: string, taken: (p: string) =
 }
 export const renderName = (song: string, versionName: string) => `${safeName(songBase(song))} (${safeName(versionName) || 'Render'}).wav`
 export const renamedSongName = (song: string, newBase: string) => `${safeName(newBase)}${extname(song)}`
+/** A saved version stores absolute paths. When the song has moved since (Songs/ migration, change of home), rewrite them to the song's current
+ *  location: the song itself and everything under its old `.edits/<song>` folder (bounces). Returns the JSON text unchanged if nothing moved. */
+export function relocateVersion(text: string, song: string): string {
+  let old: unknown; try { old = JSON.parse(text).song } catch { return text }
+  if (typeof old !== 'string' || old === song) return text
+  const esc = (s: string) => JSON.stringify(s).slice(1, -1)
+  return text.split(esc(editsDir(old))).join(esc(editsDir(song))).split(esc(old)).join(esc(song))
+}

@@ -13,15 +13,24 @@ import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
 import { settingsOf, useSettings } from './features/settings/settings.store'
 import { usePlaylists } from './features/playlists/playlists.store'
+import { useLists } from './features/lists/lists.store'
+import { placeFiles } from './features/lists/place'
+import { useAmbience } from './features/ambience/ambience.store'
+import { bindAmbience } from './features/ambience/bind'
+import { ambienceEngine } from './audio/ambienceEngine'
 
 export async function wire() {
   const saved = await window.api.load()
   if (saved) {
     useLibrary.getState().replace(saved.tracks ?? [])
     useSettings.getState().replace(saved.settings)
+    useAmbience.getState().hydrate(saved.settings)
     useFx.setState({ fx: saved.fx ?? useFx.getState().fx, preset: saved.preset, userPresets: saved.userPresets ?? [] })
     if (saved.cur && saved.tracks?.some((t) => t.id === saved.cur)) usePlayer.setState({ cur: saved.cur })
   }
+  // one-time move into Songs/ + Sound bites/ (asks first; backs up; deletes nothing): repoint saved tracks, then load the playlists it created
+  for (const m of await window.api.migrate()) { const t = useLibrary.getState().tracks.find((x) => x.path === m.from); if (t) useLibrary.getState().setPath(t.id, m.to) }
+  useLists.getState().replace(await window.api.listsLoad())
   await usePlaylists.getState().refresh()                       // library folder is the source of truth for what exists
   window.api.onLibraryChanged(() => usePlaylists.getState().refresh())   // Finder edits, downloads
   // fx -> engine; user edits also stamp the current track (per-track memory)
@@ -46,6 +55,7 @@ export async function wire() {
   })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => { if (useSettings.getState().autoAdvance && !useEditor.getState().open) usePlayer.getState().next(1) })   // only in the player view, and only if switched on
+  bindAmbience()                                                // background sound: follows usePlayer.playing, saved via useSettings
   // persist (debounced)
   const saveLibraryNow = () => {
     const f = useFx.getState()
@@ -54,8 +64,11 @@ export async function wire() {
   }
   let timer: number | undefined
   const save = () => { clearTimeout(timer); timer = window.setTimeout(() => void saveLibraryNow(), 250) }
+  let ltimer: number | undefined
+  const saveLists = () => { clearTimeout(ltimer); ltimer = window.setTimeout(() => void window.api.listsSave(useLists.getState().lists), 250) }
+  useLists.subscribe((s, prev) => { if (s.lists !== prev.lists) saveLists() })
   useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save); useSettings.subscribe(save)
-  const saveEverything = async () => { clearTimeout(timer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow()]) }
+  const saveEverything = async () => { clearTimeout(timer); clearTimeout(ltimer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow(), window.api.listsSave(useLists.getState().lists)]) }
   window.addEventListener('beforeunload', () => void saveEverything())                      // belt
   window.addEventListener('blur', () => void saveEverything())                              // switching to another app
   document.addEventListener('visibilitychange', () => { if (document.hidden) void saveEverything() })
@@ -64,7 +77,7 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
+;(window as any).__sv = { buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, useLists, placeFiles, useAmbience, ambienceEngine, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()

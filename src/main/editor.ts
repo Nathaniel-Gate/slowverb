@@ -2,7 +2,7 @@ import { app, shell } from 'electron'
 import { mkdir, readdir, readFile, rename, stat, writeFile } from 'fs/promises'
 import { dirname, extname, join } from 'path'
 import type { Project } from '../renderer/src/editor/model'
-import { editsDir, renamedSongName, renderName, safeName, songBase, uniquePath, versionFile } from './editorPaths'
+import { editsDir, relocateVersion, renamedSongName, renderName, safeName, songBase, uniquePath, versionFile } from './editorPaths'
 
 // Editor sidecars: plain JSON next to the song in a dot-folder, plain file ops like playlists.ts.
 const exists = (p: string) => stat(p).then(() => true, () => false)
@@ -14,7 +14,7 @@ export async function editorList(song: string): Promise<string[]> {
   return withTime.sort((a, b) => b.t - a.t).map((x) => x.f.slice(0, -'.json'.length))
 }
 export async function editorLoad(song: string, name: string): Promise<Project | null> {
-  try { return JSON.parse(await readFile(versionFile(song, name), 'utf8')) } catch { return null }
+  try { return JSON.parse(relocateVersion(await readFile(versionFile(song, name), 'utf8'), song)) } catch { return null }
 }
 export async function editorSave(song: string, project: Project) {
   const dest = versionFile(song, project.name), tmp = `${dest}.tmp`

@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_TAILDRAG || process.env.SLOWVERB_PHONE || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_AMBIENCE || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_TAILDRAG || process.env.SLOWVERB_PHONE || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL || process.env.SLOWVERB_LIB) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -139,6 +139,100 @@ export function runShot(win: BrowserWindow) {
         out.playerEndAdvanceOff = await endRun(false)
         return out })()`)
       console.log('AUTOPLAY_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_AMBIENCE) {
+      // Ambience layer proofs. SLOWVERB_ROOT = temp library holding Songs/<song> and Sound bites/<sounds>. MUTED: the page's audio output is switched off,
+      // the analysers still see everything.
+      win.webContents.setAudioMuted(true)
+      if (process.env.SLOWVERB_AMBIENCE === 'empty') {   // library without Sound bites: just the empty state, screenshot
+        const e = await win.webContents.executeJavaScript(`(async () => { const w = (ms) => new Promise(r => setTimeout(r, ms)); await window.__sv.usePlaylists.getState().refresh(); await w(600)
+          const el = document.querySelector('.amb'); el && el.scrollIntoView({ block: 'center' }); await w(500); return { text: document.querySelector('.amb-empty') && document.querySelector('.amb-empty').textContent, chips: document.querySelectorAll('.amb .chip').length, ctx: window.__sv.ambienceEngine.state } })()`)
+        const im = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, im.toPNG()); console.log('AMBIENCE_RESULT ' + JSON.stringify(e)); app.quit(); return
+      }
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, P = sv.usePlayer, A = sv.useAmbience, AE = sv.ambienceEngine, E = sv.useEditor, L = sv.useLibrary, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        sv.engine.el.muted = true; AE.setSilent(true)
+        await sv.usePlaylists.getState().refresh(); await wait(600)
+        out.library = L.getState().tracks.map(t => t.path.slice(sv.usePlaylists.getState().root.length + 1))
+        const song = L.getState().tracks.find(t => t.path.includes('/Songs/')), id = song.id
+        const level = async (ms = 500) => { const an = AE.debugTap(); if (!an) return null; const b = new Float32Array(an.fftSize); let pk = 0, sq = 0, n = 0; const t0 = performance.now()
+          while (performance.now() - t0 < ms) { an.getFloatTimeDomainData(b); for (const v of b) { pk = Math.max(pk, Math.abs(v)); sq += v * v; n++ } await wait(40) }
+          return { peak: +pk.toFixed(4), rms: +Math.sqrt(sq / n).toFixed(4) } }
+        const snap = () => ({ ctx: AE.state, fade: +AE.fadeValue.toFixed(3), voices: AE.voiceKeys, playing: P.getState().playing, viaEdit: P.getState().viaEdit, editorOpen: E.getState().open })
+        const RAIN = 'Sound bites/Rain.wav', BIRDS = 'Sound bites/Birds.wav', TONE = 'Sound bites/Nature/Tone.wav'
+        // empty state first (no sounds in the library view is simulated by checking the real panel text after we know the list)
+        out.panelBefore = { empty: !!document.querySelector('.amb-empty'), chips: [...document.querySelectorAll('.amb .chip')].map(c => c.textContent) }
+        out.freshStart = { ctx: AE.state }                                  // never built: costs nothing while off
+        sv.useFx.getState().applyPreset('Slowed + Reverb')
+        P.getState().play(id); await wait(1500)
+        out.playingButOff = snap()
+        A.getState().setOn(true); await wait(900)
+        out.onNoSoundChosen = snap()                                        // on, music playing, nothing chosen: still no context
+        A.getState().setLevel(-20)
+        out.solo = {}
+        for (const rel of [RAIN, BIRDS, TONE]) {
+          A.getState().toggleSound(rel); await wait(1300)
+          const lv = await level(700); out.solo[rel] = { ...lv, voices: AE.voiceKeys, failed: [...AE.failed] }
+          A.getState().toggleSound(rel); await wait(700)
+        }
+        // seam: the cut loop buffers have no jump at the loop point
+        out.seams = {}
+        A.getState().toggleSound(RAIN); A.getState().toggleSound(BIRDS); A.getState().toggleSound(TONE); await wait(1500)
+        for (const rel of [RAIN, BIRDS, TONE]) {
+          const b = AE.loopBuffer(rel); if (!b) { out.seams[rel] = null; continue }
+          const c = b.getChannelData(0); let d = 0; for (let i = 1; i < c.length; i++) d += (c[i] - c[i - 1]) ** 2
+          const typ = Math.sqrt(d / (c.length - 1)), seam = Math.abs(c[0] - c[c.length - 1])
+          let hard = null; out.seams[rel] = { sec: +b.duration.toFixed(2), seam: +seam.toFixed(4), typicalStep: +typ.toFixed(4), ok: seam < typ * 5 }
+        }
+        // layering + separate levels
+        out.layered = { voices: AE.voiceKeys, ...(await level(900)) }
+        A.getState().setSoundLevel(RAIN, -24); A.getState().setSoundLevel(BIRDS, -24); await wait(500); const toneOnly = await level(900)
+        A.getState().setSoundLevel(RAIN, 0); A.getState().setSoundLevel(BIRDS, 0); A.getState().setSoundLevel(TONE, -24); await wait(500); const toneQuiet = await level(900)
+        out.perSound = { toneLoudRms: toneOnly.rms, toneQuietRms: toneQuiet.rms }
+        A.getState().setSoundLevel(TONE, 0)
+        A.getState().toggleSound(BIRDS); A.getState().toggleSound(TONE); await wait(900)   // rain only, to compare
+        A.getState().setLevel(-12); await wait(500); const hi = await level(1000); A.getState().setLevel(-36); await wait(500); const lo = await level(1000)
+        out.master = { hiRms: hi.rms, loRms: lo.rms, ratio: +(lo.rms / hi.rms).toFixed(3), expect: 0.063 }
+        A.getState().setLevel(-20)
+        // independent of the music's speed / reverb
+        const slow = await level(1000); sv.useFx.getState().set({ speed: 1, wet: 0 }); await wait(300); const orig = await level(1000)
+        out.fxIndependent = { slowedRms: slow.rms, originalRms: orig.rms }
+        // the switch stops it, the switch starts it
+        A.getState().setOn(false); await wait(1300); out.switchOff = snap()
+        A.getState().setOn(true); await wait(1100); out.switchOn = { ...snap(), ...(await level()) }
+        // the player pausing stops it, resuming starts it
+        P.getState().toggle(); await wait(1400); out.playerPaused = snap()
+        P.getState().toggle(); await wait(1300); out.playerResumed = { ...snap(), ...(await level()) }
+        // remembered by path: saved settings
+        A.getState().toggleSound(TONE); A.getState().setSoundLevel(TONE, -9); await wait(900)
+        const saved = await window.api.load(); out.saved = saved && saved.settings
+        A.getState().toggleSound(TONE)
+        // a chosen sound whose file is gone is skipped, the choice is kept
+        A.getState().toggleSound('Sound bites/Missing.wav'); await wait(600)
+        out.missingChoice = { voices: AE.voiceKeys, kept: A.getState().sounds.map(s => s.rel) }
+        A.getState().toggleSound('Sound bites/Missing.wav')
+        // editor tab playing alone: silent
+        await E.getState().openSong(song.path)
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        await wait(1300); out.editorOpenIdle = snap()
+        if (!E.getState().playing) await E.getState().togglePlay()
+        await wait(1500); out.editorPlayingAlone = { ...snap(), editorPlaying: E.getState().playing }
+        if (E.getState().playing) await E.getState().togglePlay()
+        // edit playback in the player view (viaEdit): ambience follows it too
+        for (const t of [45, 100]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        E.getState().select(E.getState().project.clips.filter(c => c.start >= 44 && c.start < 46).map(c => c.id)); E.getState().deleteSelection(true)
+        E.getState().close(); await wait(900)
+        if (!P.getState().viaEdit) { P.getState().select(id); await wait(900) }
+        if (!P.getState().playing) { P.getState().toggle(); await wait(1500) } else await wait(900)
+        out.viaEditPlaying = { ...snap(), ...(await level()) }
+        P.getState().toggle(); await wait(1400); out.viaEditPaused = snap()
+        P.getState().toggle(); await wait(1300); out.viaEditResumed = { ...snap(), ...(await level(300)) }
+        A.getState().toggleSound(BIRDS); await wait(400)
+        document.querySelector('.amb') && document.querySelector('.amb').scrollIntoView({ block: 'center' }); await wait(500)
+        out.finalPanel = { sw: document.querySelector('.amb .set-sw') && document.querySelector('.amb .set-sw').dataset.on, chips: [...document.querySelectorAll('.amb .chip')].map(c => c.textContent + (c.classList.contains('on') ? '*' : '')), knobs: [...document.querySelectorAll('.amb .knob')].map(k => k.textContent) }
+        return out })()`).catch((e: Error) => ({ error: String(e) }))
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('AMBIENCE_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_TIDY) {
       const r = await win.webContents.executeJavaScript(`(async () => {
@@ -487,6 +581,40 @@ export function runShot(win: BrowserWindow) {
         return out })()`)
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('EDUI_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_LIB) {
+      // Library redesign: migration result, the add popup (real clicks on the real DOM), playlists, move-keeps-membership. SLOWVERB_DIR = folder with new1.wav new2.wav to add.
+      const { readdirSync, statSync } = await import('fs'), { join, relative } = await import('path')
+      const ls = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.name === '.DS_Store' ? [] : e.isDirectory() ? ls(join(d, e.name)).map((x) => join(e.name, x)) : [e.name]))
+      const root = process.env.SLOWVERB_ROOT!, out: Record<string, unknown> = { disk0: ls(root).filter((x) => !x.includes('backup-')) }
+      const shot = async (n: string) => { console.log('LIB shot', n); await new Promise((r) => setTimeout(r, 450)); writeFileSync(process.env.SLOWVERB_SHOT!.replace('.png', '-' + n + '.png'), (await win.webContents.capturePage()).toPNG()) }
+      const js2 = (code: string) => win.webContents.executeJavaScript(`(async () => { const sv = window.__sv; ${code} })()`)
+      console.log('LIB migrate-check'); out.afterMigrate = await js2(`await new Promise(r => setTimeout(r, 600)); return { tracks: sv.useLibrary.getState().tracks.map(t => t.path.slice(sv.usePlaylists.getState().root.length + 1)), lists: sv.useLists.getState().lists.map(l => [l.name, l.songs]), folders: sv.usePlaylists.getState().folders }`)
+      await shot('1-files')
+      await js2(`sv.useLists.getState().setMode('lists'); const L = sv.useLists.getState(); if (L.lists[0]) L.selectList(L.lists[0].id)`); await shot('2-lists')
+      await js2(`sv.useLists.getState().setMode('files')`)
+      const src = process.env.SLOWVERB_DIR!
+      await js2(`window.__pop = sv.placeFiles([${JSON.stringify(src + '/new1.wav')}, ${JSON.stringify(src + '/new2.wav')}], '2 files', [])`)
+      await shot('3-popup')
+      out.popup = await js2(`const cats = [...document.querySelectorAll('.ap-cats button')].map(b => b.textContent); document.querySelectorAll('.ap-cats button')[1].click()
+        await new Promise(r => setTimeout(r, 200)); const lists = [...document.querySelectorAll('.ap-list .ap-nm')].map(b => b.textContent)
+        document.querySelector('.ap-list')?.click()
+        const inp = document.querySelector('.ap-new'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(inp, 'Rain'); inp.dispatchEvent(new Event('input', { bubbles: true }))
+        await new Promise(r => setTimeout(r, 150)); return { cats, lists } `)
+      await shot('4-popup-filled')
+      await js2(`document.querySelector('.ap-go').click(); await window.__pop; await new Promise(r => setTimeout(r, 700))`)
+      out.afterAdd = await js2(`return { tracks: sv.useLibrary.getState().tracks.map(t => t.path.slice(sv.usePlaylists.getState().root.length + 1)), lists: sv.useLists.getState().lists.map(l => [l.name, l.songs]) }`)
+      // move a song that is in a playlist to the other home: membership must follow
+      out.moved = await js2(`const T = sv.useLibrary.getState().tracks.find(t => t.path.includes('new1')); await sv.usePlaylists.getState().moveTrack(T.id, 'Songs'); await new Promise(r => setTimeout(r, 700))
+        return { path: sv.useLibrary.getState().tracks.find(t => t.id === T.id).path.slice(sv.usePlaylists.getState().root.length + 1), lists: sv.useLists.getState().lists.map(l => [l.name, l.songs]) }`)
+      await js2(`sv.useLists.getState().setMode('lists'); const L = sv.useLists.getState(); L.selectList(L.lists.find(l => l.name === 'Rain').id)`)
+      { const r = await js2(`const b = document.querySelector('.more').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }`) as { x: number; y: number }
+        const wc = win.webContents; wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y }); wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 }); wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 })
+        await new Promise((q) => setTimeout(q, 400)); out.moreClick = await js2(`const m = document.querySelector('.song-menu'); return m ? m.getBoundingClientRect().toJSON() : null`); await new Promise((q) => setTimeout(q, 600)); out.moreLater = await js2(`const m = document.querySelector('.song-menu'); if (!m) return null; const r = m.getBoundingClientRect(), e = document.elementFromPoint(r.x + 40, r.y + 40), cs = getComputedStyle(m); return { top: e && e.className, tag: e && e.tagName, pos: cs.position, z: cs.zIndex, vis: cs.visibility, anim: cs.animationName, inner: [innerWidth, innerHeight], r: [r.x, r.y, r.width, r.height], parent: m.parentElement.className }`); await shot('6-more') }
+      await js2(`document.querySelector('.item').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 120, clientY: 220 }))`); await shot('5-menu')
+      out.disk1 = ls(root).filter((x) => !x.includes('backup-')); out.mig = statSync(join(root, '.slowverb', 'migrated.json')).size > 0
+      void relative
+      console.log('LIB_RESULT ' + JSON.stringify(out)); app.quit(); return
     }
     if (process.env.SLOWVERB_PL) {
       const pl = await win.webContents.executeJavaScript(`(async () => {

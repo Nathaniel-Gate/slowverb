@@ -1,0 +1,9 @@
+/* AMBIENCE block in the Version panel. Reuses .chip, .knob, .set-sw; dims (opacity only) while the switch is off. */
+.amb { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+.amb-switch { padding: 4px; margin: -4px; border-radius: var(--radius-sm); display: inline-flex; }
+.amb-switch:hover { background: var(--ink-800); }
+.amb .amb-types, .amb .amb-mix, .amb > .knob { transition: opacity var(--t) var(--ease); }
+.amb:not([data-on]) .amb-types, .amb:not([data-on]) .amb-mix, .amb:not([data-on]) > .knob { opacity: .4; }
+.amb > .knob { margin-top: 14px; }
+.amb-empty { margin: 12px 0 0; font-size: 12px; line-height: 1.4; color: var(--steel-500); animation: fade var(--t) var(--ease) both; }
+.amb-mix .knob { margin-top: 14px; min-width: 0; } .amb-mix .knob .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 8px; }

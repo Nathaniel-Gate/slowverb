@@ -5,6 +5,7 @@ import { EditorView } from './editor/ui/EditorView'
 import { ModeSwitch } from './editor/ui/HeaderBar'
 import { FxPanel } from './features/fx/FxPanel'
 import { Playlist } from './features/library/Playlist'
+import { AddPopup } from './features/lists/AddPopup'
 import { useDrop } from './features/library/useDrop'
 import { NowPlaying } from './features/player/NowPlaying'
 import { Transport } from './features/player/Transport'
@@ -27,13 +28,14 @@ export function App() {
   return (
     <div className="app" {...handlers}>
       <div className="drag"><ModeSwitch /></div>
-      {over && <div className="drop"><span className="mono">Drop audio to add to playlist</span></div>}
+      {over && <div className="drop"><span className="mono">Drop audio to add it</span></div>}
       <main className="main">
         <NowPlaying />
         <div className="stack"><Transport /><FxPanel /></div>
       </main>
       <Playlist />
       {editorMounted && <EditorView leaving={!open} />}
+      <AddPopup />
     </div>
   )
 }

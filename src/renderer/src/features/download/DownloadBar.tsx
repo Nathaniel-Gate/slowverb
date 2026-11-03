@@ -5,6 +5,9 @@ import { useSmooth } from '../../ui/useSmooth'
 import { useLibrary } from '../library/library.store'
 import { afterAdd } from '../settings/afterAdd'
 import { usePlaylists } from '../playlists/playlists.store'
+import { useAddPopup } from '../lists/addPopup.store'
+import { useLists } from '../lists/lists.store'
+import { joinLists } from '../lists/place'
 
 /** Paste a link or type a song name, press Enter or ADD: audio is downloaded (yt-dlp), added to the playlist and played. */
 export function DownloadBar() {
@@ -19,14 +22,18 @@ export function DownloadBar() {
 
   const go = async () => {
     const link = url.trim(); if (!link || busy) return
+    const sel = usePlaylists.getState().sel, L = useLists.getState()
+    const place = await useAddPopup.getState().ask('1 link', L.mode === 'lists' && L.listSel ? [L.listSel] : [], sel?.split('/')[0])   // category + playlists, asked up front so the download can finish in the background
+    if (!place) return
     setBusy(true); setProg({ stage: 'Starting', pct: null }); setNote(null)
-    const r = await window.api.download(link, usePlaylists.getState().sel ?? '')   // lands in the selected playlist's folder
+    const r = await window.api.download(link, place.category)   // lands in the chosen home folder
     if (r.paths?.length) {
       const before = useLibrary.getState().tracks.length
       await usePlaylists.getState().refresh()                                         // pick the new file up from disk
+      joinLists(r.paths, place)
       const t = useLibrary.getState().tracks.find((x) => x.path === r.paths![0])
       if (t) afterAdd(t.id)
-      setUrl(''); flash({ text: useLibrary.getState().tracks.length > before ? 'Added' : 'Already in playlist' })
+      setUrl(''); flash({ text: useLibrary.getState().tracks.length > before ? 'Added' : 'Already in library' })
     } else if (r.error !== 'Cancelled') flash({ text: r.error ?? 'Failed', err: true })
     setBusy(false); setProg(null)
   }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, protocol } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron'
 import { extname, join } from 'path'
 import { createReadStream } from 'fs'
 import { stat } from 'fs/promises'
@@ -9,6 +9,7 @@ import { exportSave } from './export'
 import { cancelDownload, downloadAudio } from './ytdlp'
 import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, peaksGet, peaksPut, peaksStat, renameSong, saveBounce, saveRender } from './editor'
 import { sendToPhone } from './phone'
+import { migrate, readLists, revealSong, trashSong, writeLists } from './library'
 import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
 
@@ -80,6 +81,16 @@ app.whenReady().then(() => {
   ipcMain.handle('pl:trash', (_e, rel: string) => trashFolder(rel))
   ipcMain.handle('pl:move', (_e, path: string, toRel: string) => moveFile(path, toRel))
   ipcMain.handle('pl:import', (_e, paths: string[], toRel: string) => importInto(paths, toRel))
+  ipcMain.handle('lib:migrate', () => migrate(libraryFile(), async (n) => {
+    if (process.env.SLOWVERB_ROOT) return true   // test harness: no dialog
+    const r = await dialog.showMessageBox({ type: 'question', buttons: ['Organise', 'Not now'], defaultId: 0, cancelId: 1, message: 'Organise your library into Songs and Sound bites?',
+      detail: `${n} file${n === 1 ? '' : 's'} will move into the Songs folder. Your old playlist folders become playlists. Nothing is deleted and a backup is saved first.` })
+    return r.response === 0
+  }))
+  ipcMain.handle('lists:load', () => readLists())
+  ipcMain.handle('lists:save', (_e, lists) => writeLists(lists))
+  ipcMain.handle('lib:reveal', (_e, path: string) => revealSong(path))
+  ipcMain.handle('lib:trash', (_e, path: string) => trashSong(path))
   ipcMain.handle('editor:list', (_e, song: string) => editorList(song))
   ipcMain.handle('editor:load', (_e, song: string, name: string) => editorLoad(song, name))
   ipcMain.handle('editor:save', (_e, song: string, project) => editorSave(song, project))
