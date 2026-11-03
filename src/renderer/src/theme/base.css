@@ -2,6 +2,10 @@
 html, body, #root { height: 100%; }
 body { background: var(--ink-950); color: var(--stone-100); font-family: var(--font-sans); font-size: 14px; overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+/* Keyboard focus: one thin white hairline in the app look, never the system orange double ring. Mouse clicks show nothing. */
+:focus { outline: none; }
+button:focus-visible, [role="tab"]:focus-visible, [role="checkbox"]:focus-visible { outline: 1px solid var(--steel-300); outline-offset: 2px; }
+button:focus:not(:focus-visible) { outline: none; }
 .app { height: 100%; display: grid; grid-template-columns: 1fr var(--sidebar-w); position: relative; }
 .drag { -webkit-app-region: drag; height: 38px; position: absolute; inset: 0 0 auto 0; z-index: 5; }
 .main { overflow-y: auto; gap: 24px; padding: 56px var(--pad) 32px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--hairline); min-width: 0; }
