@@ -3,4 +3,8 @@ out
 dist
 mobile/node_modules
 mobile/dist
-mobile/ios
+mobile/ios/App/App/public
+mobile/ios/App/App/capacitor.config.json
+mobile/ios/App/DerivedData
+mobile/ios/App/build
+mobile/ios/.build
