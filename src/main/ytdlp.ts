@@ -10,7 +10,6 @@ const KNOBS = {
   binUrl: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos',
   stallMs: 45_000,        // no output for this long = stuck: kill it and say so (never an endless bar)
   fetchStallMs: 20_000,   // same for the one-off binary download
-  playlistMax: 50,        // cap for pure playlist links
   retries: '3', socketTimeout: '15'
 }
 const bin = () => join(app.getPath('userData'), 'bin', 'yt-dlp')
@@ -58,8 +57,8 @@ function run(args: string[], onLine: (l: string) => void, signal: AbortSignal): 
   })
 }
 
-/** Audio-only download. Any site yt-dlp supports. Plain text = YouTube search, top hit. A video link downloads that
- *  video only (even if it carries a &list= mix); a pure playlist link downloads up to playlistMax items. */
+/** Audio-only download of exactly ONE item. Any site yt-dlp supports. Plain text = YouTube search, top hit.
+ *  A link carrying a playlist/mix/album gets only the item the link points at (first item for a bare playlist link). */
 export async function downloadAudio(input: string, report: Report): Promise<string[]> {
   if (current) throw new Error('A download is already running')
   current = { abort: new AbortController() }
@@ -67,14 +66,13 @@ export async function downloadAudio(input: string, report: Report): Promise<stri
   try {
     const isUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(input)
     const url = isUrl ? input : `ytsearch1:${input}`
-    const single = !isUrl || /[?&]v=|youtu\.be\/|\/shorts\//.test(input)
     await mkdir(downloadDir(), { recursive: true })
     report({ stage: 'Starting', pct: null })
     await ensureBinary(report, signal)
     const attempt = async () => {
       const files: string[] = []; let item: { i: number; n: number } | undefined
       const args = ['--no-mtime', '--ignore-errors', '--retries', KNOBS.retries, '--socket-timeout', KNOBS.socketTimeout,
-        single ? '--no-playlist' : '--playlist-end', ...(single ? [] : [String(KNOBS.playlistMax)]),
+        '--no-playlist', '--playlist-items', '1',   // ALWAYS just the one thing given: never a mix, album or playlist
         '-f', 'bestaudio[ext=m4a]/bestaudio', '-o', join(downloadDir(), '%(title).150B.%(ext)s'),
         '--newline', '--print', 'after_move:filepath', '--', url]
       const r = await run(args, (l) => {
