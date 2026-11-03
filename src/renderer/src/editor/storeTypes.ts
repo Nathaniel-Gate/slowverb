@@ -29,7 +29,7 @@ export type S = {
   setPlayhead(t: number): void; now(): number; toggleSnap(): void; togglePlay(): Promise<void>
   splitAtPlayhead(): void; splitAllAtPlayhead(): void; deleteSelection(ripple: boolean): void; resetToOriginal(): void; selectAll(): void; selectAtPlayhead(): void
   copy(): void; cut(): void; paste(): void; pasteInsert(): void; setMark(which: 'in' | 'out', t: number | null): void; addMarkerAtPlayhead(): void
-  renderToLibrary(): Promise<void>; setRenderOpts(o: Partial<RenderOpts>): void; renameVersion(name: string): Promise<void>; renameSong(name: string): Promise<void>
+  renderToLibrary(): Promise<void>; bounceSelection(): Promise<void>; setRenderOpts(o: Partial<RenderOpts>): void; renameVersion(name: string): Promise<void>; renameSong(name: string): Promise<void>
 
   insertSource(path: string, t: number, track: string | undefined, mode: 'insert' | 'overwrite', range?: { in: number; out: number }): Promise<void>
   patchSelected(patch: ClipPatch): void; applyMaster(fx: Fx | null): void; setBpm(bpm: number | null, offset?: number): void

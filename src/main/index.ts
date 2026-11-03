@@ -7,7 +7,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { scan } from './scan'
 import { exportSave } from './export'
 import { cancelDownload, downloadAudio } from './ytdlp'
-import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, peaksGet, peaksPut, peaksStat, renameSong, saveRender } from './editor'
+import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, peaksGet, peaksPut, peaksStat, renameSong, saveBounce, saveRender } from './editor'
 import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
 
@@ -66,6 +66,7 @@ app.whenReady().then(() => {
   ipcMain.handle('editor:delete', (_e, song: string, name: string) => editorDelete(song, name))
   ipcMain.handle('editor:rename', (_e, song: string, from: string, to: string) => editorRenameVersion(song, from, to))
   ipcMain.handle('editor:renameSong', (_e, song: string, base: string) => renameSong(song, base))
+  ipcMain.handle('editor:bounce', (_e, song: string, name: string, wav: ArrayBuffer) => saveBounce(song, name, wav))
   ipcMain.handle('editor:render', (_e, song: string, name: string, wav: ArrayBuffer) => saveRender(song, name, wav))
   ipcMain.handle('peaks:get', (_e, key: string) => peaksGet(key))
   ipcMain.handle('peaks:put', (_e, key: string, data: ArrayBuffer) => peaksPut(key, data))

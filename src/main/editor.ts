@@ -42,6 +42,12 @@ export async function renameSong(song: string, newBaseName: string): Promise<str
   }
   return dest
 }
+/** Bounce in place: the rendered clip audio lives in <song folder>/.edits/<song>/bounces/ (hidden from the library). Never overwrites. */
+export async function saveBounce(song: string, name: string, wav: ArrayBuffer): Promise<string> {
+  const dir = join(editsDir(song), 'bounces'); await mkdir(dir, { recursive: true })
+  const dest = await uniquePath(dir, `${safeName(name) || 'Bounce'}.wav`, exists)
+  await writeFile(dest, Buffer.from(wav)); return dest
+}
 export async function saveRender(song: string, versionName: string, wav: ArrayBuffer): Promise<string> {
   const dest = await uniquePath(dirname(song), renderName(song, versionName), exists)
   await writeFile(dest, Buffer.from(wav)); return dest

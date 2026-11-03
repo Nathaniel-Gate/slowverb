@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('api', {
   editorDelete: (song: string, name: string) => ipcRenderer.invoke('editor:delete', song, name),
   editorRenameVersion: (song: string, from: string, to: string) => ipcRenderer.invoke('editor:rename', song, from, to),
   renameSong: (song: string, base: string) => ipcRenderer.invoke('editor:renameSong', song, base),
+  saveBounce: (song: string, name: string, wav: ArrayBuffer) => ipcRenderer.invoke('editor:bounce', song, name, wav),
   saveRender: (song: string, name: string, wav: ArrayBuffer) => ipcRenderer.invoke('editor:render', song, name, wav),
   peaksGet: (key: string) => ipcRenderer.invoke('peaks:get', key),
   peaksPut: (key: string, data: ArrayBuffer) => ipcRenderer.invoke('peaks:put', key, data),

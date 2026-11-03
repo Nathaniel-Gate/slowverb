@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { encodeWav } from '../audio/wav'
 import { engine } from '../audio/engine'
 import { EDITOR } from '../config/editorKeys'
+import { DEFAULT_FX } from '../config/fx'
 import { useLibrary } from '../features/library/library.store'
 import { useFx } from '../features/fx/fx.store'
 import { usePlayer } from '../features/player/player.store'
@@ -28,9 +29,13 @@ export type { S, DockTab, Gap, ClipPatch, RenderOpts } from './storeTypes'
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const mapHist = (h: History, f: (p: Project) => Project): History => ({ past: h.past.map(f), present: f(h.present), future: h.future.map(f) })
 const swapKey = <T,>(o: Record<string, T>, from: string, to: string) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k === from ? to : k, v]))
-const swapPath = (p: Project, from: string, to: string): Project => ({
-  ...p, song: p.song === from ? to : p.song, sources: swapKey(p.sources, from, to), clips: p.clips.map((c) => (c.src === from ? { ...c, src: to } : c))
-})
+const dirOf = (f: string) => f.slice(0, f.lastIndexOf('/')), baseOf = (f: string) => f.slice(f.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '')
+/** Rewrites paths for a renamed song: the song itself, and its bounces which live in the .edits/<base>/ folder that moves with it. */
+const swapPath = (p: Project, from: string, to: string): Project => {
+  const oldEd = `${dirOf(from)}/.edits/${baseOf(from)}/`, newEd = `${dirOf(to)}/.edits/${baseOf(to)}/`
+  const fix = (s: string) => (s === from ? to : s.startsWith(oldEd) ? newEd + s.slice(oldEd.length) : s)
+  return { ...p, song: fix(p.song), sources: Object.fromEntries(Object.entries(p.sources).map(([k, v]) => [fix(k), v])), clips: p.clips.map((c) => ({ ...c, src: fix(c.src) })) }
+}
 const loadRenderOpts = (): RenderOpts => {
   try { return { ...EDITOR.render, range: false, ...JSON.parse(localStorage.getItem(EDITOR.renderStorage) || '{}'), } } catch { return { ...EDITOR.render, range: false } }
 }
@@ -270,6 +275,30 @@ export const useEditor = create<S>((set, get) => {
     setRenderOpts(o) {
       const n = { ...get().renderOpts, ...o }; set({ renderOpts: n })
       try { localStorage.setItem(EDITOR.renderStorage, JSON.stringify({ bitDepth: n.bitDepth, normalize: n.normalize })) } catch { /* storage may be blocked */ }
+    },
+    /** Bounce in place (Logic-style): render the selected clips with everything on them (fades, gain, volume line, speed, crossfades,
+     *  track gain) into ONE new audio file, and swap them for a single clip. Undo brings the originals back. The master Version
+     *  (slowed/reverb) is not baked in: it stays live over the whole mix. */
+    async bounceSelection() {
+      const { project, buffers, selection } = get(); if (!project || get().busy) return
+      const sel = project.clips.filter((c) => selection.includes(c.id)); if (!sel.length) return toast('Select the clips to bounce first')
+      const a = Math.min(...sel.map((c) => c.start)), b = Math.max(...sel.map(clipEnd)), order = new Map(project.tracks.map((t, i) => [t.id, i]))
+      const lead = sel.reduce((m, c) => ((order.get(c.track) ?? 0) < (order.get(m.track) ?? 0) ? c : m)).track
+      const ids = sel.map((c) => c.id)
+      if (project.clips.some((c) => !ids.includes(c.id) && c.track === lead && c.start < b - 1e-6 && clipEnd(c) > a + 1e-6)) return toast('Other clips sit in between on that track: select them too')
+      set({ busy: 'Bouncing' })
+      try {
+        const temp: Project = { ...project, clips: sel, markers: [], master: { ...DEFAULT_FX } }
+        const { channels, rate } = await renderProject(temp, buffers, { range: { a, b }, bitDepth: 24 })
+        const dur = channels[0].length / rate
+        const path = await window.api.saveBounce(project.song, `Bounce ${fmtTime(a).replace(/[:.]/g, '-')}`, encodeWav(channels, rate, 24))
+        const clip = { ...ops.clipFromSource(path, dur, 0, dur, lead, a), name: 'Bounce' }
+        const nb = await loadBuffers({ ...project, sources: { ...project.sources, [path]: { duration: dur } }, clips: [clip] }, editorTransport.ctx)
+        const merged = new Map([...get().buffers, ...nb]), pk = new Map(get().peaks); nb.forEach((buf, k) => pk.set(k, computePeaks(buf)))
+        set({ buffers: merged, peaks: pk })
+        const ok = edit((p) => ops.pasteClips({ ...ops.deleteClips(p, ids), sources: { ...p.sources, [path]: { duration: dur } } }, [clip], a, lead), `Bounced ${ids.length} clip${ids.length === 1 ? '' : 's'} into one`, 'Could not bounce')
+        if (ok) set({ selection: get().project!.clips.filter((c) => c.src === path).map((c) => c.id), busy: null }); else set({ busy: null })
+      } catch (e) { console.error('[editor] bounce failed', e); set({ busy: null }); toast('Bounce failed') }
     },
     async renderToLibrary() {
       await get().flush()

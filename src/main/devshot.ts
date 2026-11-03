@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,25 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_BOUNCE) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_BOUNCE)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        for (const t of [20, 40]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        const cs = () => E.getState().project.clips.map(c => [c.src.split('/').pop(), +c.start.toFixed(2), +(c.srcOut - c.srcIn).toFixed(2), c.gain, c.fadeIn])
+        const mid = E.getState().project.clips.find(c => Math.abs(c.start - 20) < 0.01)
+        E.getState().select([mid.id]); E.getState().patchSelected({ fadeIn: 3, fadeOut: 3, gain: 0.5 })
+        E.getState().select(E.getState().project.clips.filter(c => c.start < 41).map(c => c.id))
+        out.before = cs()
+        await E.getState().bounceSelection(); await wait(500)
+        out.after = cs(); out.toast = E.getState().toast && E.getState().toast.text; out.busy = E.getState().busy
+        const b = E.getState().project.clips.find(c => c.name === 'Bounce')
+        out.hasBuffer = !!(b && E.getState().buffers.get(b.src)); out.bounceDur = b && +(b.srcOut - b.srcIn).toFixed(2)
+        E.getState().undo(); await wait(300); out.afterUndo = cs().length
+        return out })()`)
+      console.log('BOUNCE_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_TINY) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

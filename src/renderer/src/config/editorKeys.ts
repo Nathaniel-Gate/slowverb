@@ -24,7 +24,7 @@ export const DEFAULT_KEYS: Record<string, string[]> = {
   'crossfade': ['Cmd+D'], 'uncrossfade': [], 'repeat': ['Cmd+Shift+D'], 'disable': ['Shift+E'],
   'nudge.back': ['Alt+Left'], 'nudge.fwd': ['Alt+Right'], 'nudge.backBig': ['Cmd+Alt+Left'], 'nudge.fwdBig': ['Cmd+Alt+Right'],
   // selection and clipboard
-  'selectAll': ['Cmd+A'], 'selectAtPlayhead': ['C'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
+  'bounce': ['Cmd+Alt+B'], 'selectAll': ['Cmd+A'], 'selectAtPlayhead': ['C'], 'deselect': ['Cmd+Shift+A', 'Escape'], 'selectFwd': ['A'], 'selectBack': ['Shift+A'],
   'copy': ['Cmd+C'], 'cut': ['Cmd+X'], 'paste': ['Cmd+V'], 'pasteInsert': ['Cmd+Shift+V'],
   // marks and markers
   'markIn': ['I'], 'markOut': ['O'], 'gotoIn': ['Shift+I'], 'gotoOut': ['Shift+O'], 'clearIn': ['Alt+I'], 'clearOut': ['Alt+O'], 'clearMarks': ['Alt+X'],

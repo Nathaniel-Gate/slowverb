@@ -89,6 +89,7 @@ export const COMMANDS: Command[] = [
   cmd('auto.trimSilence', 'Trim silence at clip start and end', 'Auto', (s) => s.trimSilenceSelected()),
   ...BEATS.map(([n, label]) => cmd(`auto.cut${n}`, `Cut every ${label}`, 'Auto', (s) => s.cutEveryBeatsAction(n))),
 
+  cmd('bounce', 'Bounce in place (merge selected clips, effects baked in)', 'Edit', (s) => void s.bounceSelection(), { when: hasSel }),
   cmd('selectAll', 'Select all', 'Selection', (s) => s.selectAll()),
   cmd('selectAtPlayhead', 'Select clips at the playhead', 'Selection', (s) => s.selectAtPlayhead()),
   cmd('deselect', 'Deselect', 'Selection', (s) => { s.select([]); s.selectGap(null); s.setRange(null) }),
