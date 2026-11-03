@@ -1,0 +1,16 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+/* THEME TOKENS. Copied from the algosoup-pod site. Every colour/font/size is here; edit freely. */
+:root {
+  --ink-950: #0a0a0a; --ink-900: #0f0f0f; --ink-850: #161616; --ink-800: #1e1e1e; --ink-700: #2a2a2a;
+  --steel-500: #878a92; --steel-400: #a0a3aa; --steel-300: #bfc1c6;
+  --stone-100: #edebe4; --white: #fbfbfa;
+  --accent: #fbfbfa; /* greyscale: plain white. Put a colour here to add a single accent. */
+  --hairline: rgb(255 255 255 / 0.09); --hairline-strong: rgb(255 255 255 / 0.18);
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif; --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --grid-major: 120px; --grid-minor: 24px; --grid-major-a: 0.045; --grid-minor-a: 0.018;
+  --sidebar-w: 340px; --pad: 40px; --title-size: 34px;
+}
