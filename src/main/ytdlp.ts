@@ -26,30 +26,31 @@ function run(args: string[], onLine: (l: string) => void): Promise<{ code: numbe
   })
 }
 
-/** Audio-only download of a single video. Returns the saved file path. */
-export async function downloadAudio(url: string, onProgress: (pct: number, stage: string) => void): Promise<string> {
-  if (!/^https?:\/\//i.test(url)) throw new Error('That does not look like a link')
+/** Audio-only download. Any site yt-dlp supports (YouTube, SoundCloud, Bandcamp, ...). Plain text is treated as a
+ *  YouTube search and the top hit is downloaded. Playlist links download every item. Returns saved file paths. */
+export async function downloadAudio(input: string, onProgress: (pct: number, stage: string) => void): Promise<string[]> {
+  const url = /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `ytsearch1:${input}`
   await mkdir(downloadDir(), { recursive: true })
   onProgress(0, 'Preparing')
   await ensureBinary()
   const attempt = async () => {
-    let file = ''
-    const args = ['--no-playlist', '--no-mtime', '-f', 'bestaudio[ext=m4a]/bestaudio', '-o', join(downloadDir(), '%(title).150B.%(ext)s'),
+    const files: string[] = []
+    const args = ['--no-mtime', '--ignore-errors', '-f', 'bestaudio[ext=m4a]/bestaudio', '-o', join(downloadDir(), '%(title).150B.%(ext)s'),
       '--newline', '--print', 'after_move:filepath', '--', url]
     const r = await run(args, (l) => {
       const m = l.match(/\[download\]\s+([\d.]+)%/)
       if (m) onProgress(parseFloat(m[1]), 'Downloading')
-      else if (l.startsWith('/')) file = l.trim()
+      else if (l.startsWith('/')) files.push(l.trim())
     })
-    return { ...r, file }
+    return { ...r, files }
   }
   let r = await attempt()
-  if (r.code !== 0 || !r.file) {            // YouTube changed something: update yt-dlp once and retry
+  if (!r.files.length) {            // YouTube changed something: update yt-dlp once and retry
     onProgress(0, 'Updating downloader')
     await run(['-U'], () => {})
     r = await attempt()
   }
-  if (r.code !== 0 || !r.file) throw new Error(r.err.split('\n').filter((l) => l.includes('ERROR')).pop()?.replace(/^.*ERROR:\s*/, '') || 'Download failed')
+  if (!r.files.length) throw new Error(r.err.split('\n').filter((l) => l.includes('ERROR')).pop()?.replace(/^.*ERROR:\s*/, '') || 'Download failed')
   onProgress(100, 'Done')
-  return r.file
+  return r.files
 }

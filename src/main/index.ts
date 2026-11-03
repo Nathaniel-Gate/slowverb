@@ -33,7 +33,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('scan', (_e, paths: string[]) => scan(paths))
   ipcMain.handle('dl:start', async (e, url: string) => {
-    try { return { path: await downloadAudio(url, (pct, stage) => e.sender.send('dl:progress', { pct, stage })) } }
+    try { return { paths: await downloadAudio(url, (pct, stage) => e.sender.send('dl:progress', { pct, stage })) } }
     catch (err) { return { error: err instanceof Error ? err.message : String(err) } }
   })
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))

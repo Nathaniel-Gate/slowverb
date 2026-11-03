@@ -2,3 +2,7 @@
 .dl-input { width: 100%; background: var(--ink-950); color: var(--white); border: 1px solid var(--hairline-strong); border-radius: var(--radius); padding: 10px 12px; font: 12px var(--font-mono); outline: none; user-select: text; }
 .dl-input:focus { border-color: var(--white); } .dl-input::placeholder { color: var(--steel-500); } .dl-input:disabled { opacity: .5; }
 .dl-status { margin-top: 8px; } .dl-status.err { color: #e5867a; text-transform: none; letter-spacing: 0; }
+
+.dl-row { display: flex; gap: 8px; }
+.dl-btn { flex: none; padding: 0 14px; border: 1px solid var(--white); border-radius: var(--radius); font: 12px var(--font-mono); letter-spacing: .08em; background: var(--white); color: var(--ink-950); }
+.dl-btn:hover:not(:disabled) { background: var(--stone-100); } .dl-btn:disabled { background: none; color: var(--steel-500); border-color: var(--hairline-strong); cursor: default; }
