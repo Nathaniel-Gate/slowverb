@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,30 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_DUPDRAG) {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().openSong(${JSON.stringify(process.env.SLOWVERB_DUPDRAG)})
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await new Promise(r => setTimeout(r, 100))
+        E.getState().apply(p => window.__sv.ops.addTrack(p)); E.getState().fitToView(1300) })()`)
+      await wait(1200)
+      const drag = async (dy: number, label: string) => {
+        const r = await win.webContents.executeJavaScript(`(() => { const c = document.querySelector('.tl-clip').getBoundingClientRect(); return { x: Math.round(c.left + 300), y: Math.round(c.top + c.height * 0.85) } })()`)
+        const m = ['alt'] as ('alt' | 'leftbuttondown')[]
+        win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y, modifiers: m })
+        win.webContents.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1, modifiers: m })
+        for (let i = 1; i <= 24; i++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x + i * 2, y: r.y + Math.round(dy * i / 24), button: 'left', modifiers: [...m, 'leftbuttondown'] }); await wait(16) }
+        win.webContents.sendInputEvent({ type: 'mouseUp', x: r.x + 48, y: r.y + dy, button: 'left', clickCount: 1, modifiers: m })
+        await wait(500)
+        return await win.webContents.executeJavaScript(`({ label: ${JSON.stringify(label)}, tracks: window.__sv.useEditor.getState().project.tracks.map(t => t.name), clips: window.__sv.useEditor.getState().project.clips.map(c => [window.__sv.useEditor.getState().project.tracks.findIndex(t => t.id === c.track), +c.start.toFixed(1)]) })`)
+      }
+      win.webContents.on('console-message', (_e, level, msg) => { if (level >= 2) console.log('RENDERER_ERR ' + msg.slice(0, 300)) })
+      const a = await drag(70, 'to existing A2')
+      console.log('TOAST_A ' + await win.webContents.executeJavaScript(`JSON.stringify(window.__sv.useEditor.getState().toast)`))
+      await win.webContents.executeJavaScript(`window.__sv.useEditor.getState().select([])`)
+      const b = await drag(260, 'below last (new track)')
+      const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
+      console.log('DUPDRAG_RESULT ' + JSON.stringify({ a, b })); app.quit(); return
     }
     if (process.env.SLOWVERB_NEWTRACK) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

@@ -1,5 +1,5 @@
 import { clipDur, clipEnd, type Project } from '../model'
-import { addTrack, duplicateClips, moveClips, patchClips, rateStretch, rippleTrim, rollEdit, snapTime, trimClip } from '../ops'
+import { addTrack, moveClips, pasteClips, patchClips, rateStretch, rippleTrim, rollEdit, snapTime, trimClip } from '../ops'
 import { TL } from '../../config/timeline'
 import { applyEnvEdit, withEnv, type EnvEdit } from './envMath'
 import { fmtDb, formatTimecode, slipClips } from './timelineMath'
@@ -18,7 +18,7 @@ export type Drag =
 
 export function previewOf(base: Project, d: Drag): Project {
   switch (d.kind) {
-    case 'move': return d.dup ? duplicateClips(base, d.ids, d.dt) : moveClips(withNewTracks(base, d.ids, d.trackShift), d.ids, d.dt, d.trackShift)
+    case 'move': return d.dup ? duplicateTo(base, d.ids, d.dt, d.trackShift) : moveClips(withNewTracks(base, d.ids, d.trackShift), d.ids, d.dt, d.trackShift)
     case 'trim': return d.ripple ? rippleTrim(base, d.id, d.edge, d.t) : trimClip(base, d.id, d.edge, d.t)
     case 'slip': return slipClips(base, d.ids, d.dsrc)
     case 'fade': return patchClips(base, [d.id], d.edge === 'in' ? { fadeIn: Math.max(0, d.dur) } : { fadeOut: Math.max(0, d.dur) })
@@ -51,6 +51,15 @@ export function snapMove(p: Project, ids: string[], dt: number, env: SnapEnv): {
   const db = b.at === null ? Infinity : Math.abs(b.t - (tail + dt))
   if (da === Infinity && db === Infinity) return { dt, at: null }
   return da <= db ? { dt: a.t - head, at: a.at } : { dt: b.t - tail, at: b.at }
+}
+
+/** Option-drag: copies of the clips, offset in time and moved `shift` tracks (existing or a new one below), leaving the originals alone. */
+export function duplicateTo(base: Project, ids: string[], dt: number, shift: number): Project {
+  const b = withNewTracks(base, ids, shift), set = new Set(ids), cs = b.clips.filter(c => set.has(c.id))
+  if (!cs.length) return b
+  const first = cs.reduce((m, c) => (c.start < m.start ? c : m)), ti = b.tracks.findIndex(t => t.id === first.track)
+  const target = b.tracks[Math.max(0, Math.min(b.tracks.length - 1, ti + shift))]
+  return pasteClips(b, cs, Math.max(0, first.start + dt), target.id)
 }
 
 /** Dragging clips below the last track makes a new track for them (shown live while dragging, kept on release). */

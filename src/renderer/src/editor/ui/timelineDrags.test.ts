@@ -62,3 +62,28 @@ describe('new tracks from dragging', () => {
     expect(previewOf(p, { kind: 'move', ids: [id], dt: 2, trackShift: 0, dup: false }).tracks).toHaveLength(1)
   })
 })
+
+import { addTrack } from '../ops'
+import { duplicateTo } from './timelineDrags'
+describe('Option-drag copies across tracks', () => {
+  it('copies to an existing track below, leaving the original', () => {
+    const p = addTrack(newProject('/s.m4a', 100)), id = p.clips[0].id
+    const out = duplicateTo(p, [id], 10, 1)
+    expect(out.clips).toHaveLength(2)
+    expect(out.clips.find(c => c.id === id)!.track).toBe(p.tracks[0].id)
+    const copy = out.clips.find(c => c.id !== id)!
+    expect(copy.track).toBe(p.tracks[1].id); expect(copy.start).toBeCloseTo(10)
+    expect(validate(out)).toEqual([])
+  })
+  it('copies into a brand-new track when dragged below the last one', () => {
+    const p = newProject('/s.m4a', 100), id = p.clips[0].id
+    const out = duplicateTo(p, [id], 0, 1)
+    expect(out.tracks).toHaveLength(2); expect(out.clips).toHaveLength(2)
+    expect(out.clips.find(c => c.id !== id)!.track).toBe(out.tracks[1].id)
+    expect(validate(out)).toEqual([])
+  })
+  it('shift 0 on the same track just overwrites like before (no new track)', () => {
+    const p = newProject('/s.m4a', 100), id = p.clips[0].id
+    expect(duplicateTo(p, [id], 0, 0).tracks).toHaveLength(1)
+  })
+})

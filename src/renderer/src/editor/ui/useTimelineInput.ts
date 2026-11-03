@@ -186,7 +186,7 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     dragClips(e, dup ? 'dup' : 'move', p => {
       const sn = snapMove(base, ids, p.t - pt.t, envOf())
       const head = Math.min(...base.clips.filter(c => ids.includes(c.id)).map(c => c.start))
-      const shift = dup ? 0 : clampTrackShift(base, ids, laneAt(L, p.y) - lane0)
+      const shift = clampTrackShift(base, ids, laneAt(L, p.y) - lane0)   // both moves and Option-drag copies can change track (or make a new one below)
       return { d: { kind: 'move', ids, dt: Math.max(sn.dt, -head), trackShift: shift, dup }, at: sn.at }
     }, () => { if (!e.shiftKey && sel.length > 1 && tool === 'select') s.select([clip.id]) })   // plain click inside a multi-selection narrows it
   }
