@@ -4,6 +4,7 @@ import { Progress } from '../../ui/Progress'
 import { useSmooth } from '../../ui/useSmooth'
 import { useLibrary } from '../library/library.store'
 import { usePlayer } from '../player/player.store'
+import { usePlaylists } from '../playlists/playlists.store'
 
 /** Paste a link or type a song name, press Enter or ADD: audio is downloaded (yt-dlp), added to the playlist and played. */
 export function DownloadBar() {
@@ -19,12 +20,13 @@ export function DownloadBar() {
   const go = async () => {
     const link = url.trim(); if (!link || busy) return
     setBusy(true); setProg({ stage: 'Starting', pct: null }); setNote(null)
-    const r = await window.api.download(link)
+    const r = await window.api.download(link, usePlaylists.getState().sel ?? '')   // lands in the selected playlist's folder
     if (r.paths?.length) {
-      const added = await useLibrary.getState().addPaths(r.paths)
-      const t = added[0] ?? useLibrary.getState().tracks.find((x) => x.path === r.paths![0])
+      const before = useLibrary.getState().tracks.length
+      await usePlaylists.getState().refresh()                                         // pick the new file up from disk
+      const t = useLibrary.getState().tracks.find((x) => x.path === r.paths![0])
       if (t) usePlayer.getState().play(t.id)
-      setUrl(''); flash({ text: added.length ? `Added ${added.length}` : 'Already in playlist' })
+      setUrl(''); flash({ text: useLibrary.getState().tracks.length > before ? 'Added' : 'Already in playlist' })
     } else if (r.error !== 'Cancelled') flash({ text: r.error ?? 'Failed', err: true })
     setBusy(false); setProg(null)
   }

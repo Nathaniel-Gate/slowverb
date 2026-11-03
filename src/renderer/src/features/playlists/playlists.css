@@ -1,0 +1,11 @@
+.pl { border-bottom: 1px solid var(--hairline); }
+.pl .side-head { border-bottom: 0; padding-bottom: 6px; }
+.pl-list { position: relative; max-height: 34vh; overflow-y: auto; padding: 0 8px 8px; }
+.pl-pill { position: absolute; left: 8px; right: 8px; top: 0; border-radius: var(--radius); background: var(--ink-800); outline: 1px solid var(--hairline-strong); pointer-events: none; opacity: 0; transition: transform var(--t) var(--ease), height var(--t) var(--ease), opacity var(--t-fast); }
+.pl-row { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 8px 14px; border-radius: var(--radius); cursor: pointer; color: var(--steel-300); }
+.pl-row:hover { color: var(--white); } .pl-row.on { color: var(--white); } .pl-row.over { background: var(--ink-850); outline: 1px dashed var(--white); }
+.pl-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .pl-row .n { font: 11px var(--font-mono); color: var(--steel-500); }
+.pl-input { width: 100%; background: var(--ink-950); color: var(--white); border: 1px solid var(--white); border-radius: var(--radius-sm); padding: 5px 8px; font: 13px var(--font-sans); outline: none; user-select: text; }
+.menu { position: fixed; z-index: 20; min-width: 190px; background: var(--ink-850); border: 1px solid var(--hairline-strong); border-radius: var(--radius); padding: 5px; box-shadow: 0 14px 40px rgb(0 0 0 / .55); animation: pop var(--t-fast) var(--ease) both; }
+.menu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--steel-300); font-size: 13px; }
+.menu button:hover { background: var(--ink-700); color: var(--white); } .menu .danger:hover { color: #e5867a; }

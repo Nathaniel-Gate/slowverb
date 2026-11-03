@@ -4,6 +4,7 @@ import { engine } from './audio/engine'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
+import { usePlaylists } from './features/playlists/playlists.store'
 
 export async function wire() {
   const saved = await window.api.load()
@@ -12,6 +13,8 @@ export async function wire() {
     useFx.setState({ fx: saved.fx ?? useFx.getState().fx, preset: saved.preset, userPresets: saved.userPresets ?? [] })
     if (saved.cur && saved.tracks?.some((t) => t.id === saved.cur)) usePlayer.setState({ cur: saved.cur })
   }
+  await usePlaylists.getState().refresh()                       // library folder is the source of truth for what exists
+  window.api.onLibraryChanged(() => usePlaylists.getState().refresh())   // Finder edits, downloads
   // fx -> engine; user edits also stamp the current track (per-track memory)
   let touched = useFx.getState().touched
   useFx.subscribe((s) => {
@@ -33,7 +36,7 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { engine, useLibrary, useFx, usePlayer, exportCheck: async () => {
+;(window as any).__sv = { engine, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()

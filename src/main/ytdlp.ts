@@ -3,6 +3,7 @@ import { ChildProcess, spawn } from 'child_process'
 import { chmod, mkdir, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
 import type { DlProgress } from '../shared/types'
+import { libraryRoot } from './paths'
 
 // yt-dlp (open source, https://github.com/yt-dlp/yt-dlp) does the actual download. Standalone macOS binary,
 // fetched once into app data, self-updates when a site changes things.
@@ -13,7 +14,8 @@ const KNOBS = {
   retries: '3', socketTimeout: '15'
 }
 const bin = () => join(app.getPath('userData'), 'bin', 'yt-dlp')
-export const downloadDir = () => join(app.getPath('music'), 'Slowverb')
+let targetDir = ''   // set per download: the selected playlist's folder
+const downloadDir = () => targetDir
 
 type Report = (p: DlProgress) => void
 let current: { child?: ChildProcess; abort: AbortController } | null = null
@@ -59,8 +61,9 @@ function run(args: string[], onLine: (l: string) => void, signal: AbortSignal): 
 
 /** Audio-only download of exactly ONE item. Any site yt-dlp supports. Plain text = YouTube search, top hit.
  *  A link carrying a playlist/mix/album gets only the item the link points at (first item for a bare playlist link). */
-export async function downloadAudio(input: string, report: Report): Promise<string[]> {
+export async function downloadAudio(input: string, report: Report, toRel = ''): Promise<string[]> {
   if (current) throw new Error('A download is already running')
+  targetDir = join(libraryRoot(), toRel)
   current = { abort: new AbortController() }
   const signal = current.abort.signal
   try {

@@ -5,6 +5,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { scan } from './scan'
 import { exportSave } from './export'
 import { cancelDownload, downloadAudio } from './ytdlp'
+import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
 
 // media://local/<abs path> streams a file from disk with range support (seeking) and CORS (Web Audio needs it).
@@ -32,15 +33,22 @@ app.whenReady().then(() => {
     return new Response(res.body, { status: res.status, headers: h })
   })
   ipcMain.handle('scan', (_e, paths: string[]) => scan(paths))
-  ipcMain.handle('dl:start', async (e, url: string) => {
-    try { return { paths: await downloadAudio(url, (p) => e.sender.send('dl:progress', p)) } }
+  ipcMain.handle('dl:start', async (e, url: string, toRel: string) => {
+    try { return { paths: await downloadAudio(url, (p) => e.sender.send('dl:progress', p), toRel) } }
     catch (err) { return { error: err instanceof Error ? err.message : String(err) } }
   })
+  ipcMain.handle('pl:sync', () => sync())
+  ipcMain.handle('pl:create', (_e, rel: string) => createFolder(rel))
+  ipcMain.handle('pl:rename', (_e, rel: string, name: string) => renameFolder(rel, name))
+  ipcMain.handle('pl:trash', (_e, rel: string) => trashFolder(rel))
+  ipcMain.handle('pl:move', (_e, path: string, toRel: string) => moveFile(path, toRel))
+  ipcMain.handle('pl:import', (_e, paths: string[], toRel: string) => importInto(paths, toRel))
   ipcMain.handle('dl:cancel', () => cancelDownload())
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))
   ipcMain.handle('library:load', async () => { try { return JSON.parse(await readFile(libraryFile(), 'utf8')) } catch { return null } })
   ipcMain.handle('library:save', (_e, data) => writeFile(libraryFile(), JSON.stringify(data)))
   const win = createWindow()
+  watchLibrary(win)
   if (process.env.SLOWVERB_SHOT) runShot(win)
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow() })
 })
