@@ -1,4 +1,5 @@
 import { masterOf } from './master'
+import { shouldGrain } from './scrubGate'
 import { OUTPUT } from '../config/audioOutput'
 import { EDITOR_AUDIO } from '../config/editorAudio'
 import { DEFAULT_FX } from '../config/fx'
@@ -39,7 +40,7 @@ export class EditorTransport {
   private tap: AnalyserNode | null = null
   private last: { p: Project; buffers: Buffers } | null = null
   private rangeEnd: number | null = null
-  private grain: Graph | null = null; private grainAt = -1
+  private grain: Graph | null = null; private grainAt = -1; private lastGrainT = -1
   loops = 0                  // completed loop passes scheduled in this run (diagnostics / harness)
   onEnded?: () => void
 
@@ -145,9 +146,9 @@ export class EditorTransport {
   /** Scrub: one short grain (~90ms) of the project at timeline second t, played dry at normal rate. Call it while dragging the playhead. */
   scrub(p: Project, buffers: Buffers, t: number): void {
     const ctx = this.ctx, now = ctx.currentTime
-    if (this._playing || now - this.grainAt < E.scrubMinInterval) return
+    if (this._playing || !shouldGrain(this.lastGrainT, this.grainAt, t, now, { minMove: E.scrubMinMove, repeatGuard: E.scrubRepeatGuard, minInterval: E.scrubMinInterval })) return
     if (ctx.state !== 'running') void ctx.resume()
-    this.grainAt = now; this.grain?.stop()
+    this.grainAt = now; this.lastGrainT = Math.max(0, t); this.grain?.stop()
     this.from = Math.max(0, t)
     this.grain = buildGraph(ctx, p, buffers, this.from, now + 0.005, { bare: true, until: this.from + E.scrubGrain, rampIn: E.scrubFadeIn, rampOut: E.scrubFadeOut })
     this.grain.out.connect(this.analyser)

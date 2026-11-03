@@ -65,11 +65,11 @@
 /* NEON: highlights are always lit, drawn as thin 1-2px lines with a soft glow. Track colours (per track, --stripe) light the header stripe,
    clip underline and selection; --neon is the one accent for playhead, range, snap and marquee. Colours: config/timeline.ts (TRACK_COLORS, LABELS) or --neon here.
    Line thickness: --neon-line below. */
-:root { --neon: #2dffe9; --neon-line: 1px; --neon-glow: 0 0 6px color-mix(in srgb, var(--neon) 60%, transparent); }
+:root { --neon: #2dffe9; --neon-line: 1.5px; --neon-glow: 0 0 6px color-mix(in srgb, var(--neon) 60%, transparent); }
 .tl-th-row::before { width: 2px; opacity: 1; background: var(--stripe); box-shadow: 0 0 6px color-mix(in srgb, var(--stripe) 70%, transparent); }
-.tl-clip { box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, transparent), 0 0 6px color-mix(in srgb, var(--stripe, transparent) 28%, transparent); }
-.tl-clip[data-selected] { border-color: var(--stripe, var(--neon)); outline: none;
-  box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, var(--neon)), 0 0 10px color-mix(in srgb, var(--stripe, var(--neon)) 45%, transparent); }
+.tl-clip { box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, transparent), 0 0 8px color-mix(in srgb, var(--stripe, transparent) 40%, transparent); }
+.tl-clip[data-selected] { border-color: var(--stripe, var(--neon)); outline: none; background: color-mix(in srgb, var(--stripe, var(--neon)) 9%, var(--tl-clip-bg-sel));
+  box-shadow: inset 0 calc(var(--neon-line) * -1) 0 var(--stripe, var(--neon)), inset 0 0 0 1px color-mix(in srgb, var(--stripe, var(--neon)) 60%, transparent), 0 0 16px color-mix(in srgb, var(--stripe, var(--neon)) 62%, transparent); }
 .tl { --tl-playhead: var(--neon); --tl-snap: var(--neon); --tl-marker: var(--neon); --tl-range: color-mix(in srgb, var(--neon) 8%, transparent); --tl-marquee-fill: color-mix(in srgb, var(--neon) 9%, transparent); }
 .tl-playhead::before { width: var(--neon-line); box-shadow: var(--neon-glow); } .tl-range { border-inline-color: var(--neon); box-shadow: inset 0 0 10px color-mix(in srgb, var(--neon) 10%, transparent); }
 .tl-range[data-loop] { border-inline-color: var(--neon); }

@@ -24,6 +24,8 @@ export const EDITOR_AUDIO = {
   scrubGrain: 0.09,       // seconds of audio per scrub grain
   scrubFadeIn: 0.006, scrubFadeOut: 0.02, // seconds, envelope of a grain
   scrubMinInterval: 0.025, // seconds: scrub calls closer together than this are ignored
+  scrubMinMove: 0.02,      // seconds: the playhead must move at least this far to fire another grain
+  scrubRepeatGuard: 0.35,  // seconds: within this long after a grain, a grain at (nearly) the same spot is never replayed
   // render
   defaultBitDepth: 16 as 16 | 24 | 32,
   normalizeDb: -1,        // renderProject({ normalize: true }) scales the peak to this dBFS
