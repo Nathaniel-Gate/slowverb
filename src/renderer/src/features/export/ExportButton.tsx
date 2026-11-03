@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { encodeWav } from '../../audio/wav'
 import { renderVersion } from '../../audio/offline'
+import { useEditor } from '../../editor/editor.store'
+import { renderProject } from '../../editor/render'
 import { effectiveFx, useFx } from '../fx/fx.store'
 import { useLibrary } from '../library/library.store'
 import { usePlayer } from '../player/player.store'
@@ -15,8 +17,10 @@ export function ExportButton() {
     const t = useLibrary.getState().tracks.find((x) => x.id === cur); if (!t) return
     setState('busy')
     try {
-      const { channels, rate } = await renderVersion(t.path, fx)
-      const ok = await window.api.exportAudio(`${t.title} (${slug(fx)}).wav`, encodeWav(channels, rate))
+      const e = useEditor.getState(), edit = usePlayer.getState().viaEdit && e.project   // playing an edit: export that edit, not the original file
+      const ok = edit
+        ? await window.api.exportAudio(`${t.title} (edit ${slug(fx)}).wav`, await renderProject(edit, e.buffers, { bitDepth: 16 }).then((r) => encodeWav(r.channels, r.rate, r.bitDepth)))
+        : await renderVersion(t.path, fx).then((r) => window.api.exportAudio(`${t.title} (${slug(fx)}).wav`, encodeWav(r.channels, r.rate)))
       setState(ok ? 'saved' : 'idle')
     } catch (e) { console.error('[export]', e); setState('error') }
     setTimeout(() => setState('idle'), 2500)

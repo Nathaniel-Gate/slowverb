@@ -32,7 +32,14 @@ export async function wire() {
   setMasterFallback((p) => { const t = useLibrary.getState().tracks.find((x) => x.path === p.song); return useFx.getState().bypass ? DEFAULT_FX : (t?.fx ?? useFx.getState().fx) })
   const resync = () => { const e = useEditor.getState(); if (e.open && e.playing && e.project && !e.project.master) editorTransport.seek(e.project, e.buffers, editorTransport.position()) }
   useFx.subscribe((s, prev) => { if (s.fx !== prev.fx || s.bypass !== prev.bypass) resync() })
-  useEditor.subscribe((s, prev) => { if (s.playing && !prev.playing) engine.idle() })   // and the player's stream sleeps while the editor plays
+  useEditor.subscribe((s, prev) => {
+    if (s.playing && !prev.playing) engine.idle()
+    if (usePlayer.getState().viaEdit && s.playing !== prev.playing) {
+      usePlayer.setState({ playing: s.playing })
+      const end = s.project ? s.project.clips.reduce((m, c) => Math.max(m, c.start + (c.srcOut - c.srcIn) / (c.speed || 1)), 0) : 0
+      if (!s.playing && end > 0 && s.playhead >= end - 0.1) usePlayer.getState().next(1)   // the edit played to its end: next song
+    }
+  })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => usePlayer.getState().next(1))
   // persist (debounced)

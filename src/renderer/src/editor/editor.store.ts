@@ -14,6 +14,7 @@ import * as ops from './ops'
 import { computePeaks, type Peaks } from './peaks'
 import { renderProject } from './render'
 import { loadBuffers } from './schedule'
+import { isPristine } from './pristine'
 import { sourceToTimeline, timelineToSource } from './sync'
 import { editPlayActions } from './storePlay'
 import { editActions } from './storeEdit'
@@ -54,7 +55,7 @@ export const useEditor = create<S>((set, get) => {
   // Player <-> editor hand-over: switching view lands on the exact same moment of the song, and keeps playing if it was playing.
   type Entry = { s: number; was: boolean } | null
   const playerPath = () => { const id = usePlayer.getState().cur; return id ? useLibrary.getState().tracks.find((t) => t.id === id)?.path : undefined }
-  const playerEntry = (path: string): Entry => (engine.loaded && playerPath() === path ? { s: engine.el.currentTime, was: !engine.el.paused } : null)
+  const playerEntry = (path: string): Entry => (!usePlayer.getState().viaEdit && engine.loaded && playerPath() === path ? { s: engine.el.currentTime, was: !engine.el.paused } : null)
   const carryIn = (e: Entry) => {
     const p = get().project; if (!e || !p) return
     const t = sourceToTimeline(p, p.song, e.s, get().playhead)
@@ -122,12 +123,22 @@ export const useEditor = create<S>((set, get) => {
 
     ...editActions(ctx), ...projectActions(ctx), ...rangeActions(ctx), ...autoActions(ctx), ...editPlayActions(ctx, syncLoop),
 
-    async openSong(path) {
-      const s = get(), entry = playerEntry(path)
-      if (s.project?.song === path) { get().show(); return }
-      await get().flush(); stopPlayback(); engine.el.pause()
+    /** Load the newest saved edit of a song WITHOUT opening the editor tab (the player uses this so it can play the current edit).
+     *  null when the song has no saved edit, or the editor is open on another song. */
+    async prepare(path) {
+      const s = get()
+      if (s.project?.song === path) return s.project
+      if (s.open) return null
+      if (!(await window.api.editorList(path)).length) return null
+      return get().openSong(path, { show: false })
+    },
+    async openSong(path, opts) {
+      const show = opts?.show !== false, s = get(), entry = show ? playerEntry(path) : null
+      if (s.project?.song === path) { if (show) get().show(); return s.project }
+      await get().flush()
+      if (show) { stopPlayback(); engine.el.pause() }
       const token = ++opening
-      set({ open: true, busy: 'Loading', project: null, hist: null })
+      set(show ? { open: true, busy: 'Loading', project: null, hist: null } : { busy: 'Loading', project: null, hist: null })
       try {
         const names = await window.api.editorList(path)
         let project = names.length ? await window.api.editorLoad(path, names[0]) : null
@@ -136,7 +147,7 @@ export const useEditor = create<S>((set, get) => {
         const buffers = await loadBuffers(project, editorTransport.ctx)
         const real = buffers.get(path)?.duration
         if (fresh && real && Math.abs(real - project.sources[path].duration) > 1e-3) project = ops.newProject(path, real, 'Edit')
-        if (token !== opening) return
+        if (token !== opening) return null
         const peaks = new Map<string, Peaks>(); buffers.forEach((b, k) => peaks.set(k, computePeaks(b)))
         lastKey = ''
         set({
@@ -146,12 +157,20 @@ export const useEditor = create<S>((set, get) => {
         syncLoop(); void get().refreshVersions()
         get().fitToView(get().viewWidth || 1000)
         carryIn(entry)
+        return project
       } catch (e) {
-        console.error('[editor] open failed', path, e); set({ open: false, busy: null }); toast('Could not open')
+        console.error('[editor] open failed', path, e); set(show ? { open: false, busy: null } : { busy: null }); if (show) toast('Could not open')
+        return null
       }
     },
     show() { const p = get().project; if (!p) return; const entry = playerEntry(p.song); engine.el.pause(); set({ open: true }); carryIn(entry) },
-    close() { const out = carryOutInfo(); stopPlayback(); void get().flush(); set({ open: false }); carryOut(out) },
+    close() {
+      const p = get().project, track = p ? useLibrary.getState().tracks.find((t) => t.path === p.song) : undefined
+      if (p && track && (usePlayer.getState().viaEdit || !isPristine(p))) {   // the player takes over the SAME transport: it plays exactly this edit, no restart
+        usePlayer.getState().adoptEdit(track.id); void get().flush(); set({ open: false }); return
+      }
+      const out = carryOutInfo(); stopPlayback(); void get().flush(); set({ open: false }); carryOut(out)
+    },
     async flush() {
       clearTimeout(saveTimer)
       const { project, saveState } = get(); if (!project || saveState === 'saved') return

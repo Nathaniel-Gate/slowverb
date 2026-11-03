@@ -22,7 +22,7 @@ export type S = {
   // wave 3
   range: RangeSel | null
 
-  openSong(path: string): Promise<void>; show(): void; close(): void; flush(): Promise<void>
+  openSong(path: string, opts?: { show?: boolean }): Promise<Project | null>; prepare(path: string): Promise<Project | null>; show(): void; close(): void; flush(): Promise<void>
   apply(fn: (p: Project) => Project): void; undo(): void; redo(): void; jumpHistory(offset: number): void
   select(ids: string[], additive?: boolean): void; setTool(t: Tool): void
   setZoom(pxPerSec: number, anchorSec?: number): void; setScroll(x: number): void; setScrollY(y: number): void; setViewWidth(w: number): void; fitToView(viewWidth: number): void

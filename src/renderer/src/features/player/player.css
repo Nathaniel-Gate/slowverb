@@ -2,3 +2,5 @@
 .transport input[type=range] { flex: 1; }
 .play { width: 52px; height: 52px; border: 1px solid var(--white); display: grid; place-items: center; font-family: var(--font-mono); flex: none; border-radius: var(--radius); }
 .play:hover { background: var(--white); color: var(--ink-950); }
+
+.tag-live { border-color: var(--neon, var(--white)); color: var(--neon, var(--white)); }

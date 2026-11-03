@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -30,6 +30,28 @@ export function runShot(win: BrowserWindow) {
       const ed = await win.webContents.executeJavaScript(output[0].code + `\n;EDP.runProofs(${JSON.stringify(process.env.SLOWVERB_HELIUM || process.env.SLOWVERB_ROOT + '/Helium.m4a')})`).catch((e: Error) => ({ error: String(e) }))
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('ED_RESULT ' + JSON.stringify(ed)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_PLAYEDIT) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, E = sv.useEditor, P = sv.usePlayer, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        const scan = await window.api.scan([${JSON.stringify(process.env.SLOWVERB_PLAYEDIT)}])
+        sv.useLibrary.getState().replace(scan.map((x, i) => ({ ...x, id: 't' + i })))
+        P.getState().play('t0'); await wait(2500)
+        out.fileMode = { viaEdit: P.getState().viaEdit, playing: P.getState().playing, elPaused: sv.engine.el.paused }
+        await E.getState().openSong(scan[0].path)
+        for (let i = 0; i < 80 && !(E.getState().project && E.getState().buffers.size); i++) await wait(100)
+        for (const t of [45, 100]) { E.getState().setPlayhead(t); E.getState().splitAtPlayhead() }
+        E.getState().select(E.getState().project.clips.filter(c => c.start >= 44 && c.start < 46).map(c => c.id)); E.getState().deleteSelection(true)
+        out.editEnd = +E.getState().project.clips.reduce((m, c) => Math.max(m, c.start + c.srcOut - c.srcIn), 0).toFixed(1)
+        E.getState().close(); await wait(600)
+        out.afterClose = { viaEdit: P.getState().viaEdit, playing: P.getState().playing, elPaused: sv.engine.el.paused, editorPlaying: E.getState().playing }
+        P.getState().seek(43); await wait(2500)
+        out.afterSeek = { pos: +E.getState().now().toFixed(1), playing: P.getState().playing, elPaused: sv.engine.el.paused }
+        P.getState().toggle(); await wait(400); out.paused = { playing: P.getState().playing, editorPlaying: E.getState().playing }
+        P.getState().toggle(); await wait(600); out.resumed = { playing: P.getState().playing, editorPlaying: E.getState().playing }
+        P.getState().stop(); await wait(300); out.stopped = { viaEdit: P.getState().viaEdit, editorPlaying: E.getState().playing }
+        return out })()`)
+      console.log('PLAYEDIT_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_BOUNCE) {
       const r = await win.webContents.executeJavaScript(`(async () => {

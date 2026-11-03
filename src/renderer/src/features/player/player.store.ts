@@ -1,23 +1,46 @@
 import { create } from 'zustand'
 import { engine } from '../../audio/engine'
+import { useEditor } from '../../editor/editor.store'
+import { isPristine } from '../../editor/pristine'
 import { effectiveFx, useFx } from '../fx/fx.store'
 import { useLibrary } from '../library/library.store'
 
+// The player plays EXACTLY what the editor currently shows: if the song has an edit (anything beyond the untouched file), playback goes
+// through the editor's transport (same graph as the editor, so cuts, gaps, fades, speed and effects are all heard). Untouched songs
+// are played straight from the file as before. `viaEdit` says which one is active.
 type S = {
-  cur: string | null; playing: boolean
+  cur: string | null; playing: boolean; viaEdit: boolean
   play(id: string): void; toggle(): void; next(dir?: 1 | -1): void; stop(): void; skip(sec: number): void; seek(sec: number): void
+  adoptEdit(id: string): void   // editor -> player hand-over: keep the shared transport running, the player now controls it
 }
+const ed = () => useEditor.getState()
+let token = 0
+
 export const usePlayer = create<S>((set, get) => ({
-  cur: null, playing: false,
+  cur: null, playing: false, viaEdit: false,
   play(id) {
     const t = useLibrary.getState().tracks.find((x) => x.id === id); if (!t) return
+    const mine = ++token
     set({ cur: id })
     if (t.fx) useFx.getState().replace(t.fx)         // restore this track's remembered version
-    engine.load(t.path, effectiveFx(useFx.getState())).catch((e) => console.error('[player] load failed', t.path, e))
+    void (async () => {
+      const p = await ed().prepare(t.path)           // the song's saved edit (null if none, or the editor is busy on another song)
+      if (mine !== token) return
+      if (p && !isPristine(p)) {                     // play the edit
+        engine.el.pause(); set({ viaEdit: true })
+        ed().setPlayhead(0); if (!ed().playing) await ed().togglePlay()
+        set({ playing: ed().playing })
+        return
+      }
+      if (get().viaEdit && ed().playing) await ed().togglePlay()   // leave the edit transport
+      set({ viaEdit: false })
+      engine.load(t.path, effectiveFx(useFx.getState())).catch((e) => console.error('[player] load failed', t.path, e))
+    })()
   },
   toggle() {
-    const { cur } = get(), tracks = useLibrary.getState().tracks
+    const { cur, viaEdit } = get(), tracks = useLibrary.getState().tracks
     if (!cur) { if (tracks[0]) get().play(tracks[0].id); return }
+    if (viaEdit) { void ed().togglePlay(); return }
     if (!engine.loaded) return get().play(cur)
     if (engine.el.paused) engine.ctx.resume().then(() => engine.el.play()); else engine.el.pause()
   },
@@ -26,7 +49,8 @@ export const usePlayer = create<S>((set, get) => ({
     const i = tracks.findIndex((t) => t.id === get().cur)
     get().play(tracks[(i + dir + tracks.length) % tracks.length].id)
   },
-  stop() { engine.clear(); set({ cur: null, playing: false }) },
-  skip: (sec) => get().seek(engine.el.currentTime + sec),
-  seek: (sec) => { engine.el.currentTime = Math.max(0, sec) }
+  stop() { token++; if (get().viaEdit && ed().playing) void ed().togglePlay(); engine.clear(); set({ cur: null, playing: false, viaEdit: false }) },
+  skip: (sec) => get().seek((get().viaEdit ? ed().now() : engine.el.currentTime) + sec),
+  seek: (sec) => { if (get().viaEdit) ed().setPlayhead(Math.max(0, sec)); else engine.el.currentTime = Math.max(0, sec) },
+  adoptEdit(id) { engine.el.pause(); set({ cur: id, viaEdit: true, playing: ed().playing }) }
 }))
