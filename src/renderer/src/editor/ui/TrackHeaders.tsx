@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactElement } from 'react'
 import { EDITOR } from '../../config/editorKeys'
 import { TL, trackColor } from '../../config/timeline'
 import type { Track } from '../model'
@@ -67,9 +67,18 @@ function useGhostTracks() {
   return { ghost, down }
 }
 
+/** The quiet icon row under the track list. To add an option: push another entry (icon, label, hint, on(), run()). */
+const FOOTER: { id: string; label: string; hint: string; icon: () => ReactElement; on: () => boolean; run: () => void }[] = [
+  {
+    id: 'autoDelete', label: 'Delete empty tracks', hint: 'A track is removed as soon as its last clip leaves it (Cmd+Z brings it back).',
+    icon: () => <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.6 8.2c0 .4.4.8.8.8h5.2c.4 0 .8-.4.8-.8l.6-8.2M6.7 7v4M9.3 7v4" /></svg>,
+    on: () => !!useEditor.getState().project?.autoDeleteEmpty, run: () => useEditor.getState().toggleAutoDelete()
+  }
+]
+
 export function TrackHeaders() {
   const { ghost, down } = useGhostTracks()
-  const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false), tidy = useEditor((s) => !!s.project?.autoDeleteEmpty)
+  const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false), _tidy = useEditor((s) => !!s.project?.autoDeleteEmpty)   // subscribed so the footer icon re-renders when the option flips
   const live = useLaneLive(s => s.live)
   const apply = useEditor.getState().apply
   const flag = (t: Track, k: 'mute' | 'solo' | 'lock', label: string, tip: string) =>
@@ -109,11 +118,15 @@ export function TrackHeaders() {
           <div key={'g' + i} className="ed-th-row tl-th-row ed-ghost mono" style={{ height: TL.laneH, '--stripe': trackColor(tracks.length + i) } as CSSProperties}>NEW TRACK</div>
         ))}
       </div>
-      <button className="ed-th-foot" data-on={tidy || undefined} role="switch" aria-checked={tidy} onPointerUp={blurOnUp}
-        title="When on, a track is deleted as soon as its last clip leaves it (Cmd+Z brings it back)" onClick={() => useEditor.getState().toggleAutoDelete()}>
-        <span className="ed-sw"><i /></span>
-        <span className="ed-foot-txt"><b>DELETE EMPTY TRACKS</b><small>{tidy ? 'ON: they vanish' : 'OFF: they stay'}</small></span>
-      </button>
+      <div className="ed-th-foot" role="toolbar" aria-label="Track list options">
+        {FOOTER.map((f) => {
+          const on = f.on(), Icon = f.icon
+          return (
+            <button key={f.id} className="ed-foot-btn" data-on={on || undefined} role="switch" aria-checked={on} aria-label={f.label} title={`${f.label}: ${on ? 'ON' : 'OFF'}. ${f.hint}`}
+              onPointerUp={blurOnUp} onClick={f.run}><Icon /></button>
+          )
+        })}
+      </div>
     </div>
   )
 }

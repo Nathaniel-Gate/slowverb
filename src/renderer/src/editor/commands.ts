@@ -104,6 +104,7 @@ export const COMMANDS: Command[] = [
   ...BEATS.map(([n, label]) => cmd(`auto.cut${n}`, `Cut every ${label}`, 'Auto', (s) => s.cutEveryBeatsAction(n))),
 
   cmd('loop.make', 'Loop clip (repeat with crossfade)', 'Loop', (s) => s.makeLoopFromSelection(), { when: (s) => hasSel(s) && !inLoop(s) }),
+  cmd('loop.detach', 'Detach the last repeat (edit it as a normal clip)', 'Loop', (s) => s.detachLastRepeat(), { when: inLoop }),
   cmd('loop.unloop', 'Unloop (keep the repeats as plain clips)', 'Loop', (s) => s.unloopSelection(), { when: inLoop }),
   ...LOOP_POINTS.map(([id, label, w, d]) => cmd(`loop.${id}`, label, 'Loop', nudgeLp(w, d * EDITOR.loop.nudgeSec), { ...rep, when: inLoop })),
   ...LOOP_POINTS.map(([id, label, w, d]) => cmd(`loop.${id}fine`, label.replace('1 ms', '10 ms'), 'Loop', nudgeLp(w, d * EDITOR.loop.nudgeBigSec), { ...rep, when: inLoop })),

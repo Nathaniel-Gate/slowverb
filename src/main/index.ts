@@ -27,12 +27,14 @@ function createWindow() {
     backgroundColor: '#0a0a0a', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 18 },
     webPreferences: { autoplayPolicy: process.env.SLOWVERB_SHOT ? 'no-user-gesture-required' : 'document-user-activation-required', preload: join(__dirname, '../preload/index.js'), sandbox: false }
   })
-  // Never lose the last edit: before the window closes, ask the page to flush every pending save and wait (max 4s) for its answer.
+  let quitting = false
+app.on('before-quit', () => { quitting = true })
+// Never lose the last edit: before the window closes, ask the page to flush every pending save and wait (max 4s) for its answer.
   let closing = false
   win.on('close', (e) => {
     if (closing || win.isDestroyed()) return
     e.preventDefault(); closing = true
-    const done = () => { ipcMain.removeListener('app:saved', done); clearTimeout(t); if (!win.isDestroyed()) win.close() }
+    const done = () => { ipcMain.removeListener('app:saved', done); clearTimeout(t); if (!win.isDestroyed()) win.close(); if (quitting) app.quit() }   // a quit that was paused for the save must finish afterwards
     const t = setTimeout(done, 4000)
     ipcMain.once('app:saved', done)
     win.webContents.send('app:save-now')

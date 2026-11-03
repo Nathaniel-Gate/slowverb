@@ -181,3 +181,20 @@ describe('other ops keep loops consistent', () => {
     expect(ops.splitAt(p, 50)).toBe(p)
   })
 })
+
+describe('detachLastRepeat', () => {
+  it('makes the last repeat a plain clip that can be extended; the loop keeps the rest', () => {
+    const lp = looped(4, 0.2), l = L0(lp), out = ops.detachLastRepeat(lp, l.id)
+    expect(L0(out).count).toBe(3)
+    expect(out.clips.filter((c) => c.loop === l.id)).toHaveLength(3)
+    const lastId = ops.loopClips(lp, l.id).at(-1)!.id, after = out.clips.find((c) => c.id === lastId)!
+    expect(after.loop).toBeUndefined(); expect(after.fadeOut).toBe(0)
+    expect(ops.validate(out)).toEqual([])
+    const ext = ops.trimClip(out, lastId, 'out', clipEnd(after) + 0.5)       // drag its right edge out
+    expect(ops.validate(ext)).toEqual([]); expect(L0(ext).count).toBe(3)
+  })
+  it('with one repeat left it just unloops', () => {
+    const p = looped(1, 0.2)
+    expect(ops.detachLastRepeat(p, L0(p).id).loops ?? []).toHaveLength(0)
+  })
+})

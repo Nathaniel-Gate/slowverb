@@ -71,6 +71,7 @@ function LoopEditor({ loop }: { loop: Loop }) {
       <p className="dk-note mono">Plays {fmtTime(span)} on the timeline from {fmtTime(loop.start)}.</p>
       <div className="dk-btns">
         <button className="chip" onClick={() => ed.loopFillToPlayhead()} title="Add repeats until the loop reaches the playhead">LOOP TO PLAYHEAD</button>
+        <button className="chip" onClick={() => ed.detachLastRepeat()} title="Make the last repeat a normal clip so you can trim or extend it (⌥⇧D)">DETACH LAST</button>
         <button className="chip" onClick={() => ed.unloopSelection()} title="Keep the repeats as plain clips (⌥⇧L)">UNLOOP</button>
       </div>
     </div>

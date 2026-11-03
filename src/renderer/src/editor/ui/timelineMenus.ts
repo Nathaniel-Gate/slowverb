@@ -17,6 +17,7 @@ function loopItems(clip: Clip, locked: boolean): MenuItem[] {
   return [
     { label: 'Loop settings', run: () => s.setDock('inspector') },
     { label: 'Loop to playhead', run: () => s.loopFillToPlayhead(), disabled: locked },
+    { label: 'Detach last repeat (edit as a normal clip)', keys: '⌥⇧D', run: () => s.detachLastRepeat(), disabled: locked },
     { label: 'Unloop', keys: '⌥⇧L', run: () => s.unloopSelection(), disabled: locked }, SEP
   ]
 }

@@ -57,7 +57,7 @@ export type S = {
   /** Continuous gestures (drag, stepper hold, key burst) pass a coalesceKey so the whole gesture is ONE undo step. */
   updateLoopLive(loopId: string, patch: LoopPatch, coalesceKey?: string): void
   nudgeLoop(which: 'in' | 'out' | 'both', dt: number): void
-  loopFillToPlayhead(): void; unloopSelection(): void; selectedLoop(): Loop | undefined
+  loopFillToPlayhead(): void; detachLastRepeat(): void; unloopSelection(): void; selectedLoop(): Loop | undefined
 }
 export type LoopPatch = Partial<Pick<Loop, 'srcIn' | 'srcOut' | 'count' | 'xfade' | 'start' | 'gain'>>
 
@@ -68,7 +68,7 @@ export type ProjectKeys = 'insertSource' | 'setTrackFx' | 'resetTrackFx' | 'appl
 export type RangeKeys = 'setRange' | 'muteRange' | 'gainRangeDb' | 'fadeRangeEdge' | 'liftRangeSel' | 'extractRangeSel' | 'gainSelectedDb' | 'setEnvPointAt' | 'removeEnvPointAt'
   | 'clearEnvSelected' | 'setFadeCurveSel' | 'extendEditToPlayhead' | 'trimStartToPlayhead' | 'trimEndToPlayhead' | 'splitAtMarkers' | 'setSmoothCuts'
 export type AutoKeys = 'detectSectionsToMarkers' | 'cutEveryBeatsAction' | 'trimSilenceSelected'
-export type LoopKeys = 'makeLoopFromSelection' | 'updateLoopLive' | 'nudgeLoop' | 'loopFillToPlayhead' | 'unloopSelection' | 'selectedLoop'
+export type LoopKeys = 'makeLoopFromSelection' | 'updateLoopLive' | 'nudgeLoop' | 'loopFillToPlayhead' | 'detachLastRepeat' | 'unloopSelection' | 'selectedLoop'
 export type PlayKeys = 'toggleLoop' | 'playRange' | 'scrubTo' | 'shuttleHold' | 'shuttleKey'
 
 type SetFn = (p: Partial<S> | ((s: S) => Partial<S>)) => void

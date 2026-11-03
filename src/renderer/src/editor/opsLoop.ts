@@ -110,6 +110,18 @@ export function loopFill(p: Project, loopId: string, endTime: number): Project {
   return updateLoop(p, loopId, { count: Math.max(1, Math.ceil((endTime - l.start - l.xfade) / step - FILL_EPS)) })
 }
 
+/** Break the LAST repeat off the loop: it becomes a normal clip (its tail fade removed) that can be trimmed or extended freely, and the
+ *  loop keeps the other repeats (count - 1). With a single repeat left this is the same as unloop. */
+export function detachLastRepeat(p: Project, loopId: string): Project {
+  const l = findLoop(p, loopId)
+  if (!l || lockedIds(p).has(l.track)) return p
+  const ms = loopClips(p, loopId)
+  if (ms.length < 2) return unloop(p, loopId)
+  const last = ms[ms.length - 1]
+  const clips = p.clips.map(c => (c.id === last.id ? { ...stripLoop(c), fadeOut: 0 } : c))
+  return withLoops({ ...p, clips }, (p.loops ?? []).map(x => (x.id === loopId ? { ...x, count: ms.length - 1 } : x)))
+}
+
 /** Keep the repeat clips as plain clips and drop the Loop record. */
 export function unloop(p: Project, loopId: string): Project {
   const l = findLoop(p, loopId)

@@ -36,7 +36,7 @@ export const setEnvPoint = L(EV.setEnvPoint), removeEnvPoint = L(EV.removeEnvPoi
 export const muteRange = L(EV.muteRange), gainRange = L(EV.gainRange), fadeRange = L(EV.fadeRange)
 export const extendEdit = L(RE.extendEdit), trimToPlayheadSel = L(RE.trimToPlayheadSel), splitAtMany = L(RE.splitAtMany), cutEveryBeats = L(RE.cutEveryBeats), trimEnds = L(RE.trimEnds)
 // wave 4 (agent E3): live loops
-export { loopLen, loopSpan, makeLoop, updateLoop, loopFill, unloop, loopOfClip, loopClips, nudgeLoopPoint, LOOP_MAX, LOOP_MIN_LEN, type LoopPatch } from './opsLoop'
+export { loopLen, loopSpan, makeLoop, updateLoop, loopFill, unloop, detachLastRepeat, loopOfClip, loopClips, nudgeLoopPoint, LOOP_MAX, LOOP_MIN_LEN, type LoopPatch } from './opsLoop'
 export { syncLoops } from './loopSync'
 
 export const DEFAULT_PROJECT_NAME = 'Edit'
