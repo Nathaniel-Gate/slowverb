@@ -6,6 +6,8 @@ import { DEFAULT_FX } from '../config/fx'
 import { useLibrary } from '../features/library/library.store'
 import { useFx } from '../features/fx/fx.store'
 import { usePlayer } from '../features/player/player.store'
+import { usePlaylists } from '../features/playlists/playlists.store'
+import { masterOf } from './master'
 import { runCommandById } from './commands'
 import { describeStep } from './describe'
 import { createHistory, pushHistory, redo as redoH, undo as undoH, type History } from './history'
@@ -320,6 +322,20 @@ export const useEditor = create<S>((set, get) => {
         const ok = edit((p) => ops.pasteClips({ ...ops.deleteClips(p, ids), sources: { ...p.sources, [path]: { duration: dur } } }, [clip], a, lead), `Bounced ${ids.length} clip${ids.length === 1 ? '' : 's'} into one`, 'Could not bounce')
         if (ok) set({ selection: get().project!.clips.filter((c) => c.src === path).map((c) => c.id), busy: null }); else set({ busy: null })
       } catch (e) { console.error('[editor] bounce failed', e); set({ busy: null }); toast('Bounce failed') }
+    },
+    /** Render the edit exactly as it sounds (master version included), convert to AAC and drop it in iCloud Drive > Slowverb Phone. */
+    async sendToPhone() {
+      await get().flush()
+      const { project, buffers } = get(); if (!project || get().busy) return
+      set({ busy: 'Sending to phone' })
+      try {
+        const track = useLibrary.getState().tracks.find((t) => t.path === project.song), root = usePlaylists.getState().root
+        const rel = root && project.song.startsWith(root + '/') ? project.song.slice(root.length + 1).split('/').slice(0, -1).join('/') : ''
+        const fx = masterOf(project), tag = [fx.speed !== 1 && `${fx.speed.toFixed(2)}x`, fx.wet > 0 && 'reverb'].filter(Boolean).join('-') || 'original'
+        const r = await renderProject(project, buffers, { bitDepth: 16 })
+        await window.api.sendToPhone(rel, `${track?.title ?? project.name} (edit ${tag})`, encodeWav(r.channels, r.rate, r.bitDepth))
+        set({ busy: null }); toast('Sent to your phone: iCloud Drive, Slowverb Phone')
+      } catch (e) { console.error('[editor] send to phone failed', e); set({ busy: null }); toast(e instanceof Error ? e.message : 'Send failed') }
     },
     async renderToLibrary() {
       await get().flush()

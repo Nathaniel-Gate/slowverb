@@ -8,6 +8,7 @@ import { scan } from './scan'
 import { exportSave } from './export'
 import { cancelDownload, downloadAudio } from './ytdlp'
 import { editorDelete, editorList, editorLoad, editorRenameVersion, editorSave, peaksGet, peaksPut, peaksStat, renameSong, saveBounce, saveRender } from './editor'
+import { sendToPhone } from './phone'
 import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
 
@@ -85,6 +86,7 @@ app.whenReady().then(() => {
   ipcMain.handle('editor:delete', (_e, song: string, name: string) => editorDelete(song, name))
   ipcMain.handle('editor:rename', (_e, song: string, from: string, to: string) => editorRenameVersion(song, from, to))
   ipcMain.handle('editor:renameSong', (_e, song: string, base: string) => renameSong(song, base))
+  ipcMain.handle('phone:send', (_e, rel: string, title: string, wav: ArrayBuffer) => sendToPhone(rel, title, wav))
   ipcMain.handle('editor:bounce', (_e, song: string, name: string, wav: ArrayBuffer) => saveBounce(song, name, wav))
   ipcMain.handle('editor:render', (_e, song: string, name: string, wav: ArrayBuffer) => saveRender(song, name, wav))
   ipcMain.handle('peaks:get', (_e, key: string) => peaksGet(key))

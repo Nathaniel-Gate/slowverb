@@ -13,6 +13,7 @@ export function RenderOptions({ anchor, open, onClose }: { anchor: RefObject<HTM
       </div>
       <div className="ed-opt"><span>Normalise peak</span><button className={`ed-switch ${o.normalize ? 'on' : ''}`} role="switch" aria-checked={o.normalize} onClick={() => set({ normalize: !o.normalize })}><i /></button></div>
       <div className="ed-opt"><span>In to Out only</span><button className={`ed-switch ${o.range && hasRange ? 'on' : ''}`} role="switch" disabled={!hasRange} aria-checked={o.range} onClick={() => set({ range: !o.range })}><i /></button></div>
+      <button className="ed-render" onClick={() => { onClose(); void useEditor.getState().sendToPhone() }} title="Render this edit and put an AAC copy in iCloud Drive > Slowverb Phone">SEND TO PHONE</button>
       <button className="ed-render ed-render-go" onClick={() => { onClose(); void useEditor.getState().renderToLibrary() }}>RENDER NOW</button>
     </Popover>
   )

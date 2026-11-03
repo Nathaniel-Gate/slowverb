@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
  *  proves sound reaches the output, saves a screenshot, prints JSON, quits. Not used in normal runs. */
 export function runShot(win: BrowserWindow) {
   // Safety: editor tests write sidecar files and renders next to the songs, so they must never run on the real library.
-  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_TAILDRAG || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
+  if ((process.env.SLOWVERB_EDUI || process.env.SLOWVERB_EDUI3 || process.env.SLOWVERB_DRAGPERF || process.env.SLOWVERB_AUDIOHEALTH || process.env.SLOWVERB_PERF || process.env.SLOWVERB_NEWTRACK || process.env.SLOWVERB_DUPDRAG || process.env.SLOWVERB_SYNC || process.env.SLOWVERB_GAP || process.env.SLOWVERB_MARKHOVER || process.env.SLOWVERB_TINY || process.env.SLOWVERB_BOUNCE || process.env.SLOWVERB_PLAYEDIT || process.env.SLOWVERB_CLICKEDITOR || process.env.SLOWVERB_SAVECLOSE || process.env.SLOWVERB_TRACKFX || process.env.SLOWVERB_LOOP || process.env.SLOWVERB_TIDY || process.env.SLOWVERB_AUTOPLAY || process.env.SLOWVERB_DETACHKEY || process.env.SLOWVERB_TAILDRAG || process.env.SLOWVERB_PHONE || process.env.SLOWVERB_SCRUB || process.env.SLOWVERB_ED || process.env.SLOWVERB_PL) && !process.env.SLOWVERB_ROOT) { console.error('Refusing: set SLOWVERB_ROOT to a temp folder'); app.quit(); return }
   win.webContents.once('did-finish-load', async () => {
     await new Promise((r) => setTimeout(r, 1200))
     const js = `(async () => {
@@ -49,6 +49,21 @@ export function runShot(win: BrowserWindow) {
         out.slowedMaster_bare_old = await grain(slow, { bare: true })
         return out })()`)
       console.log('SCRUB_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
+    if (process.env.SLOWVERB_PHONE) {
+      const r = await win.webContents.executeJavaScript(`(async () => {
+        const sv = window.__sv, wait = (ms) => new Promise(r => setTimeout(r, ms)), out = {}
+        const scan = await window.api.scan([${JSON.stringify(process.env.SLOWVERB_PHONE)}])
+        sv.useLibrary.getState().replace(scan.map((x, i) => ({ ...x, id: 't' + i })))
+        sv.usePlayer.getState().select('t0'); await wait(800)
+        sv.useFx.getState().applyPreset('Slowed + Reverb'); await wait(300)
+        const btn = [...document.querySelectorAll('button')].find(b => /SEND TO PHONE/.test(b.textContent))
+        out.found = !!btn; out.disabled = btn && btn.disabled
+        btn.click()
+        for (let i = 0; i < 60 && !/SENT|FAILED/.test(btn.textContent); i++) await wait(250)
+        out.label = btn.textContent; out.title = btn.title
+        return out })()`)
+      console.log('PHONE_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
     if (process.env.SLOWVERB_TAILDRAG) {
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
