@@ -1,6 +1,6 @@
 import { useEffect, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from 'react'
 import { clipDur, clipEnd, type Project } from '../model'
-import { clipsForward, patchClips, splitAt } from '../ops'
+import { addTrack, clipsForward, patchClips, splitAt } from '../ops'
 import { TL } from '../../config/timeline'
 import { cancelGlide, envOf, layOf, st, type Pt, type View, type ViewRefs } from './dragRunner'
 import { easeDrag } from './dragSmooth'
@@ -75,6 +75,21 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     startMarquee(e, pt, base, () => { if (gap) { st().select([]); st().selectGap(gap) } })
   }
 
+  /** Option + drag down in the empty space below the last track: new tracks appear live, one per lane height dragged. */
+  function newTrackDown(e: RPointerEvent, pt: Pt, base: Project) {
+    let final: Project | null = null, n = 0
+    runDrag(e, 'newtrack', { threshold: 4 }, p => {
+      n = clamp(1 + Math.floor((p.y - pt.y) / TL.laneH), 1, TL.maxNewTracks)
+      let out = base; for (let i = 0; i < n; i++) out = addTrack(out)
+      final = out; ui.setPreview(out)
+      showHud(guides.hud, root.current, `+${n} TRACK${n > 1 ? 'S' : ''}`, p.cx, p.cy)
+    }, (moved, cancel) => {
+      ui.setPreview(null); hideHud(guides.hud)
+      if (!moved || cancel || !final) return
+      st().apply(() => final!); st().showToast(`Added ${n} track${n > 1 ? 's' : ''}`)
+    })
+  }
+
   function zoomDown(e: RPointerEvent, pt: Pt) {
     const s = st(), ln = lanes.current!
     let t1 = pt.t
@@ -127,6 +142,7 @@ export function useTimelineInput(view: View, { root, lanes }: ViewRefs, guides: 
     if (tool === 'range') return rangeDown(e, pt, base)
     const clip = clipEl && base.clips.find(c => c.id === clipEl.dataset.clip)
     if (!clip) {
+      if (tool === 'select' && e.altKey && pt.y >= layOf(base).total) return newTrackDown(e, pt, base)   // Option-drag below the last track makes new tracks
       if (tool === 'select' && e.altKey) return rangeDown(e, pt, base)           // Alt-drag on empty lane space draws a range
       if (tool === 'trackfwd') {
         const tr = base.tracks[laneAt(layOf(base), pt.y)]

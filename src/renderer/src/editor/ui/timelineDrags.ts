@@ -1,5 +1,5 @@
 import { clipDur, clipEnd, type Project } from '../model'
-import { duplicateClips, moveClips, patchClips, rateStretch, rippleTrim, rollEdit, snapTime, trimClip } from '../ops'
+import { addTrack, duplicateClips, moveClips, patchClips, rateStretch, rippleTrim, rollEdit, snapTime, trimClip } from '../ops'
 import { TL } from '../../config/timeline'
 import { applyEnvEdit, withEnv, type EnvEdit } from './envMath'
 import { fmtDb, formatTimecode, slipClips } from './timelineMath'
@@ -18,7 +18,7 @@ export type Drag =
 
 export function previewOf(base: Project, d: Drag): Project {
   switch (d.kind) {
-    case 'move': return d.dup ? duplicateClips(base, d.ids, d.dt) : moveClips(base, d.ids, d.dt, d.trackShift)
+    case 'move': return d.dup ? duplicateClips(base, d.ids, d.dt) : moveClips(withNewTracks(base, d.ids, d.trackShift), d.ids, d.dt, d.trackShift)
     case 'trim': return d.ripple ? rippleTrim(base, d.id, d.edge, d.t) : trimClip(base, d.id, d.edge, d.t)
     case 'slip': return slipClips(base, d.ids, d.dsrc)
     case 'fade': return patchClips(base, [d.id], d.edge === 'in' ? { fadeIn: Math.max(0, d.dur) } : { fadeOut: Math.max(0, d.dur) })
@@ -53,12 +53,21 @@ export function snapMove(p: Project, ids: string[], dt: number, env: SnapEnv): {
   return da <= db ? { dt: a.t - head, at: a.at } : { dt: b.t - tail, at: b.at }
 }
 
-/** Keep a vertical move inside the track list for every clip being moved. */
+/** Dragging clips below the last track makes a new track for them (shown live while dragging, kept on release). */
+export function withNewTracks(p: Project, ids: string[], shift: number): Project {
+  if (shift <= 0) return p
+  const set = new Set(ids), idx = p.clips.filter(c => set.has(c.id)).map(c => p.tracks.findIndex(t => t.id === c.track)).filter(i => i >= 0)
+  let out = p
+  for (let n = Math.max(...idx) + shift - (p.tracks.length - 1); n > 0; n--) out = addTrack(out)
+  return out
+}
+
+/** Keep a vertical move inside the track list (plus ONE new track below) for every clip being moved. */
 export function clampTrackShift(p: Project, ids: string[], shift: number): number {
   const set = new Set(ids)
   const idx = p.clips.filter(c => set.has(c.id)).map(c => p.tracks.findIndex(t => t.id === c.track)).filter(i => i >= 0)
   if (!idx.length) return 0
-  return Math.max(-Math.min(...idx), Math.min(p.tracks.length - 1 - Math.max(...idx), shift))
+  return Math.max(-Math.min(...idx), Math.min(p.tracks.length - Math.max(...idx), shift))
 }
 
 /** Move one marker (kept sorted). Pure; the timeline applies it once on release. */

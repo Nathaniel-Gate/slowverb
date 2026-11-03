@@ -45,3 +45,20 @@ describe('timelineDrags', () => {
     expect(hudText({ kind: 'trim', id: 'a', edge: 'out', t: 83.5, ripple: true }, p)).toBe('OUT 1:23.500  RIPPLE')
   })
 })
+
+import { newProject } from '../ops'
+import { clampTrackShift } from './timelineDrags'
+describe('new tracks from dragging', () => {
+  it('a clip dragged below the last track gets a new track (one at a time) and stays valid', () => {
+    const p = newProject('/s.m4a', 100), id = p.clips[0].id
+    expect(clampTrackShift(p, [id], 5)).toBe(1)
+    const out = previewOf(p, { kind: 'move', ids: [id], dt: 0, trackShift: 1, dup: false })
+    expect(out.tracks).toHaveLength(2)
+    expect(out.clips[0].track).toBe(out.tracks[1].id)
+    expect(validate(out)).toEqual([])
+  })
+  it('no shift leaves the track list alone', () => {
+    const p = newProject('/s.m4a', 100), id = p.clips[0].id
+    expect(previewOf(p, { kind: 'move', ids: [id], dt: 2, trackShift: 0, dup: false }).tracks).toHaveLength(1)
+  })
+})
