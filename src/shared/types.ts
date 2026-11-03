@@ -12,7 +12,8 @@ export type Track = {
   id: string; path: string; title: string; artist: string; duration: number
   fx?: Fx // this track's remembered version
 }
-export type Saved = { tracks: Track[]; cur: string | null; fx: Fx; preset: string | null; userPresets: { name: string; fx: Fx }[] }
+export type Settings = { playOnClick: boolean; playAfterAdd: boolean; autoAdvance: boolean }
+export type Saved = { tracks: Track[]; cur: string | null; fx: Fx; preset: string | null; userPresets: { name: string; fx: Fx }[]; settings?: Partial<Settings> }
 export type ScanResult = Omit<Track, 'id' | 'fx'>
 
 /** Download progress sent main -> UI. pct null = unknown duration (show a moving bar, not a number). */

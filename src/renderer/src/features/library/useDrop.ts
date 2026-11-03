@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AUDIO_EXTS } from '../../../../shared/types'
-import { usePlayer } from '../player/player.store'
+import { afterAdd } from '../settings/afterAdd'
 import { usePlaylists } from '../playlists/playlists.store'
 
 /** Window-level drop zone for files/folders from Finder. They are placed INTO the selected playlist's folder
@@ -17,7 +17,7 @@ export function useDrop() {
         .map((f) => window.api.pathFor(f)).filter(Boolean)
       if (!paths.length) return
       const added = await usePlaylists.getState().importFiles(paths, usePlaylists.getState().sel ?? '')
-      if (added.length && !usePlayer.getState().playing) usePlayer.getState().play(added[0].id)
+      if (added.length) afterAdd(added[0].id)
     }
   }
   return { over, handlers }

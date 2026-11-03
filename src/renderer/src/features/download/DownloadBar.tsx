@@ -3,7 +3,7 @@ import type { DlProgress } from '../../../../shared/types'
 import { Progress } from '../../ui/Progress'
 import { useSmooth } from '../../ui/useSmooth'
 import { useLibrary } from '../library/library.store'
-import { usePlayer } from '../player/player.store'
+import { afterAdd } from '../settings/afterAdd'
 import { usePlaylists } from '../playlists/playlists.store'
 
 /** Paste a link or type a song name, press Enter or ADD: audio is downloaded (yt-dlp), added to the playlist and played. */
@@ -25,7 +25,7 @@ export function DownloadBar() {
       const before = useLibrary.getState().tracks.length
       await usePlaylists.getState().refresh()                                         // pick the new file up from disk
       const t = useLibrary.getState().tracks.find((x) => x.path === r.paths![0])
-      if (t) usePlayer.getState().play(t.id)
+      if (t) afterAdd(t.id)
       setUrl(''); flash({ text: useLibrary.getState().tracks.length > before ? 'Added' : 'Already in playlist' })
     } else if (r.error !== 'Cancelled') flash({ text: r.error ?? 'Failed', err: true })
     setBusy(false); setProg(null)

@@ -11,12 +11,14 @@ import { DEFAULT_FX } from './config/fx'
 import { effectiveFx, useFx } from './features/fx/fx.store'
 import { useLibrary } from './features/library/library.store'
 import { usePlayer } from './features/player/player.store'
+import { settingsOf, useSettings } from './features/settings/settings.store'
 import { usePlaylists } from './features/playlists/playlists.store'
 
 export async function wire() {
   const saved = await window.api.load()
   if (saved) {
     useLibrary.getState().replace(saved.tracks ?? [])
+    useSettings.getState().replace(saved.settings)
     useFx.setState({ fx: saved.fx ?? useFx.getState().fx, preset: saved.preset, userPresets: saved.userPresets ?? [] })
     if (saved.cur && saved.tracks?.some((t) => t.id === saved.cur)) usePlayer.setState({ cur: saved.cur })
   }
@@ -39,20 +41,20 @@ export async function wire() {
     if (usePlayer.getState().viaEdit && s.playing !== prev.playing) {
       usePlayer.setState({ playing: s.playing })
       const end = s.project ? s.project.clips.reduce((m, c) => Math.max(m, c.start + (c.srcOut - c.srcIn) / (c.speed || 1)), 0) : 0
-      if (!s.playing && end > 0 && s.playhead >= end - 0.1) usePlayer.getState().next(1)   // the edit played to its end: next song
+      if (!s.playing && !s.open && end > 0 && s.playhead >= end - 0.1 && useSettings.getState().autoAdvance) usePlayer.getState().next(1)   // the edit played to its end in the PLAYER view: next song (never from the editor view)
     }
   })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
-  engine.el.addEventListener('ended', () => usePlayer.getState().next(1))
+  engine.el.addEventListener('ended', () => { if (useSettings.getState().autoAdvance && !useEditor.getState().open) usePlayer.getState().next(1) })   // only in the player view, and only if switched on
   // persist (debounced)
   const saveLibraryNow = () => {
     const f = useFx.getState()
-    const data: Saved = { tracks: useLibrary.getState().tracks, cur: usePlayer.getState().cur, fx: f.fx, preset: f.preset, userPresets: f.userPresets }
+    const data: Saved = { tracks: useLibrary.getState().tracks, cur: usePlayer.getState().cur, fx: f.fx, preset: f.preset, userPresets: f.userPresets, settings: settingsOf(useSettings.getState()) }
     return window.api.save(data)
   }
   let timer: number | undefined
   const save = () => { clearTimeout(timer); timer = window.setTimeout(() => void saveLibraryNow(), 250) }
-  useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save)
+  useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save); useSettings.subscribe(save)
   const saveEverything = async () => { clearTimeout(timer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow()]) }
   window.addEventListener('beforeunload', () => void saveEverything())                      // belt
   window.addEventListener('blur', () => void saveEverything())                              // switching to another app
@@ -62,7 +64,7 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
+;(window as any).__sv = { useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch('media://local' + encodeURI(t.path))).arrayBuffer()

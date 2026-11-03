@@ -7,6 +7,7 @@
 @import '../features/library/library.css';
 @import '../features/download/download.css';
 @import '../features/playlists/playlists.css';
+@import '../features/settings/settings.css';
 @import '../editor/editor.css';
 @import '../editor/ui/timeline.css';
 @import '../editor/ui/overlays.css';
