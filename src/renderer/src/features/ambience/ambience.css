@@ -8,3 +8,5 @@
 .amb-empty { margin: 12px 0 0; font-size: 12px; line-height: 1.4; color: var(--steel-500); animation: fade var(--t) var(--ease) both; }
 .amb-mix .knob { margin-top: 14px; min-width: 0; } .amb-mix .knob .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 8px; }
 .amb-add { margin-top: 10px; }
+.amb .amb-add { display: block; width: 100%; margin: 12px 0 0; padding: 12px 14px; font-size: 13px; letter-spacing: .08em; color: var(--steel-100, #eee); border: 1px solid var(--steel-300); border-radius: 10px; background: transparent; cursor: pointer; }
+.amb .amb-add:hover { background: rgba(255,255,255,.08); }
