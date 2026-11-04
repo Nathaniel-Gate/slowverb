@@ -38,4 +38,13 @@ describe('native platform (Capacitor Filesystem)', () => {
     expect(files.has(`songs/${s.id}.mp3`)).toBe(false)
     expect(await createNativePlatform().listSongs()).toEqual([])
   })
+  it('keeps playlists in songs/playlists.json and the category / file name on a song', async () => {
+    const p = createNativePlatform()
+    expect(await p.loadLists()).toEqual([])
+    const s = await p.putSong({ ...meta, category: 'White noise', file: 'Rain.m4a' }, new Blob(['x'], { type: 'audio/mp4' }))
+    await p.saveLists([{ id: 'l', name: 'L', created: 1, songs: ['White noise/Rain.m4a'] }])
+    expect(JSON.parse(files.get('songs/playlists.json')!)[0].songs).toEqual(['White noise/Rain.m4a'])
+    expect((await createNativePlatform().listSongs())[0]).toMatchObject({ id: s.id, category: 'White noise', file: 'Rain.m4a' })
+    expect(await createNativePlatform().loadLists()).toHaveLength(1)
+  })
 })

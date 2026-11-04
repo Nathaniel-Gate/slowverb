@@ -1,0 +1,20 @@
+/* LAYERS block of Now Playing, and its picker sheet. */
+.layers { margin-top: 16px; padding: 16px 16px 14px; }
+.layers .row { display: flex; justify-content: space-between; align-items: center; }
+.layers .set-note { margin: 2px 0 8px; }
+.layer { border-top: 1px solid var(--hairline); padding: 6px 0 10px; }
+.layer-top { display: flex; align-items: flex-end; gap: 8px; }
+.layer-knob { flex: 1; min-width: 0; }
+.layer-top .chip, .layer-q .chip, .layer-next, .layer-add { min-height: var(--tap); padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.layer-q { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 4px; color: var(--steel-300); font-size: 13px; }
+.layer-q span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-next { margin-top: 4px; }
+.layer-add { margin-top: 8px; width: 100%; border-style: dashed; }
+.layers .knob { margin-top: 6px; }
+.picker { max-height: 80vh; display: flex; flex-direction: column; }
+.picker-search { margin-top: 12px; min-height: var(--tap); padding: 0 12px; background: var(--ink-950); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); font-size: 16px; outline: none; }
+.picker-search:focus { border-color: var(--neon, var(--white)); }
+.picker-list { flex: 1; min-height: 0; overflow-y: auto; margin: 8px calc(var(--gut) * -1); border-top: 1px solid var(--hairline); -webkit-overflow-scrolling: touch; }
+.picker-row { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 var(--gut); border-bottom: 1px solid var(--hairline); text-align: left; }
+.picker-row .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-row .mono { color: var(--steel-500); flex: none; }

@@ -45,3 +45,37 @@ describe('library store', () => {
     expect(useLibrary.getState().songs[0].fx).toEqual(fx)
   })
 })
+
+describe('library: categories + playlists', () => {
+  const lists = async () => (await import('./lists.store')).useLists
+  it('imports into the chosen category, with a file name that is unique inside it', async () => {
+    mem.queue = [fakeFile('Rain.mp3')]; await useLibrary.getState().importFiles('White noise')
+    mem.queue = [fakeFile('Rain.mp3', 12)]; await useLibrary.getState().importFiles('White noise')
+    const s = useLibrary.getState().songs
+    expect(s.map((x) => [x.category, x.file])).toEqual([['White noise', 'Rain.mp3'], ['White noise', 'Rain (1).mp3']])
+  })
+  it('a picked playlists.json decides the category by file name and brings the Mac playlists in', async () => {
+    const manifest = { version: 1, files: ['White noise/Rain.mp3', 'Songs/One.mp3'], playlists: [{ id: 'g', name: 'Gym', created: 1, category: 'Songs', songs: ['Songs/One.mp3'] }] }
+    const json = { name: 'playlists.json', blob: new Blob([JSON.stringify(manifest)], { type: 'application/json' }) }
+    mem.queue = [fakeFile('Rain.mp3'), fakeFile('One.mp3', 9), json]
+    const L = await lists(); L.setState({ lists: [], loaded: true })
+    expect(await useLibrary.getState().importFiles('Songs')).toBe(2)
+    expect(useLibrary.getState().songs.map((x) => [x.file, x.category])).toEqual([['Rain.mp3', 'White noise'], ['One.mp3', 'Songs']])
+    expect(L.getState().lists).toEqual([{ id: 'g', name: 'Gym', created: 1, category: 'Songs', songs: ['Songs/One.mp3'] }])
+  })
+  it('importing while a playlist is open also puts the new songs in it', async () => {
+    const L = await lists(); L.setState({ lists: [], loaded: true }); const id = L.getState().create('Mix', 'Songs')
+    mem.queue = [fakeFile('A.mp3'), fakeFile('B.mp3', 9)]; await useLibrary.getState().importFiles('Songs', id)
+    expect(L.getState().lists[0].songs).toEqual(['Songs/A.mp3', 'Songs/B.mp3'])
+  })
+  it('move changes the home and playlists follow; remove drops the song from playlists', async () => {
+    const L = await lists(); L.setState({ lists: [], loaded: true })
+    mem.queue = [fakeFile('Song.mp3'), fakeFile('Song2.mp3', 9)]; await useLibrary.getState().importFiles('Songs')
+    const [a, b] = useLibrary.getState().songs; const id = L.getState().create('Mix', 'Songs'); L.getState().add(id, ['Songs/Song.mp3', 'Songs/Song2.mp3'])
+    await useLibrary.getState().move(a.id, 'Sound bites')
+    expect(useLibrary.getState().songs.find((s) => s.id === a.id)).toMatchObject({ category: 'Sound bites', file: 'Song.mp3' })
+    expect((await mem.listSongs()).find((s) => s.id === a.id)?.category).toBe('Sound bites')
+    expect(L.getState().lists[0].songs).toEqual(['Sound bites/Song.mp3', 'Songs/Song2.mp3'])
+    await useLibrary.getState().remove(b.id); expect(L.getState().lists[0].songs).toEqual(['Sound bites/Song.mp3'])
+  })
+})

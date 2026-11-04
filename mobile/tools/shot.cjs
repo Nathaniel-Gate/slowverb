@@ -13,6 +13,7 @@ app.whenReady().then(async () => {
   const ses = session.fromPartition('shot-' + Date.now())
   const win = new BrowserWindow({ width: 390, height: 844, useContentSize: true, show: false, frame: false, backgroundColor: '#0a0a0a',
     webPreferences: { session: ses, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' } })
+  win.webContents.setAudioMuted(true)   // NEVER audible: demo songs are generated tones and the harness may tap play
   const logs = []
   win.webContents.on('console-message', (e, level, msg) => { const lv = e.level ?? level, m = e.message ?? msg; if ((lv === 'error' || lv >= 3) && !m.includes('Security Warning')) logs.push(m) })
   win.webContents.on('render-process-gone', (_e, d) => { console.error('renderer gone', d.reason); app.exit(1) })

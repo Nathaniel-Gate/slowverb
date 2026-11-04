@@ -17,6 +17,8 @@ export const platform: Platform = {
   listSongs: () => p().listSongs(),
   getSongUrl: (id) => p().getSongUrl(id),
   deleteSong: (id) => p().deleteSong(id),
-  updateSong: (id, patch) => p().updateSong(id, patch)
+  updateSong: (id, patch) => p().updateSong(id, patch),
+  loadLists: () => p().loadLists(),
+  saveLists: (l) => p().saveLists(l)
 }
 export type { PickedFile, Platform, Song } from './types'

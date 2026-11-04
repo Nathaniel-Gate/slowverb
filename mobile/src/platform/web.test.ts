@@ -26,4 +26,17 @@ describe('web platform (IndexedDB)', () => {
     await createWebPlatform(idb).putSong(meta('Kept'), blob())
     expect((await createWebPlatform(idb).listSongs()).map((x) => x.title)).toEqual(['Kept'])
   })
+  it('stores playlists, and upgrades a version 1 database without losing songs', async () => {
+    const idb = new IDBFactory()
+    await new Promise<void>((res, rej) => {   // a phone that ran the first release: songs + blobs only
+      const o = idb.open('slowverb', 1)
+      o.onupgradeneeded = () => { const songs = o.result.createObjectStore('songs', { keyPath: 'id' }); o.result.createObjectStore('blobs'); songs.put({ id: 'old', title: 'Old', artist: '', duration: 1, size: 1, addedAt: 1 }) }
+      o.onsuccess = () => { o.result.close(); res() }; o.onerror = () => rej(o.error)
+    })
+    const p = createWebPlatform(idb)
+    expect((await p.listSongs()).map((x) => x.title)).toEqual(['Old'])
+    expect(await p.loadLists()).toEqual([])
+    await p.saveLists([{ id: 'l', name: 'L', created: 1, songs: ['Songs/a.m4a'] }])
+    expect(await createWebPlatform(idb).loadLists()).toEqual([{ id: 'l', name: 'L', created: 1, songs: ['Songs/a.m4a'] }])
+  })
 })

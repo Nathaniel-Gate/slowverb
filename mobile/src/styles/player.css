@@ -11,8 +11,8 @@
 .seek { margin-top: 14px; }
 .seek .row { display: flex; justify-content: space-between; margin-top: 0; }
 input.big-range { display: block; width: 100%; height: 44px; margin: 0; padding: 0; background: none !important; appearance: none; -webkit-appearance: none; outline: none; touch-action: none; }
-.big-range::-webkit-slider-runnable-track, .knob input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--white) var(--p, 0%), var(--hairline-strong) var(--p, 0%)); }
-.big-range::-webkit-slider-thumb, .knob input[type=range]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9.5px; border-radius: 50%; background: var(--white); border: 0; box-shadow: 0 0 0 1px var(--ink-950); }
+.big-range::-webkit-slider-runnable-track, .knob input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--neon, var(--white)) var(--p, 0%), var(--hairline-strong) var(--p, 0%)); }
+.big-range::-webkit-slider-thumb, .knob input[type=range]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9.5px; border-radius: 50%; background: var(--neon, var(--white)); border: 0; box-shadow: 0 0 6px var(--neon, transparent), 0 0 0 1px var(--ink-950); }
 .big-range:disabled { opacity: .4; }
 .knob input[type=range] { height: 44px; background: none !important; appearance: none; -webkit-appearance: none; margin: 0; display: block; }
 .knob { margin-top: 2px; } .knob .row { margin-bottom: 0; }
@@ -21,12 +21,12 @@ input[type=range]:hover::-webkit-slider-thumb { transform: none; }
 
 .transport { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 0 2px; }
 .transport .icon-btn { width: 48px; height: 52px; }
-.play-big { width: 68px; height: 68px; border-radius: 50%; background: var(--white); color: var(--ink-950); display: grid; place-items: center; }
+.play-big { width: 68px; height: 68px; border-radius: 50%; background: transparent; border: 1.5px solid var(--neon, var(--white)); color: var(--neon, var(--white)); box-shadow: 0 0 8px color-mix(in srgb, var(--neon, #fff) 45%, transparent), inset 0 0 8px color-mix(in srgb, var(--neon, #fff) 18%, transparent); display: grid; place-items: center; }   /* thin neon ring, not a filled disc */
 
 .version { margin-top: 20px; padding: 16px 16px 8px; }
 .version .row { display: flex; justify-content: space-between; align-items: center; }
 .ab, .switch-label { min-height: var(--tap); padding: 0 12px; margin-right: -12px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: var(--steel-300); border-radius: var(--radius-sm); }
-.ab.on { color: var(--ink-950); background: var(--white); }
+.ab.on { color: var(--neon, var(--white)); border: 1px solid var(--neon, var(--white)); box-shadow: 0 0 5px color-mix(in srgb, var(--neon, #fff) 45%, transparent); }
 .chips { display: flex; gap: 8px; overflow-x: auto; margin: 4px -16px 0; padding: 4px 16px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
 .chips::-webkit-scrollbar { display: none; }
 .chips .chip { flex: none; min-height: var(--tap); padding: 0 14px; font-size: 12px; white-space: nowrap; display: inline-flex; align-items: center; }
@@ -38,7 +38,7 @@ input[type=range]:hover::-webkit-slider-thumb { transform: none; }
 .pitch { margin-top: 2px; min-height: var(--tap); border-top: 1px solid var(--hairline); }
 .switch { flex: none; width: 46px; height: 28px; border-radius: 28px; border: 1px solid var(--hairline-strong); position: relative; display: inline-block; transition: background-color var(--t-fast) var(--ease); }
 .switch i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--steel-400); transition: transform var(--t) var(--ease), background-color var(--t-fast) var(--ease); }
-.switch.on { background: var(--white); border-color: var(--white); }
-.switch.on i { transform: translateX(18px); background: var(--ink-950); }
+.switch.on { background: color-mix(in srgb, var(--neon, #fff) 12%, transparent); border-color: var(--neon, var(--white)); box-shadow: 0 0 5px color-mix(in srgb, var(--neon, #fff) 45%, transparent); }
+.switch.on i { transform: translateX(18px); background: var(--neon, var(--white)); }
 button.switch { padding: 0; margin: 8px 0; }
 button.switch::before { content: ''; position: absolute; inset: -8px -8px; } /* 44px hit area around the 28px pill */

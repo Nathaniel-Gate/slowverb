@@ -23,3 +23,6 @@ Phone-first, 390x844 reference, safe-area insets (env(safe-area-inset-*)), no ho
 - SETTINGS: auto-advance, play on tap.
 Use the stores named in the M1 section exactly (`useLibrary`, `usePlayer`, `useSettings` exported from src/state/*.store.ts). Styling: reuse theme tokens (import '@app/theme/tokens.css' and motion.css), blueprint grid background, hairlines, mono annotations, neon accent for the playing row only.
 - `tools/shot.cjs`: Electron script (`cd ~/Projects/slowverb && node_modules/.bin/electron mobile/tools/shot.cjs <url> <out.png> [clickSelector...]`) that opens a 390x844 window on the Vite dev server (http://localhost:5174), waits, optionally clicks selectors, saves a PNG. Used to verify the UI looks right with real data: seed demo songs through the web platform (a dev-only `?demo=1` query seeds 4 songs from small generated tones) and screenshot every screen.
+
+## Parity update (2026-11)
+Categories + playlists + layers + neon now match the Mac app. Phone Song has `category` and `file` (path = `Category/file`); Platform has `loadLists/saveLists`; playlists.json from the Mac (`Slowverb Phone/playlists.json`) is read when picked together with the audio on IMPORT. Layers reuse `@app/audio/ambienceEngine` (own AudioContext, primed inside the play tap). Neon list is `@shared/neon`.

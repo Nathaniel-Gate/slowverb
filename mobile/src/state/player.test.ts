@@ -138,3 +138,19 @@ describe('media session (lock screen)', () => {
     expect(session.position).toEqual({ duration: 100, playbackRate: 0.8, position: 10 })
   })
 })
+
+describe('player: queue (the list a song was started from)', () => {
+  it('next, previous and auto-advance stay inside the queue, wrapping at its ends', async () => {
+    await usePlayer.getState().play(ids[0], [ids[0], ids[2]])
+    usePlayer.getState().next(1); await flush(); expect(usePlayer.getState().cur).toBe(ids[2])
+    usePlayer.getState().next(1); await flush(); expect(usePlayer.getState().cur).toBe(ids[0])
+    usePlayer.getState().next(-1); await flush(); expect(usePlayer.getState().cur).toBe(ids[2])
+    el().finish(); await flush(); expect(usePlayer.getState().cur).toBe(ids[0])
+  })
+  it('playing a song outside the queue goes back to the whole library; stop clears it', async () => {
+    await usePlayer.getState().play(ids[0], [ids[0], ids[2]])
+    await usePlayer.getState().play(ids[1]); expect(usePlayer.getState().queue).toBeNull()
+    usePlayer.getState().next(1); await flush(); expect(usePlayer.getState().cur).toBe(ids[2])
+    await usePlayer.getState().play(ids[0], [ids[0]]); usePlayer.getState().stop(); expect(usePlayer.getState().queue).toBeNull()
+  })
+})

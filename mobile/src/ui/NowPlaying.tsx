@@ -2,6 +2,7 @@ import { useLibrary } from '../state/library.store'
 import { usePlayer } from '../state/player.store'
 import { UI } from './config'
 import { Down, Next, Pause, Play, Prev, Skip } from './icons'
+import { LayersPanel } from './LayersPanel'
 import { Seek } from './Seek'
 import { VersionPanel } from './VersionPanel'
 
@@ -31,6 +32,7 @@ export function NowPlaying({ open, onClose }: { open: boolean; onClose(): void }
           <button className="icon-btn" onClick={() => next(1)} aria-label="Next song"><Next size={26} /></button>
         </div>
         <VersionPanel />
+        <LayersPanel />
       </div>
     </div>
   )

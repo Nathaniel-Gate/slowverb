@@ -7,6 +7,7 @@ import { useLibrary } from '../features/library/library.store'
 import { useFx } from '../features/fx/fx.store'
 import { usePlayer } from '../features/player/player.store'
 import { usePlaylists } from '../features/playlists/playlists.store'
+import { phoneListsFor } from '../features/export/phoneLists'
 import { masterOf } from './master'
 import { runCommandById } from './commands'
 import { describeStep } from './describe'
@@ -333,7 +334,7 @@ export const useEditor = create<S>((set, get) => {
         const rel = root && project.song.startsWith(root + '/') ? project.song.slice(root.length + 1).split('/').slice(0, -1).join('/') : ''
         const fx = masterOf(project), tag = [fx.speed !== 1 && `${fx.speed.toFixed(2)}x`, fx.wet > 0 && 'reverb'].filter(Boolean).join('-') || 'original'
         const r = await renderProject(project, buffers, { bitDepth: 16 })
-        await window.api.sendToPhone(rel, `${track?.title ?? project.name} (edit ${tag})`, encodeWav(r.channels, r.rate, r.bitDepth))
+        await window.api.sendToPhone(rel, `${track?.title ?? project.name} (edit ${tag})`, encodeWav(r.channels, r.rate, r.bitDepth), phoneListsFor(track?.path))
         set({ busy: null }); toast('Sent to your phone: iCloud Drive, Slowverb Phone')
       } catch (e) { console.error('[editor] send to phone failed', e); set({ busy: null }); toast(e instanceof Error ? e.message : 'Send failed') }
     },

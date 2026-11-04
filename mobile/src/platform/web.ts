@@ -1,8 +1,10 @@
+import type { Playlist } from '@shared/types'
 import { CONFIG } from '../config'
 import type { Platform, Song } from './types'
 import { newId, pickViaInput } from './util'
 
-const { name: DB, version: VER, songs: SONGS, blobs: BLOBS } = CONFIG.db
+const { name: DB, version: VER, songs: SONGS, blobs: BLOBS, meta: META } = CONFIG.db
+const LISTS_KEY = 'playlists'
 const req = <T,>(r: IDBRequest<T>) => new Promise<T>((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error) })
 const finished = (tx: IDBTransaction) => new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error) })
 
@@ -12,8 +14,10 @@ export function createWebPlatform(idb: IDBFactory = indexedDB): Platform {
   const db = () => dbp ??= new Promise<IDBDatabase>((res, rej) => {
     const open = idb.open(DB, VER)
     open.onupgradeneeded = () => {
-      open.result.createObjectStore(SONGS, { keyPath: 'id' })
-      open.result.createObjectStore(BLOBS)
+      const names = open.result.objectStoreNames   // version 1 had songs + blobs; version 2 adds meta (playlists)
+      if (!names.contains(SONGS)) open.result.createObjectStore(SONGS, { keyPath: 'id' })
+      if (!names.contains(BLOBS)) open.result.createObjectStore(BLOBS)
+      if (!names.contains(META)) open.result.createObjectStore(META)
     }
     open.onsuccess = () => res(open.result)
     open.onerror = () => rej(open.error)
@@ -49,6 +53,15 @@ export function createWebPlatform(idb: IDBFactory = indexedDB): Platform {
       const tx = (await db()).transaction(SONGS, 'readwrite'), store = tx.objectStore(SONGS)
       const cur = await req(store.get(id) as IDBRequest<Song | undefined>)
       if (cur) store.put({ ...cur, ...patch })
+      await finished(tx)
+    },
+    async loadLists() {
+      const v = await req((await db()).transaction(META).objectStore(META).get(LISTS_KEY) as IDBRequest<Playlist[] | undefined>)
+      return Array.isArray(v) ? v : []
+    },
+    async saveLists(lists) {
+      const tx = (await db()).transaction(META, 'readwrite')
+      tx.objectStore(META).put(lists, LISTS_KEY)
       await finished(tx)
     }
   }

@@ -1,11 +1,12 @@
 import { Capacitor } from '@capacitor/core'
+import type { Playlist } from '@shared/types'
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { CONFIG } from '../config'
 import type { Platform, Song } from './types'
 import { extFor, newId, pickViaInput } from './util'
 
 type Rec = Song & { ext: string }
-const { nativeSongsDir: DIR, nativeMetaFile: META, nativeChunkBytes: CHUNK } = CONFIG
+const { nativeSongsDir: DIR, nativeMetaFile: META, nativeListsFile: LISTS, nativeChunkBytes: CHUNK } = CONFIG
 const dir = Directory.Documents
 const pathOf = (r: { id: string; ext: string }) => `${DIR}/${r.id}.${r.ext}`
 
@@ -15,7 +16,7 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(s)
 }
 
-/** iPhone platform: audio files in Documents/songs/<id>.<ext> (visible in Files), metadata in Documents/songs/library.json. */
+/** iPhone platform: audio files in Documents/songs/<id>.<ext> (visible in Files), metadata in Documents/songs/library.json, playlists in Documents/songs/playlists.json. */
 export function createNativePlatform(): Platform {
   let recs: Rec[] | null = null
   let chain: Promise<unknown> = Promise.resolve() // serialises metadata writes
@@ -67,6 +68,17 @@ export function createNativePlatform(): Platform {
       if (i < 0) return
       list[i] = { ...list[i], ...patch }
       await persist()
+    },
+    async loadLists() {
+      try {
+        const r = await Filesystem.readFile({ path: LISTS, directory: dir, encoding: Encoding.UTF8 })
+        const v = JSON.parse(String(r.data)); return Array.isArray(v) ? v as Playlist[] : []
+      } catch { return [] } // first run: no file yet
+    },
+    async saveLists(lists) {
+      const next = chain.then(() => Filesystem.writeFile({ path: LISTS, directory: dir, encoding: Encoding.UTF8, recursive: true, data: JSON.stringify(lists) }))
+      chain = next.catch(() => undefined)
+      await next
     }
   }
 }

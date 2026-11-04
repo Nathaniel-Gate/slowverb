@@ -11,7 +11,8 @@ import { useSettings } from './settings.store'
 
 type S = {
   cur: string | null; playing: boolean; pos: number; dur: number
-  play(id: string): Promise<void>
+  queue: string[] | null   // the song ids next / previous / auto-advance walk through (the list the song was tapped in); null = the whole library
+  play(id: string, queue?: string[]): Promise<void>
   toggle(): void
   seek(t: number): void
   skip(d: number): void
@@ -29,9 +30,10 @@ const flushFx = () => {
   clearTimeout(fxTimer)
   if (pending) { const { id, fx } = pending; pending = null; void useLibrary.getState().setSongFx(id, fx) }
 }
-const ids = () => useLibrary.getState().songs.map((s) => s.id)
+const allIds = () => useLibrary.getState().songs.map((s) => s.id)
 
 export const usePlayer = create<S>((set, get) => {
+  const ids = () => { const q = get().queue, all = allIds(); if (!q) return all; const have = new Set(all); return q.filter((i) => have.has(i)) }
   const rememberPos = () => { const { cur, pos } = get(); if (cur && useLibrary.getState().songs.some((x) => x.id === cur)) savePos(cur, pos) }
 
   /** One-time wiring of engine events, lock-screen buttons, fx -> engine, fx -> song memory. Lazy so importing never builds Web Audio. */
@@ -70,10 +72,11 @@ export const usePlayer = create<S>((set, get) => {
   }
 
   return {
-    cur: null, playing: false, pos: 0, dur: 0,
-    async play(id) {
+    cur: null, playing: false, pos: 0, dur: 0, queue: null,
+    async play(id, queue) {
       const song = useLibrary.getState().songs.find((s) => s.id === id); if (!song) return
       bind(); engine.unlock() // must happen synchronously, inside the tap
+      if (queue) set({ queue }); else if (get().queue && !get().queue!.includes(id)) set({ queue: null })
       if (get().cur === id && engine.loaded) { if (engine.el.paused) await engine.el.play().catch(() => undefined); return }
       flushFx(); rememberPos()
       const mine = ++token
@@ -104,7 +107,7 @@ export const usePlayer = create<S>((set, get) => {
     stop() {
       token++; flushFx(); rememberPos()
       engine.clear()
-      set({ cur: null, playing: false, pos: 0, dur: 0 })
+      set({ cur: null, playing: false, pos: 0, dur: 0, queue: null })
     }
   }
 })

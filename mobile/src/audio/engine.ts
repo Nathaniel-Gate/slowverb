@@ -37,8 +37,11 @@ class Engine {
   /** True once the element/context exist (so callers can avoid creating them just to subscribe). */
   get ready() { return this._el !== null }
 
+  private hooks: (() => void)[] = []
+  /** Extra work to do in the same tap (the layers' own AudioContext needs its gesture too). */
+  onUnlock(fn: () => void) { this.hooks.push(fn) }
   /** Call synchronously inside a tap handler: iOS only lets the AudioContext start from a user gesture. */
-  unlock() { void this.ctx.resume().catch(() => undefined) }
+  unlock() { void this.ctx.resume().catch(() => undefined); for (const h of this.hooks) h() }
 
   apply(fx: Fx) {
     this.init(); this.lastFx = fx

@@ -9,6 +9,8 @@ type Voice = { src: AudioBufferSourceNode | null; gain: GainNode; sig: string; d
  *  Its OWN AudioContext, created on the first play() and suspended whenever it is faded out, so it costs nothing while off
  *  and never passes through the music's speed / reverb. No React in here. */
 export class AmbienceEngine {
+  /** `resolve` turns a layer's url into something fetch() can read: the Mac app passes absolute file paths (-> media://), the phone app passes ready blob / file URLs. */
+  constructor(private resolve: (url: string) => string = mediaUrl) {}
   private ctx: AudioContext | null = null
   private fade: GainNode | null = null     // 0..1, the fade in / out
   private level: GainNode | null = null    // master level
@@ -50,6 +52,12 @@ export class AmbienceEngine {
     await this.reconcile()
   }
 
+  /** Build + resume the context without making a sound. The phone calls this inside a tap, because iOS only lets an AudioContext start from a user gesture. */
+  prime() {
+    if (!this.ctx) this.build()
+    if (this.ctx!.state !== 'running') void this.ctx!.resume().catch(() => undefined)
+  }
+
   /** Fade out (0.8 s), then suspend the context so nothing renders. */
   pause() {
     const was = this.wantPlaying
@@ -89,7 +97,7 @@ export class AmbienceEngine {
     if (!p) {
       p = (async () => {
         try {
-          const bytes = await (await fetch(mediaUrl(url))).arrayBuffer()
+          const bytes = await (await fetch(this.resolve(url))).arrayBuffer()
           const src = await this.ctx!.decodeAudioData(bytes)
           if (!loop) return src   // played through as it is
           const chans = loopChannels(Array.from({ length: src.numberOfChannels }, (_, c) => src.getChannelData(c)), src.sampleRate)

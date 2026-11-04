@@ -1,65 +1,69 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLibrary } from '../state/library.store'
-import { usePlayer } from '../state/player.store'
-import { useSettings } from '../state/settings.store'
+import { useLists } from '../state/lists.store'
+import { catOfList, inCategory, songsOfList } from '../state/model'
+import { useNav } from '../state/nav.store'
+import { CategoryTabs } from './CategoryTabs'
 import { UI } from './config'
-import { SongRow } from './SongRow'
-import { SongSheet } from './SongSheet'
+import { ListSheet } from './ListSheet'
+import { ListsView } from './ListsView'
 import { Plus } from './icons'
-import type { Song } from './types'
+import { SongList } from './SongList'
+
+const HELP: Record<string, string> = {
+  'Songs': 'Your music. Slowed and reverb versions you send from the Mac land here.',
+  'Sound bites': 'Short clips. Play them on their own or layer them under a song.',
+  'White noise': 'Rain, fans, hum. Layer them under a song from the Now Playing screen.'
+}
 
 export function Library({ openPlayer }: { openPlayer(): void }) {
-  const { songs, loading, importFiles, remove } = useLibrary()
-  const { cur, playing, play } = usePlayer()
-  const playOnTap = useSettings((s) => s.playOnTap)
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [sheet, setSheet] = useState<{ song: Song; edit: boolean } | null>(null)
+  const { songs, loading, importFiles } = useLibrary()
+  const lists = useLists((s) => s.lists)
+  const { category, view, listId, setView, openList } = useNav()
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [editList, setEditList] = useState(false)
   const timer = useRef(0)
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
+  const list = listId ? lists.find((l) => l.id === listId) : undefined
+  const shown = list ? songsOfList(songs, list) : inCategory(songs, category)
   const doImport = async () => {
     setBusy(true)
     try {
-      const n = await importFiles()
+      const n = await importFiles(list ? catOfList(list) : category, list?.id ?? null)
       if (n > 0) { setToast(`+${n} ADDED`); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setToast(null), UI.toastMs) }
     } finally { setBusy(false) }
   }
-  const tap = (s: Song) => {
-    if (s.id === cur) return openPlayer()
-    if (playOnTap) void play(s.id)
-    else setSheet({ song: s, edit: false })
-  }
+  const count = loading ? 'LOADING' : `${String(shown.length).padStart(2, '0')} ${shown.length === 1 ? 'SONG' : 'SONGS'}`
 
   return (
-    <div className="screen" onPointerDown={(e) => { if (openId && !(e.target as HTMLElement).closest('.song')) setOpenId(null) }}>
+    <div className="screen">
       <div className="head">
         <span className="mono">SLOWVERB</span>
         <button className="btn" onClick={doImport} disabled={busy}><Plus size={16} />{busy ? 'IMPORTING' : 'IMPORT'}</button>
       </div>
-      <h1 className="h1">Library</h1>
-      <div className="mono sub">{loading ? 'LOADING' : `${String(songs.length).padStart(2, '0')} ${songs.length === 1 ? 'SONG' : 'SONGS'}`}</div>
-
-      {!loading && songs.length === 0 ? (
-        <div className="panel empty-state">
-          <span className="mono">01 / Get started</span>
-          <p>Tap IMPORT and pick songs from the Files app.</p>
-          <p>If you used SEND TO PHONE on your Mac, open <b>iCloud Drive &gt; Slowverb Phone</b> and select the songs there.</p>
-          <p className="dim">Each song remembers its own slowed and reverb version.</p>
-        </div>
+      <h1 className="h1">{list ? list.name : category}</h1>
+      <div className="mono sub">{list ? `${category.toUpperCase()} PLAYLIST · ` : ''}{count}</div>
+      <CategoryTabs />
+      {list ? (
+        <div className="subnav"><button className="chip" onClick={() => openList(null)}>{'‹'} PLAYLISTS</button><button className="chip" onClick={() => setEditList(true)}>RENAME / DELETE</button></div>
       ) : (
-        <ul className="songs">
-          {songs.map((s, i) => (
-            <SongRow key={s.id} song={s} index={i} current={s.id === cur} playing={playing} open={openId === s.id}
-              onTap={() => tap(s)} onLong={() => { setOpenId(null); setSheet({ song: s, edit: false }) }}
-              onOpen={(o) => setOpenId(o ? s.id : openId === s.id ? null : openId)}
-              onEdit={() => setSheet({ song: s, edit: true })} onDelete={() => { setOpenId(null); void remove(s.id) }} />
-          ))}
-        </ul>
+        <div className="subnav">
+          <button className={`chip ${view === 'songs' ? 'on' : ''}`} onClick={() => setView('songs')}>ALL</button>
+          <button className={`chip ${view === 'lists' ? 'on' : ''}`} onClick={() => setView('lists')}>PLAYLISTS</button>
+        </div>
       )}
+      {!list && view === 'lists' ? <ListsView /> : !loading && shown.length === 0 ? (
+        <div className="panel empty-state">
+          <span className="mono">01 / {list ? 'Empty playlist' : `No ${category.toLowerCase()} yet`}</span>
+          <p>{list ? 'Tap IMPORT to add songs here, or add existing ones from a song\'s options (hold a song).' : 'Tap IMPORT and pick audio from the Files app.'}</p>
+          {!list && <p>{HELP[category]}</p>}
+          {!list && category === 'Songs' && <p>Sent from your Mac? Open <b>iCloud Drive &gt; Slowverb Phone</b> and select the audio <b>and playlists.json</b> together.</p>}
+        </div>
+      ) : <SongList songs={shown} listId={list?.id ?? null} openPlayer={openPlayer} />}
       {toast && <div className="toast">{toast}</div>}
-      {sheet && <SongSheet song={sheet.song} startEdit={sheet.edit} onClose={() => setSheet(null)} onPlay={() => { void play(sheet.song.id) }} />}
+      {editList && list && <ListSheet id={list.id} category={category} onClose={() => setEditList(false)} onCreated={() => undefined} />}
     </div>
   )
 }

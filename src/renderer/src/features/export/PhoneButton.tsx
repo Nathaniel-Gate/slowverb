@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { effectiveFx, useFx } from '../fx/fx.store'
+import { useLibrary } from '../library/library.store'
+import { phoneListsFor } from './phoneLists'
 import { usePlayer } from '../player/player.store'
 import { renderCurrentWav, slug } from './renderCurrent'
 
@@ -11,14 +13,15 @@ export function PhoneButton() {
     setState('busy'); setMsg('')
     try {
       const r = await renderCurrentWav(); if (!r) return setState('idle')
-      await window.api.sendToPhone(r.rel, `${r.title} (${r.edited ? 'edit ' : ''}${slug(fx)})`, r.wav)
+      const lists = phoneListsFor(useLibrary.getState().tracks.find((x) => x.id === cur)?.path)   // only the playlists this song is in
+      await window.api.sendToPhone(r.rel, `${r.title} (${r.edited ? 'edit ' : ''}${slug(fx)})`, r.wav, lists)
       setState('sent')
     } catch (e) { console.error('[phone]', e); setMsg(e instanceof Error ? e.message : 'Failed'); setState('error') }
     setTimeout(() => setState('idle'), 4000)
   }
   return (
     <button className="ghost" disabled={!cur || locked || state === 'busy'} onClick={run}
-      title={state === 'error' ? msg : locked ? 'Turn pitch lock off to send' : 'Put a copy in iCloud Drive > Slowverb Phone so it shows up in Files on your iPhone'}>
+      title={state === 'error' ? msg : locked ? 'Turn pitch lock off to send' : 'Put a copy in iCloud Drive > Slowverb Phone (in its category folder, with its playlists) so it shows up in Files on your iPhone'}>
       {state === 'busy' ? 'SENDING…' : state === 'sent' ? 'SENT: OPEN FILES ON YOUR PHONE' : state === 'error' ? 'FAILED' : 'SEND TO PHONE'}
     </button>
   )
