@@ -65,4 +65,4 @@
 
 /* EDIT button next to the speed/reverb tags on the player */
 .tag-btn { background: none; cursor: pointer; color: var(--white); border-color: var(--white); } .tag-btn:hover { background: var(--white); color: var(--ink-950); }
-.ed-mini { white-space: nowrap; }
+.ed-mini, .ed-back { white-space: nowrap; }

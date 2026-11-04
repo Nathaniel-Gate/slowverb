@@ -48,6 +48,10 @@ export function runClipsShot(win: BrowserWindow) {
       const out = { video: { ext: vid?.ext, bytes: vid?.b64 ? Math.round(vid.b64.length * 0.75) : 0, error: vid?.error }, ...r, shots: [await shot('clips-1100x720.png', 1100, 720), await shot('clips-1600x1000.png', 1600, 1000)] }
       await win.webContents.executeJavaScript(`window.__sv.useEditor.getState().setDock(null)`)
       out.shots.push(await shot('clips-1100x720-nodock.png', 1100, 720))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; E.getState().runCommand('clips.aspect.9:16'); E.getState().setDock('inspector') })()`)
+      out.shots.push(await shot('clips-916-inspector.png', 1100, 720))
+      await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; await E.getState().newVersion('Empty'); E.getState().setDock('media') })()`)
+      out.shots.push(await shot('clips-empty.png', 1100, 720))
       await win.webContents.executeJavaScript(`(async () => { const E = window.__sv.useEditor; E.getState().setView('audio'); await new Promise(r => setTimeout(r, 400)) })()`)
       out.shots.push(await shot('editor-after-clips.png', 1100, 720))
       console.log('CLIPS_RESULT ' + JSON.stringify(out))

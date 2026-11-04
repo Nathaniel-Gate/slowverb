@@ -6,6 +6,7 @@ import { editPoints } from './ops'
 import { useOverlay } from './overlayStore'
 import type { S } from './storeTypes'
 import { loopLabel } from './storeLoop'
+import { CLIPS_COMMANDS } from '../clips/commands'
 
 /** One thing the editor can do. Drives the keys, the command palette, context menus and the shortcuts dialog. */
 export type Command = { id: string; label: string; group: string; keys: string[]; run: (s: S) => void; when?: (s: S) => boolean; repeat?: boolean }
@@ -153,7 +154,8 @@ export const COMMANDS: Command[] = [
   cmd('autoDelete', 'Toggle auto-delete empty tracks', 'Project', (s) => s.toggleAutoDelete()),
   cmd('history', 'Undo history', 'Project', () => { const o = useOverlay.getState(); o.set({ history: !o.history }) }),
   cmd('palette', 'Command palette', 'App', () => { const o = useOverlay.getState(); o.set({ palette: !o.palette, shortcuts: false }) }),
-  cmd('shortcuts', 'Keyboard shortcuts', 'App', () => useOverlay.getState().set({ shortcuts: true, palette: false }))
+  cmd('shortcuts', 'Keyboard shortcuts', 'App', () => useOverlay.getState().set({ shortcuts: true, palette: false })),
+  ...CLIPS_COMMANDS   // Clips tab extras (fit, push-in, video sound, frame shape); everything above works on pictures too
 ]
 const byId = new Map(COMMANDS.map((c) => [c.id, c]))
 export const getCommand = (id: string) => byId.get(id)

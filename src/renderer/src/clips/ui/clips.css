@@ -30,8 +30,9 @@
 .tl-clip[data-visual][data-selected] .tl-thumbs { opacity: .85; }
 .tl-clip[data-visual] .tl-clip-label { background: rgb(10 10 10 / .55); padding: 0 4px; border-radius: 3px; }
 
-/* media dock */
-.cl-media { min-height: 100%; }
+/* media dock. .chip is also styled by lists.css (pill, 90px max); here it is a normal button */
+.cl-media .chip, .cl-col .chip { max-width: none; flex: none; border-radius: var(--radius-sm); font-size: 10px; padding: 6px 12px; letter-spacing: .06em; cursor: pointer; }
+.cl-media .dk-find { flex: none; }
 .cl-link-row { display: flex; gap: calc(var(--u) / 2); } .cl-link-row .find-in { flex: 1; min-width: 0; }
 .cl-dl { display: flex; flex-direction: column; gap: calc(var(--u) / 2); font-size: 10px; color: var(--steel-300); }
 .cl-dl.bad .mono { color: var(--white); }
