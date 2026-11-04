@@ -18,6 +18,7 @@ import { useLists } from './features/lists/lists.store'
 import { placeFiles } from './features/lists/place'
 import { useAmbience } from './features/ambience/ambience.store'
 import { bindAmbience } from './features/ambience/bind'
+import { bindSongColor } from './features/settings/songColor'
 import { ambienceEngine } from './audio/ambienceEngine'
 
 export async function wire() {
@@ -56,6 +57,7 @@ export async function wire() {
   })   // and the player's stream sleeps while the editor plays
   engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
   engine.el.addEventListener('ended', () => { if (useSettings.getState().autoAdvance && !useEditor.getState().open) usePlayer.getState().next(1) })   // only in the player view, and only if switched on
+  bindSongColor()
   bindAmbience()                                                // background sound: follows usePlayer.playing, saved via useSettings
   // persist (debounced)
   const saveLibraryNow = () => {

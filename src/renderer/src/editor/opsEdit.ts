@@ -83,7 +83,7 @@ export function moveClips(p: Project, ids: string[], dt: number, trackShift = 0)
   if (shift !== 0 && moving.some(c => locked.has(p.tracks[trackIndex(p, c.track) + shift].id))) return p
   const movedIds = new Set(moving.map(c => c.id))
   const moved = moving.map(c => ({ ...c, start: c.start + d, track: p.tracks[trackIndex(p, c.track) + shift].id }))
-  return { ...p, clips: placeAll(p.clips.filter(c => !movedIds.has(c.id)), moved) }
+  return { ...p, clips: placeAll(p.clips.filter(c => !movedIds.has(c.id)), moved, true) }
 }
 
 /** Copies of ids offset by dt (clamped >= 0), new ids, overwrite rule. dt = 0 is a no-op. */

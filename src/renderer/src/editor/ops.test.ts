@@ -108,6 +108,18 @@ describe('moveClips', () => {
     const q = moveClips(p, ['a', 'b'], -3)
     expect(spans(q, 'T1')).toEqual([[0, 1], [3, 4]])
   })
+  it('dragging a clip so its head overlaps the end of another makes a crossfade over the overlap', () => {
+    const p = proj([mk('a', 'T1', 0, 0, 4), mk('m', 'T2', 10, 0, 4)])
+    const q = moveClips(p, ['m'], -6.5, -1)           // m -> T1 [3.5, 7.5], a is [0, 4]: overlap 0.5
+    ok(q)
+    expect(spans(q, 'T1')).toEqual([[0, 4], [3.5, 7.5]])
+    expect(get(q, 'a').fadeOut).toBeCloseTo(0.5); expect(get(q, 'm').fadeIn).toBeCloseTo(0.5)
+  })
+  it('a clip dropped completely over another still overwrites it', () => {
+    const p = proj([mk('a', 'T1', 3, 0, 2), mk('m', 'T2', 10, 0, 6)])
+    const q = moveClips(p, ['m'], -8, -1); ok(q)
+    expect(spans(q, 'T1')).toEqual([[2, 8]])
+  })
   it('moving by 0 or an unknown id is a no-op', () => {
     const p = proj([mk('a', 'T1', 0, 0, 2)])
     expect(moveClips(p, ['a'], 0)).toBe(p); expect(moveClips(p, ['x'], 1)).toBe(p); expect(moveClips(p, ['a'], NaN)).toBe(p)
@@ -120,8 +132,8 @@ describe('moveClips', () => {
     expect(spans(q, 'T1')).toEqual([[3, 3.5], [3.5, 5.5], [5.5, 6], [6, 7], [7, 9]])
     expect(xs[0]).toMatchObject({ id: 'x', srcIn: 0, srcOut: 0.5 })
     expect(xs[2]).toMatchObject({ srcIn: 2.5, srcOut: 3 }); expect(xs[2].id).not.toBe('x'); ok(q)
-    const r = moveClips(p, ['m'], 2.5)       // [2.5,4.5] over x: x loses its head
-    expect(spans(r, 'T1')).toEqual([[2.5, 4.5], [4.5, 6], [6, 7], [7, 9]]); expect(get(r, 'x')).toMatchObject({ start: 4.5, srcIn: 1.5, srcOut: 3 })
+    const r = moveClips(p, ['m'], 2.5)       // [2.5,4.5] over x's head: auto crossfade over the 1.5 s overlap, x keeps its length
+    expect(spans(r, 'T1')).toEqual([[2.5, 4.5], [3, 6], [6, 7], [7, 9]]); expect(get(r, 'x')).toMatchObject({ start: 3, fadeIn: 1.5 }); expect(get(r, 'm').fadeOut).toBeCloseTo(1.5)
   })
   it('removes a clip that is completely covered', () => {
     const p = proj([mk('m', 'T1', 0, 0, 4), mk('x', 'T1', 5, 0, 1)])

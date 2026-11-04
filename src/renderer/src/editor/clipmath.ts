@@ -180,12 +180,33 @@ export function xfadePartners(clips: Clip[], c: Clip): Set<string> {
   return ids
 }
 
+/** A clip dropped so that only its head or only its tail overlaps a neighbour on the same track becomes a crossfade over the overlap
+ *  (both clips fade across exactly that span) instead of overwriting the neighbour. Covers / lies inside a clip = still overwrite.
+ *  Returns the adjusted base and the adjusted clip, or null when nothing qualifies. */
+export function autoCrossfade(base: Clip[], c: Clip, ignore: Set<string> = new Set()): { base: Clip[]; clip: Clip } | null {
+  let out = base, clip = c, hit = false
+  for (const x of base) {
+    if (x.track !== c.track || x.id === c.id || ignore.has(x.id) || x.loop || c.loop) continue   // live loop repeats keep their own crossfades
+    const head = x.start < c.start - SLACK && clipEnd(x) > c.start + SLACK && clipEnd(x) < clipEnd(c) - SLACK     // x's tail under c's head
+    const tail = x.start > c.start + SLACK && x.start < clipEnd(c) - SLACK && clipEnd(x) > clipEnd(c) + SLACK    // c's tail over x's head
+    if (!head && !tail) continue
+    const ov = head ? clipEnd(x) - clip.start : clipEnd(clip) - x.start
+    const nx = head ? { ...x, fadeOut: Math.max(x.fadeOut, ov) } : { ...x, fadeIn: Math.max(x.fadeIn, ov) }
+    const nc = head ? { ...clip, fadeIn: Math.max(clip.fadeIn, ov) } : { ...clip, fadeOut: Math.max(clip.fadeOut, ov) }
+    if (nx.fadeIn + nx.fadeOut > clipDur(nx) + SLACK || nc.fadeIn + nc.fadeOut > clipDur(nc) + SLACK) continue   // too short to hold the fade: overwrite as before
+    out = out.map((y) => (y.id === x.id ? reEnv(x, nx) : y)); clip = reEnv(clip, nc); hit = true
+  }
+  return hit ? { base: out, clip } : null
+}
+
 /** Place clips one after another with overwrite (later ones win), against `base`. Siblings placed together keep legal crossfades. */
-export function placeAll(base: Clip[], placed: Clip[]): Clip[] {
+export function placeAll(base: Clip[], placed: Clip[], auto = false): Clip[] {
   let out = base
   const done: Clip[] = []
-  for (const c of [...placed].sort(byStart)) {
+  for (let c of [...placed].sort(byStart)) {
+    if (auto) { const a = autoCrossfade(out, c, new Set(placed.map(q => q.id))); if (a) { out = a.base; c = a.clip } }
     const skip = new Set(done.filter(s => s.track === c.track && s.start <= c.start && clipEnd(s) - c.start > SLACK && xfadeOk(s, c)).map(s => s.id))
+    if (auto) for (const id of xfadePartners(out, c)) skip.add(id)   // the neighbours the clip now crossfades with stay whole
     out = [...clearRange(out, c.track, c.start, clipEnd(c), skip), c]
     done.push(c)
   }

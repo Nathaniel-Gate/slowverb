@@ -28,17 +28,17 @@ input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.25); }
 input[type=range]:active::-webkit-slider-thumb { transform: scale(1.5); box-shadow: 0 0 0 6px rgb(255 255 255 / .1); }
 
 /* slider fill: set --p (0-100%) inline on the input */
-input[type=range] { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--white) var(--p, 0%), var(--hairline-strong) var(--p, 0%)); }
+input[type=range] { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--neon, var(--white)) var(--p, 0%), var(--hairline-strong) var(--p, 0%)); }
 
 /* playing indicator on the current row */
 .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
-.eq i { width: 2px; height: 100%; background: var(--white); border-radius: 1px; transform-origin: bottom; animation: eq 900ms ease-in-out infinite; }
+.eq i { width: 2px; height: 100%; background: var(--neon, var(--white)); border-radius: 1px; transform-origin: bottom; animation: eq 900ms ease-in-out infinite; }
 .eq i:nth-child(2) { animation-delay: -300ms; } .eq i:nth-child(3) { animation-delay: -600ms; }
 .eq.paused i { animation-play-state: paused; transform: scaleY(.3); }
 
 /* progress bar: smooth determinate + sliding indeterminate */
 .bar { height: 3px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
-.bar-fill { height: 100%; width: 100%; background: var(--white); border-radius: 3px; transform-origin: left; will-change: transform; }
+.bar-fill { height: 100%; width: 100%; background: var(--neon, var(--white)); box-shadow: 0 0 8px var(--neon, transparent); border-radius: 3px; transform-origin: left; will-change: transform; }
 .bar-ind { height: 100%; width: 38%; background: linear-gradient(90deg, transparent, var(--white), transparent); animation: shimmer 1.2s var(--ease) infinite; }
 
 /* download feedback area expands smoothly instead of popping */
