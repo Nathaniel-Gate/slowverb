@@ -1,8 +1,9 @@
 import { mediaUrl } from '../../../shared/mediaUrl'
 import { AMBIENCE, clampMasterDb, clampSoundDb, dbToGain, loopChannels } from './ambience'
 
-export type AmbienceLayer = { key: string; url: string; db: number; loop: boolean }   // key = rel path, url = absolute file path, db = this sound's own level
-type Voice = { src: AudioBufferSourceNode; gain: GainNode; once?: boolean }
+/** urls = the tracks this layer plays in order. One url + loop = a seamless loop; otherwise they play through (and start over at the end when loop is on). */
+export type AmbienceLayer = { key: string; urls: string[]; db: number; loop: boolean }   // key = rel path, url = absolute file path, db = this sound's own level
+type Voice = { src: AudioBufferSourceNode | null; gain: GainNode; sig: string; dead: boolean }
 
 /** The ambience layer's own audio output: each chosen Sound bite loops on its own voice -> voice gain -> fade -> master level -> speakers.
  *  Its OWN AudioContext, created on the first play() and suspended whenever it is faded out, so it costs nothing while off
@@ -20,7 +21,7 @@ export class AmbienceEngine {
   private masterDb = -20
   private wantPlaying = false
   private silent = false
-  private finished = new Set<string>()   // play-once layers that have played to the end (not restarted until the player is paused and played again)
+  private finished = new Map<string, string>()   // layers that played to the end and are not set to repeat (kept until their tracks / loop setting change)
   private suspendTimer: ReturnType<typeof setTimeout> | undefined
   private token = 0
   readonly failed = new Set<string>()
@@ -38,10 +39,8 @@ export class AmbienceEngine {
 
   /** Fade in (0.6 s). Builds the context on first use, loads (decodes + loops) whatever is not loaded yet. */
   async play() {
-    const resumed = !this.wantPlaying
     this.wantPlaying = true
     clearTimeout(this.suspendTimer)
-    if (resumed) { this.finished.clear(); for (const [k, v] of this.voices) if (v.once) { this.voices.delete(k); this.retire(v) } }   // play-once layers start again with the music
     const my = ++this.token
     if (!this.ctx) this.build()
     const ctx = this.ctx!
@@ -84,41 +83,59 @@ export class AmbienceEngine {
   }
 
   /** Decode a file once, cut it for looping, cache it. Resolves null when the file cannot be read or decoded. */
-  private load(l: AmbienceLayer) {
-    const ck = l.url + (l.loop ? '' : '|once')
+  private load(key: string, url: string, loop: boolean) {
+    const ck = url + (loop ? '' : '|once')
     let p = this.buffers.get(ck)
     if (!p) {
       p = (async () => {
         try {
-          const bytes = await (await fetch(mediaUrl(l.url))).arrayBuffer()
+          const bytes = await (await fetch(mediaUrl(url))).arrayBuffer()
           const src = await this.ctx!.decodeAudioData(bytes)
-          if (!l.loop) return src   // a song layered once: play it as it is
+          if (!loop) return src   // played through as it is
           const chans = loopChannels(Array.from({ length: src.numberOfChannels }, (_, c) => src.getChannelData(c)), src.sampleRate)
           const b = this.ctx!.createBuffer(chans.length, chans[0].length, src.sampleRate)
           chans.forEach((c, i) => b.copyToChannel(c as Float32Array<ArrayBuffer>, i))
-          this.done.set(l.key, b); return b
-        } catch { this.failed.add(l.key); this.buffers.delete(ck); return null }
+          this.done.set(key, b); return b
+        } catch { this.failed.add(key); this.buffers.delete(ck); return null }
       })()
-      this.buffers.set(l.url, p)
+      this.buffers.set(ck, p)
     }
     return p
   }
 
-  /** Make the running voices match the wanted layers: start new ones, fade out removed ones, move levels. */
+  private sigOf(l: AmbienceLayer) { return `${l.loop ? 'L' : 'O'}|${l.urls.join('|')}` }
+
+  /** Make the running voices match the wanted layers: start new ones, fade out removed or changed ones, move levels. */
   private async reconcile() {
     if (!this.ctx) return
     const want = new Map(this.layers.map((l) => [l.key, l]))
-    for (const [key, v] of this.voices) if (!want.has(key) || (v.once && want.get(key)!.loop) || (!v.once && !want.get(key)!.loop)) { this.voices.delete(key); this.retire(v) }
+    for (const [key, v] of this.voices) { const w = want.get(key); if (!w || v.sig !== this.sigOf(w)) { this.voices.delete(key); this.retire(v) } }
+    for (const [key, sig] of this.finished) { const w = want.get(key); if (!w || sig !== this.sigOf(w)) this.finished.delete(key) }
     this.applyLevels()
-    await Promise.all(this.layers.filter((l) => !this.voices.has(l.key) && !this.finished.has(l.key)).map(async (l) => {
-      const b = await this.load(l)
+    await Promise.all(this.layers.filter((l) => l.urls.length && !this.voices.has(l.key) && !this.finished.has(l.key)).map(async (l) => {
+      const seamless = l.urls.length === 1 && l.loop
+      const first = await this.load(l.key, l.urls[0], seamless)
       const cur = this.layers.find((x) => x.key === l.key)
-      if (!b || !this.ctx || !this.wantPlaying || !cur || this.voices.has(l.key)) return   // changed meanwhile
-      const src = this.ctx.createBufferSource(), gain = this.ctx.createGain()
-      src.buffer = b; src.loop = cur.loop; gain.gain.value = 0
-      src.connect(gain); gain.connect(this.fade!); src.start()
-      const v = { src, gain, once: !cur.loop }; this.voices.set(l.key, v)
-      if (!cur.loop) src.onended = () => { if (this.voices.get(l.key) === v) { this.finished.add(l.key) } }
+      if (!first || !this.ctx || !this.wantPlaying || !cur || this.voices.has(l.key) || this.sigOf(cur) !== this.sigOf(l)) return   // changed meanwhile
+      const gain = this.ctx.createGain(); gain.gain.value = 0; gain.connect(this.fade!)
+      const v: Voice = { src: null, gain, sig: this.sigOf(l), dead: false }
+      this.voices.set(l.key, v)
+      // one sound at a time through the layer's list; the context is suspended while paused, so pause / play carries on exactly where it was
+      const playAt = async (i: number) => {
+        if (v.dead || !this.ctx) return
+        const buf = i === 0 && first ? first : await this.load(l.key, l.urls[i], seamless)
+        if (v.dead || !this.ctx) return
+        if (!buf) { if (l.urls.length > 1) return void playAt((i + 1) % l.urls.length); return }   // unreadable file: skip it
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = seamless
+        src.connect(gain); v.src = src; src.start()
+        if (!seamless) src.onended = () => {
+          if (v.dead || v.src !== src) return
+          if (i + 1 < l.urls.length) void playAt(i + 1)
+          else if (l.loop) void playAt(0)
+          else this.finished.set(l.key, v.sig)
+        }
+      }
+      await playAt(0)
       this.ramp(gain, dbToGain(clampSoundDb(cur.db)), AMBIENCE.switchSec)
     }))
   }
@@ -128,7 +145,8 @@ export class AmbienceEngine {
   }
   private retire(v: Voice) {
     this.ramp(v.gain, 0, AMBIENCE.switchSec)
-    setTimeout(() => { try { v.src.stop() } catch { /* already stopped */ } v.src.disconnect(); v.gain.disconnect() }, AMBIENCE.switchSec * 1000 + 100)
+    v.dead = true
+    setTimeout(() => { try { v.src?.stop() } catch { /* already stopped */ } v.src?.disconnect(); v.gain.disconnect() }, AMBIENCE.switchSec * 1000 + 100)
   }
   /** Linear ramp from wherever the gain is right now (so a fade interrupted half way turns round smoothly). */
   private ramp(g: GainNode, to: number, sec: number) {

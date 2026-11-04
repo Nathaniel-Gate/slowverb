@@ -17,7 +17,10 @@ export function bindAmbience() {
   const sync = () => {
     const a = useAmbience.getState(), lib = useLibrary.getState().tracks, root = usePlaylists.getState().root
     if (lib !== seenTracks || root !== seenRoot) { seenTracks = lib; seenRoot = root; bites = new Map(libraryRels(lib, root).map((b) => [b.rel, b.path])) }
-    const layers = a.sounds.flatMap((s) => { const path = bites.get(s.rel); return path ? [{ key: s.rel, url: path, db: s.level, loop: s.loop ?? categoryOf(s.rel) === AMBIENCE.category }] : [] })   // a chosen file that is gone is just skipped (the choice is kept)
+    const layers = a.sounds.flatMap((s) => {
+      const urls = [s.rel, ...(s.queue ?? [])].flatMap((r) => { const path = bites.get(r); return path ? [path] : [] })
+      return urls.length ? [{ key: s.rel, urls, db: s.level, loop: s.loop ?? (!!s.queue?.length || categoryOf(s.rel) === AMBIENCE.category) }] : []
+    })   // a chosen file that is gone is just skipped (the choice is kept)
     ambienceEngine.setMaster(a.level); ambienceEngine.setLayers(layers)
     if (a.on && layers.length && usePlayer.getState().playing && !useEditor.getState().open) void ambienceEngine.play(); else ambienceEngine.pause()
   }

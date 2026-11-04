@@ -22,7 +22,7 @@ export function cleanSounds(v: unknown): AmbienceSound[] {
   const seen = new Set<string>(), out: AmbienceSound[] = []
   for (const e of v) {
     if (!e || typeof e.rel !== 'string' || !e.rel || seen.has(e.rel)) continue
-    seen.add(e.rel); out.push({ rel: e.rel, level: clampSoundDb(typeof e.level === 'number' ? e.level : AMBIENCE.soundDefaultDb), ...(typeof e.loop === 'boolean' ? { loop: e.loop } : {}) })
+    seen.add(e.rel); out.push({ rel: e.rel, level: clampSoundDb(typeof e.level === 'number' ? e.level : AMBIENCE.soundDefaultDb), ...(typeof e.loop === 'boolean' ? { loop: e.loop } : {}), ...(Array.isArray(e.queue) && e.queue.length ? { queue: e.queue.filter((q: unknown) => typeof q === 'string' && q) } : {}) })
   }
   return out
 }
