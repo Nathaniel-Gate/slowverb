@@ -35,7 +35,7 @@ describe('library scan', () => {
     const { sync } = await import('./playlists')
     const r = await sync()
     expect(r.files).toEqual([join(root, 'Pl', 'x.mp3')])
-    expect(r.folders).toEqual(['Pl', 'Songs', 'Sound bites'])   // the two category homes always exist
+    expect(r.folders).toEqual(['Pl', 'Songs', 'Sound bites', 'White noise'])   // the three category homes always exist
   })
 })
 
