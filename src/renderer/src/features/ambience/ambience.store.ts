@@ -11,6 +11,8 @@ type A = {
   setLevel(db: number): void
   toggleSound(rel: string): void
   setSoundLevel(rel: string, db: number): void
+  setLoop(rel: string, loop: boolean): void
+  addSounds(rels: string[]): void   // add layers (no-op for ones already chosen) and switch the layer on
   hydrate(s?: Partial<Settings>): void
 }
 export const useAmbience = create<A>((set, get) => ({
@@ -19,6 +21,8 @@ export const useAmbience = create<A>((set, get) => ({
   setLevel: (db) => set({ level: clampMasterDb(db) }),
   toggleSound: (rel) => { const s = get().sounds; set({ sounds: s.some((x) => x.rel === rel) ? s.filter((x) => x.rel !== rel) : [...s, { rel, level: AMBIENCE.soundDefaultDb }] }) },
   setSoundLevel: (rel, db) => set({ sounds: get().sounds.map((x) => (x.rel === rel ? { ...x, level: clampSoundDb(db) } : x)) }),
+  setLoop: (rel, loop) => set({ sounds: get().sounds.map((x) => (x.rel === rel ? { ...x, loop } : x)) }),
+  addSounds: (rels) => { const s = get().sounds, add = rels.filter((r, i) => !s.some((x) => x.rel === r) && rels.indexOf(r) === i); set({ on: true, sounds: [...s, ...add.map((rel) => ({ rel, level: AMBIENCE.soundDefaultDb }))] }) },
   hydrate: (s) => set({ on: s?.ambienceOn === true, level: clampMasterDb(typeof s?.ambienceLevel === 'number' ? s.ambienceLevel : DEFAULT_SETTINGS.ambienceLevel), sounds: cleanSounds(s?.ambienceSounds) })
 }))
 export const ambienceSettingsOf = (a: Pick<A, 'on' | 'level' | 'sounds'>): Pick<Settings, 'ambienceOn' | 'ambienceLevel' | 'ambienceSounds'> => ({ ambienceOn: a.on, ambienceLevel: a.level, ambienceSounds: a.sounds })

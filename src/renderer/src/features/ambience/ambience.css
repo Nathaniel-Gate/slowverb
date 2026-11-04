@@ -13,3 +13,9 @@
 .amb-addrow { display: flex; gap: 8px; margin-top: 12px; }
 .amb-link { flex: 1; min-width: 0; padding: 10px 12px; font: inherit; font-size: 12px; color: inherit; background: transparent; border: 1px solid var(--steel-300); border-radius: 10px; }
 .amb .amb-add { display: inline-block; width: auto; margin: 0; padding: 10px 14px; }
+.amb-layer { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: end; margin-top: 8px; }
+.amb-pick { margin-top: 8px; display: grid; gap: 6px; }
+.amb-picklist { max-height: 180px; overflow-y: auto; display: grid; gap: 2px; }
+.amb-pickrow { display: flex; justify-content: space-between; gap: 8px; text-align: left; padding: 8px 10px; background: transparent; border: 0; border-radius: 8px; color: inherit; font-size: 13px; cursor: pointer; }
+.amb-pickrow:hover { background: rgba(255,255,255,.08); } .amb-pickrow span { font-size: 10px; color: var(--steel-500); }
+.amb .amb-add { margin-top: 10px; }

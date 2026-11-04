@@ -55,3 +55,9 @@ describe('settings helpers', () => {
     expect(soundName('Sound bites/Nature/Birds.wav')).toBe('Nature/Birds'); expect(soundName('Sound bites/Rain.mp3')).toBe('Rain')
   })
 })
+
+import { cleanSounds as _clean } from './ambience'
+import { it as _it, expect as _expect } from 'vitest'
+_it('cleanSounds keeps a valid loop flag and drops a bad one', () => {
+  _expect(_clean([{ rel: 'a', level: 0, loop: false }, { rel: 'b', level: 0, loop: 'x' }])).toEqual([{ rel: 'a', level: 0, loop: false }, { rel: 'b', level: 0 }])
+})

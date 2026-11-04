@@ -11,3 +11,10 @@ export function soundBites(tracks: Track[], root: string): SoundBite[] {
   for (const t of tracks) { const rel = fileRel(root, t.path); if (rel && categoryOf(rel) === AMBIENCE.category) out.push({ rel, path: t.path }) }
   return out.sort((a, b) => a.rel.localeCompare(b.rel))
 }
+
+/** Every library file with its path relative to the library root (any layer can be any song). */
+export function libraryRels(tracks: Track[], root: string): SoundBite[] {
+  const out: SoundBite[] = []
+  for (const t of tracks) { const rel = fileRel(root, t.path); if (rel) out.push({ rel, path: t.path }) }
+  return out.sort((a, b) => a.rel.localeCompare(b.rel))
+}

@@ -13,7 +13,7 @@ export type Track = {
   fx?: Fx // this track's remembered version
 }
 /** One chosen Sound bite for the ambience layer: its path relative to the library root ('Sound bites/Rain.wav') and its own level in dB. */
-export type AmbienceSound = { rel: string; level: number }
+export type AmbienceSound = { rel: string; level: number; loop?: boolean }   // loop unset = loops for Sound bites, plays once for songs
 export type Settings = {
   playOnClick: boolean; playAfterAdd: boolean; autoAdvance: boolean
   ambienceOn: boolean; ambienceLevel: number; ambienceSounds: AmbienceSound[] // looped Sound bites under the music: switch, master level (dB), chosen sounds
