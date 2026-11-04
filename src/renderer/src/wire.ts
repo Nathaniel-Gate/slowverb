@@ -45,13 +45,13 @@ export async function wire() {
   engine.el.addEventListener('play', () => { usePlayer.setState({ playing: true }); if (useEditor.getState().playing) void useEditor.getState().togglePlay(); editorTransport.idle() })   // never both at once; the editor's output stream sleeps while the player plays
   // The editor sounds like the player: it follows this song's player version (speed + reverb) unless the Mix panel sets its own.
   setMasterFallback((p) => { const t = useLibrary.getState().tracks.find((x) => x.path === p.song); return useFx.getState().bypass ? DEFAULT_FX : (t?.fx ?? useFx.getState().fx) })
-  const resync = () => { const e = useEditor.getState(); if (e.open && e.playing && e.project && !e.project.master) editorTransport.seek(e.project, e.buffers, editorTransport.position()) }
+  const resync = () => { const e = useEditor.getState(), p = e.sound(); if (e.open && e.playing && p && !p.master) editorTransport.seek(p, e.buffers, editorTransport.position()) }
   useFx.subscribe((s, prev) => { if (s.fx !== prev.fx || s.bypass !== prev.bypass) resync() })
   useEditor.subscribe((s, prev) => {
     if (s.playing && !prev.playing) engine.idle()
     if (usePlayer.getState().viaEdit && s.playing !== prev.playing) {
       usePlayer.setState({ playing: s.playing })
-      const end = s.project ? s.project.clips.reduce((m, c) => Math.max(m, c.start + (c.srcOut - c.srcIn) / (c.speed || 1)), 0) : 0
+      const heard = s.sound(), end = heard ? heard.clips.reduce((m, c) => Math.max(m, c.start + (c.srcOut - c.srcIn) / (c.speed || 1)), 0) : 0
       if (!s.playing && !s.open && end > 0 && s.playhead >= end - 0.1 && useSettings.getState().autoAdvance) usePlayer.getState().advanceAfterGap()   // the edit played to its end in the PLAYER view: next song (never from the editor view)
     }
   })   // and the player's stream sleeps while the editor plays

@@ -15,7 +15,7 @@ export function useAudioTime() {
   const viaEdit = usePlayer((s) => s.viaEdit)
   useEffect(() => {
     if (viaEdit) {
-      const tick = () => { const e = useEditor.getState(); setPos({ t: e.now(), d: e.project ? projectEnd(e.project) : 0 }) }
+      const tick = () => { const e = useEditor.getState(); const p = e.sound(); setPos({ t: e.now(), d: p ? projectEnd(p) : 0 }) }
       tick(); const id = window.setInterval(tick, 200)
       return () => window.clearInterval(id)
     }

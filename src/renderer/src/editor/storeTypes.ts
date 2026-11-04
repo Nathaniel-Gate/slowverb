@@ -1,5 +1,5 @@
 import type { Fx } from '../../../shared/types'
-import type { Clip, FadeCurve, Loop, Project, Tool, TrackFx } from './model'
+import type { Clip, FadeCurve, Loop, Project, Tool, TrackFx, TrackKind } from './model'
 import type { History } from './history'
 import type { Buffers } from './schedule'
 import type { Peaks } from './peaks'
@@ -13,7 +13,8 @@ export type RangeSel = { a: number; b: number; tracks: string[] | null }
 type SaveState = 'saved' | 'saving' | 'dirty'
 
 export type S = {
-  open: boolean; project: Project | null; hist: History | null; buffers: Buffers; peaks: Map<string, Peaks>
+  /** full = the whole saved edit (audio + visual tracks); project = the slice the open tab edits (see kinds.ts). History holds full projects. */
+  open: boolean; full: Project | null; view: TrackKind; project: Project | null; hist: History | null; buffers: Buffers; peaks: Map<string, Peaks>
   selection: string[]; tool: Tool; playhead: number; playing: boolean; pxPerSec: number; scrollX: number; scrollY: number; viewWidth: number
   snap: boolean; markIn: number | null; markOut: number | null; saveState: SaveState; busy: string | null; clipboard: Clip[]
   // wave 2
@@ -42,6 +43,7 @@ export type S = {
   showToast(text: string): void; setDock(tab: DockTab | null): void; toggleBeatSnap(): void; toggleShowBeats(): void
   markerAt(t: number, name?: string): void; renameMarker(id: string, name: string): void; removeMarker(id: string): void
   newVersion(name?: string): Promise<void>; duplicateVersion(): Promise<void>; openVersion(name: string): Promise<void>; deleteVersion(name: string): Promise<void>
+  sound(): Project | null; setView(view: TrackKind): void
   listVersions(): string[]; refreshVersions(): Promise<void>; runCommand(id: string): void; fitSelection(): void; gotoTime(t: number): void
 
   // wave 3: range, envelope, fades, smart edits. Range actions use `range`, falling back to the In/Out marks.

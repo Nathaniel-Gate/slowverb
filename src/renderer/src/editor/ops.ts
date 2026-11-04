@@ -59,18 +59,19 @@ export function setClip(p: Project, id: string, patch: Partial<Pick<Clip, 'gain'
   return patchClips(p, [id], patch)
 }
 
-/** New track "A<n>" (smallest unused n); name defaults to its id. */
+/** New track "A<n>" (smallest unused n); name defaults to its id. A new track takes the kind of the last track, so in the
+ *  Clips tab (whose slice holds only visual tracks) it is a visual track "V<n>". */
 export function addTrack(p: Project, name?: string): Project {
-  const ids = new Set(p.tracks.map(t => t.id))
+  const ids = new Set(p.tracks.map(t => t.id)), visual = p.tracks[p.tracks.length - 1]?.kind === 'visual', pre = visual ? 'V' : 'A'
   let n = p.tracks.length + 1
-  while (ids.has(`A${n}`)) n++
-  return { ...p, tracks: [...p.tracks, { id: `A${n}`, name: name ?? `A${n}`, ...NEW_TRACK }] }
+  while (ids.has(`${pre}${n}`)) n++
+  return { ...p, tracks: [...p.tracks, { id: `${pre}${n}`, name: name ?? `${pre}${n}`, ...NEW_TRACK, ...(visual ? { kind: 'visual' as const } : {}) }] }
 }
 
-/** Removes a track and its clips. Refused (no-op) for the last track or a locked one. */
+/** Removes a track and its clips. Refused (no-op) for the last track of its kind or a locked one. */
 export function removeTrack(p: Project, id: string): Project {
   const t = p.tracks.find(x => x.id === id)
-  if (!t || t.lock || p.tracks.length <= 1) return p
+  if (!t || t.lock || p.tracks.filter(x => (x.kind === 'visual') === (t.kind === 'visual')).length <= 1) return p
   return syncLoops(p, { ...p, tracks: p.tracks.filter(x => x.id !== id), clips: p.clips.filter(c => c.track !== id) })
 }
 

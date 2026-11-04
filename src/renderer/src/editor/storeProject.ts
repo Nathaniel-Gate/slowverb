@@ -86,7 +86,7 @@ export function projectActions(c: Ctx): Pick<S, ProjectKeys> {
       try { await window.api.editorSave(p.song, np); await switchTo(np); toast(`New version ${np.name}`) } catch (e) { console.error('[editor] new version failed', e); toast('Could not create version') }
     },
     async duplicateVersion() {
-      const p = get().project; if (!p) return
+      const p = get().full; if (!p) return   // the whole edit: audio AND pictures
       await get().flush(); await get().refreshVersions()
       const np = { ...p, id: uid('p', []), name: uniqueName(`${p.name} copy`, get().versions) }
       try { await window.api.editorSave(p.song, np); await switchTo(np); toast(`Duplicated as ${np.name}`) } catch (e) { console.error('[editor] duplicate failed', e); toast('Could not duplicate') }

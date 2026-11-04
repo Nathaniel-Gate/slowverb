@@ -18,6 +18,7 @@ import { computePeaks, type Peaks } from './peaks'
 import { renderProject } from './render'
 import { loadBuffers } from './schedule'
 import { isPristine } from './pristine'
+import { audioOf, merge, slice } from './kinds'
 import { tidyTracks } from './tidy'
 import { sourceToTimeline, timelineToSource } from './sync'
 import { editPlayActions } from './storePlay'
@@ -49,8 +50,10 @@ const loadRenderOpts = (): RenderOpts => {
 export const useEditor = create<S>((set, get) => {
   let saveTimer: number | undefined, toastTimer: number | undefined, opening = 0, toastId = 0, lastKey = '', lastAt = 0
   const toast = (text: string) => { clearTimeout(toastTimer); set({ toast: { text, id: ++toastId } }); toastTimer = window.setTimeout(() => set({ toast: null }), EDITOR.toastMs) }
+  const lens = (f: Project) => slice(f, get().view)   // what the open tab edits (audio or visual tracks); history and saves hold the full project
+  const sound = () => { const f = get().full; return f ? audioOf(f) : null }   // what the transport plays, whichever tab is open
   const syncLoop = () => {
-    const { loop, markIn, markOut, project } = get()
+    const { loop, markIn, markOut } = get(), project = sound()
     editorTransport.setLoop(loop && project ? (markIn !== null && markOut !== null && markOut > markIn ? { a: markIn, b: markOut } : { a: 0, b: projectEnd(project) }) : null)
   }
   const stopPlayback = () => {
@@ -62,13 +65,13 @@ export const useEditor = create<S>((set, get) => {
   const playerPath = () => { const id = usePlayer.getState().cur; return id ? useLibrary.getState().tracks.find((t) => t.id === id)?.path : undefined }
   const playerEntry = (path: string): Entry => (!usePlayer.getState().viaEdit && engine.loaded && playerPath() === path ? { s: engine.el.currentTime, was: !engine.el.paused } : null)
   const carryIn = (e: Entry) => {
-    const p = get().project; if (!e || !p) return
+    const p = sound(); if (!e || !p) return
     const t = sourceToTimeline(p, p.song, e.s, get().playhead)
     if (t === null) { toast('That part of the song is cut out of this edit'); return }
     get().gotoTime(t)
     if (e.was) void get().togglePlay()
   }
-  const carryOutInfo = () => { const { project, playing } = get(); return project ? { map: timelineToSource(project, get().now()), song: project.song, was: playing } : null }
+  const carryOutInfo = () => { const { playing } = get(), project = sound(); return project ? { map: timelineToSource(project, get().now()), song: project.song, was: playing } : null }
   const carryOut = (o: ReturnType<typeof carryOutInfo>) => {
     if (!o || !o.map) return
     const track = useLibrary.getState().tracks.find((t) => t.path === o.map!.src); if (!track) return
@@ -80,15 +83,15 @@ export const useEditor = create<S>((set, get) => {
   const schedule = () => { clearTimeout(saveTimer); saveTimer = window.setTimeout(() => void get().flush(), EDITOR.autosaveMs) }
   const resync = () => {
     if (get().loop) syncLoop()
-    const { playing, project, buffers } = get()
+    const { playing, buffers } = get(), project = sound()
     if (playing && project) editorTransport.seek(project, buffers, editorTransport.position())
   }
   const step = (f: (h: History) => History) => {
     const h = get().hist; if (!h) return
     const n = f(h); if (n === h) return
     lastKey = ''
-    const ids = new Set(n.present.clips.map((c) => c.id))
-    set({ hist: n, project: n.present, saveState: 'dirty', gap: null, selection: get().selection.filter((id) => ids.has(id)) }); schedule(); resync()
+    const view = lens(n.present), ids = new Set(view.clips.map((c) => c.id))
+    set({ hist: n, full: n.present, project: view, saveState: 'dirty', gap: null, selection: get().selection.filter((id) => ids.has(id)) }); schedule(); resync()
   }
   const edit: Ctx['edit'] = (fn, ok, none = 'Nothing changed') => {
     const before = get().project; if (!before) return false
@@ -97,12 +100,13 @@ export const useEditor = create<S>((set, get) => {
     toast(typeof ok === 'function' ? ok(get()) : ok); return true
   }
   const coalesce: Ctx['coalesce'] = (key, fn) => {
-    const { project, hist } = get(); if (!project || !hist) return
+    const { project, hist, full } = get(); if (!project || !hist || !full) return
     const next = fn(project); if (next === project) return
     const now = performance.now()
     if (lastKey === key && now - lastAt < EDITOR.coalesceMs && hist.past.length) {
       if (JSON.stringify(next) === JSON.stringify(project)) return
-      set({ hist: { ...hist, present: next, future: [] }, project: next, saveState: 'dirty' }); lastAt = now; schedule(); resync(); return
+      const nf = merge(full, next, get().view)
+      set({ hist: { ...hist, present: nf, future: [] }, full: nf, project: lens(nf), saveState: 'dirty' }); lastAt = now; schedule(); resync(); return
     }
     get().apply(() => next)
     if (get().project !== project) { lastKey = key; lastAt = now }
@@ -110,18 +114,18 @@ export const useEditor = create<S>((set, get) => {
   const targets = () => { const t = get().project?.tracks.filter((x) => x.target).map((x) => x.id); return t?.length ? t : undefined }
   const switchTo: Ctx['switchTo'] = async (p) => {
     stopPlayback()
-    const loaded = await loadBuffers(p, editorTransport.ctx)
+    const loaded = await loadBuffers(audioOf(p), editorTransport.ctx)
     const buffers = new Map(get().buffers), peaks = new Map<string, Peaks>(get().peaks)
     loaded.forEach((b, k) => { buffers.set(k, b); if (!peaks.has(k)) peaks.set(k, computePeaks(b)) })
     lastKey = ''
-    set({ project: p, hist: createHistory(p), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, saveState: 'saved', markIn: null, markOut: null })
+    set({ full: p, project: lens(p), hist: createHistory(p), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, saveState: 'saved', markIn: null, markOut: null })
     void get().refreshVersions()
   }
   const ctx: Ctx = { set, get, toast, edit, coalesce, stopPlayback, schedule, resync, switchTo, targets }
   editorTransport.onEnded = () => set({ playing: false, shuttle: 0, playhead: editorTransport.position() })
 
   return {
-    open: false, project: null, hist: null, buffers: new Map(), peaks: new Map(), selection: [], tool: 'select', playhead: 0, playing: false,
+    open: false, full: null, view: 'audio', project: null, hist: null, buffers: new Map(), peaks: new Map(), selection: [], tool: 'select', playhead: 0, playing: false,
     pxPerSec: EDITOR.defaultPxPerSec, scrollX: 0, scrollY: 0, viewWidth: 0, snap: true, markIn: null, markOut: null,
     saveState: 'saved', busy: null, clipboard: [],
     loop: false, gap: null, dockOpen: false, dockTab: 'inspector', toast: null, shuttle: 0, beatSnap: false, showBeats: false, versions: [], renderOpts: loadRenderOpts(), range: null,
@@ -143,26 +147,26 @@ export const useEditor = create<S>((set, get) => {
       await get().flush()
       if (show) { stopPlayback(); engine.el.pause() }
       const token = ++opening
-      set(show ? { open: true, busy: 'Loading', project: null, hist: null } : { busy: 'Loading', project: null, hist: null })
+      set(show ? { open: true, busy: 'Loading', project: null, full: null, hist: null } : { busy: 'Loading', project: null, full: null, hist: null })
       try {
         const names = await window.api.editorList(path)
         let project = names.length ? await window.api.editorLoad(path, names[0]) : null
         const fresh = !project
         project ??= ops.newProject(path, useLibrary.getState().tracks.find((t) => t.path === path)?.duration || 1, 'Edit')
-        const buffers = await loadBuffers(project, editorTransport.ctx)
+        const buffers = await loadBuffers(audioOf(project), editorTransport.ctx)
         const real = buffers.get(path)?.duration
         if (fresh && real && Math.abs(real - project.sources[path].duration) > 1e-3) project = ops.newProject(path, real, 'Edit')
         if (token !== opening) return null
         const peaks = new Map<string, Peaks>(); buffers.forEach((b, k) => peaks.set(k, computePeaks(b)))
         lastKey = ''
         set({
-          project, hist: createHistory(project), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, scrollX: 0, scrollY: 0, markIn: null, markOut: null,
+          full: project, project: lens(project), hist: createHistory(project), buffers, peaks, selection: [], gap: null, range: null, playhead: 0, scrollX: 0, scrollY: 0, markIn: null, markOut: null,
           saveState: 'saved', busy: null, tool: 'select', loop: false
         })
         syncLoop(); void get().refreshVersions()
         get().fitToView(get().viewWidth || 1000)
         carryIn(entry)
-        return project
+        return get().project
       } catch (e) {
         console.error('[editor] open failed', path, e); set(show ? { open: false, busy: null } : { busy: null }); if (show) toast('Could not open')
         return null
@@ -170,7 +174,8 @@ export const useEditor = create<S>((set, get) => {
     },
     show() { const p = get().project; if (!p) return; const entry = playerEntry(p.song); engine.el.pause(); set({ open: true }); carryIn(entry) },
     close() {
-      const p = get().project, track = p ? useLibrary.getState().tracks.find((t) => t.path === p.song) : undefined
+      if (get().view !== 'audio') get().setView('audio')   // outside the editor overlay the project always shows its audio side (player, render)
+      const p = sound(), track = p ? useLibrary.getState().tracks.find((t) => t.path === p.song) : undefined
       if (p && track && (usePlayer.getState().viaEdit || !isPristine(p))) {   // the player takes over the SAME transport: it plays exactly this edit, no restart
         usePlayer.getState().adoptEdit(track.id); void get().flush(); set({ open: false }); return
       }
@@ -178,19 +183,19 @@ export const useEditor = create<S>((set, get) => {
     },
     async flush() {
       clearTimeout(saveTimer)
-      const { project, saveState } = get(); if (!project || saveState === 'saved') return
+      const { full: project, saveState } = get(); if (!project || saveState === 'saved') return
       set({ saveState: 'saving' })
       try { await window.api.editorSave(project.song, project) } catch (e) { console.error('[editor] save failed', e); set({ saveState: 'dirty' }); saveTimer = window.setTimeout(() => void get().flush(), 2000); return }   // retry until it works
-      set({ saveState: get().project === project ? 'saved' : 'dirty' })
+      set({ saveState: get().full === project ? 'saved' : 'dirty' })
     },
 
     apply(fn) {
-      const { project, hist } = get(); if (!project || !hist) return
+      const { project, hist, full } = get(); if (!project || !hist || !full) return
       const next = tidyTracks(project, fn(project)); if (next === project) return   // auto-delete empty tracks is part of the same undo step
-      const h = pushHistory(hist, next); if (h === hist) return
-      const ids = new Set(h.present.clips.map((c) => c.id))
+      const h = pushHistory(hist, merge(full, next, get().view)); if (h === hist) return
+      const view = lens(h.present), ids = new Set(view.clips.map((c) => c.id))
       lastKey = ''
-      set({ hist: h, project: h.present, saveState: 'dirty', gap: null, selection: get().selection.filter((id) => ids.has(id)) })
+      set({ hist: h, full: h.present, project: view, saveState: 'dirty', gap: null, selection: get().selection.filter((id) => ids.has(id)) })
       schedule(); resync()
     },
     undo() {
@@ -229,12 +234,12 @@ export const useEditor = create<S>((set, get) => {
 
     now: () => (get().playing ? editorTransport.position() : get().playhead),
     setPlayhead(t) {
-      const { project, buffers } = get(), pos = Math.max(0, t); set({ playhead: pos })
+      const { buffers } = get(), project = sound(), pos = Math.max(0, t); set({ playhead: pos })
       if (project) editorTransport.seek(project, buffers, pos)
     },
     toggleSnap() { set({ snap: !get().snap }); toast(get().snap ? 'Snap on' : 'Snap off') },
     async togglePlay() {
-      const { project, buffers, playing, playhead } = get(); if (!project) return
+      const { buffers, playing, playhead } = get(), project = sound(); if (!project) return
       if (playing) { stopPlayback(); return }
       syncLoop()
       const end = projectEnd(project), from = playhead >= end - EDITOR.edgeEps ? 0 : playhead
@@ -249,6 +254,7 @@ export const useEditor = create<S>((set, get) => {
     },
     splitAllAtPlayhead() { const t = get().now(); edit((q) => ops.splitAt(q, t), `Cut all tracks at ${fmtTime(t)}`, 'Nothing to cut here') },
     resetToOriginal() {
+      if (get().view === 'visual') return toast('Reset to the original song works in the Editor tab')
       const dur = get().project ? (get().buffers.get(get().project!.song)?.duration ?? get().project!.sources[get().project!.song]?.duration ?? 0) : 0
       if (!dur) return toast('Nothing to reset')
       if (edit((p) => ({ ...ops.newProject(p.song, dur, p.name), id: p.id }), 'Reset to the original song (undo brings the cuts back)', 'Already original')) set({ selection: [], gap: null })
@@ -305,6 +311,7 @@ export const useEditor = create<S>((set, get) => {
      *  (slowed/reverb) is not baked in: it stays live over the whole mix. */
     async bounceSelection() {
       const { project, buffers, selection } = get(); if (!project || get().busy) return
+      if (get().view === 'visual') return toast('Bounce works on audio clips (Editor tab)')
       const sel = project.clips.filter((c) => selection.includes(c.id)); if (!sel.length) return toast('Select the clips to bounce first')
       const a = Math.min(...sel.map((c) => c.start)), b = Math.max(...sel.map(clipEnd)), order = new Map(project.tracks.map((t, i) => [t.id, i]))
       const lead = sel.reduce((m, c) => ((order.get(c.track) ?? 0) < (order.get(m.track) ?? 0) ? c : m)).track
@@ -327,7 +334,7 @@ export const useEditor = create<S>((set, get) => {
     /** Render the edit exactly as it sounds (master version included), convert to AAC and drop it in iCloud Drive > Slowverb Phone. */
     async sendToPhone() {
       await get().flush()
-      const { project, buffers } = get(); if (!project || get().busy) return
+      const { buffers } = get(), project = sound(); if (!project || get().busy) return
       set({ busy: 'Sending to phone' })
       try {
         const track = useLibrary.getState().tracks.find((t) => t.path === project.song), root = usePlaylists.getState().root
@@ -340,7 +347,7 @@ export const useEditor = create<S>((set, get) => {
     },
     async renderToLibrary() {
       await get().flush()
-      const { project, buffers, renderOpts, markIn, markOut } = get(); if (!project || get().busy) return
+      const { buffers, renderOpts, markIn, markOut } = get(), project = sound(); if (!project || get().busy) return
       const range = renderOpts.range && markIn !== null && markOut !== null && markOut > markIn ? { a: markIn, b: markOut } : undefined
       set({ busy: 'Rendering' })
       try {
@@ -355,7 +362,7 @@ export const useEditor = create<S>((set, get) => {
       await get().flush()
       try { if ((await window.api.editorList(project.song)).includes(project.name)) await window.api.editorRenameVersion(project.song, project.name, to) }
       catch (e) { console.error('[editor] rename version failed', e); return toast('Rename failed') }
-      const h = mapHist(hist, (p) => ({ ...p, name: to })); set({ hist: h, project: h.present, saveState: 'dirty' }); schedule()   // rewrite the file so its JSON carries the new name
+      const h = mapHist(hist, (p) => ({ ...p, name: to })); set({ hist: h, full: h.present, project: lens(h.present), saveState: 'dirty' }); schedule()   // rewrite the file so its JSON carries the new name
       toast(`Renamed to ${to}`); void get().refreshVersions()
     },
     async renameSong(name) {
@@ -367,10 +374,18 @@ export const useEditor = create<S>((set, get) => {
         const h = mapHist(hist, (p) => swapPath(p, from, to))
         const rekey = <T,>(m: Map<string, T>) => new Map([...m].map(([k, v]) => [k === from ? to : k, v] as const))
         const tr = useLibrary.getState().tracks.find((t) => t.path === from); if (tr) useLibrary.getState().setPath(tr.id, to)
-        set({ hist: h, project: h.present, buffers: rekey(buffers), peaks: rekey(peaks) }); toast('Song renamed')
+        set({ hist: h, full: h.present, project: lens(h.present), buffers: rekey(buffers), peaks: rekey(peaks) }); toast('Song renamed')
       } catch (e) { console.error('[editor] rename song failed', e); toast('Rename failed') }
     },
     runCommand: (id) => runCommandById(id, get()),
+    sound,
+    /** Switch which side of the project the editor surface shows: 'audio' (Editor tab) or 'visual' (Clips tab). Same edit, same
+     *  history, same playhead; the selection is cleared because its clips are not on screen any more. */
+    setView(view) {
+      if (view === get().view) return
+      const f = get().full
+      set({ view, project: f ? slice(f, view) : null, selection: [], gap: null, range: null, clipboard: [] })
+    },
     showToast: toast
   }
 })

@@ -23,7 +23,9 @@ export function validate(p: Project): string[] {
       bad.push(`clip ${c.id} speed ${c.speed} out of range`); return false
     }
     if (!tracks.has(c.track)) bad.push(`clip ${c.id} on missing track ${c.track}`)
-    const src = p.sources[c.src]
+    const src = p.sources[c.src], tr = p.tracks.find(t => t.id === c.track)
+    if (src && tr && !!src.kind !== (tr.kind === 'visual')) bad.push(`clip ${c.id} ${src.kind ? 'picture on an audio' : 'audio on a visual'} track`)
+    if (c.zoom !== undefined && (!finite(c.zoom) || c.zoom < 0)) bad.push(`clip ${c.id} bad zoom`)
     if (!src) bad.push(`clip ${c.id} has unknown source`)
     else if (c.srcOut > src.duration + SLACK) bad.push(`clip ${c.id} srcOut ${c.srcOut} past source ${src.duration}`)
     if (c.srcIn < -SLACK) bad.push(`clip ${c.id} srcIn < 0`)

@@ -4,7 +4,9 @@ import type { Fx } from '../../../shared/types'
 // A gap = empty timeline. An overlap = clips on different tracks (they sum). Same-track clips never overlap.
 /** Per-track effects, applied after the track's clips are mixed: a simple 3-band EQ (dB) and a reverb send (own mix/length/darkness). */
 export type TrackFx = { low: number; mid: number; high: number; reverb?: { wet: number; decay: number; damping: number } }
-export type Track = { id: string; name: string; mute: boolean; solo: boolean; lock: boolean; gain: number; target?: boolean; height?: number; collapsed?: boolean; fx?: TrackFx }
+/** Track kind: absent = an audio track (every edit made before the Clips tab existed). 'visual' = pictures and video for the Clips tab. */
+export type TrackKind = 'audio' | 'visual'
+export type Track = { id: string; name: string; mute: boolean; solo: boolean; lock: boolean; gain: number; target?: boolean; height?: number; collapsed?: boolean; fx?: TrackFx; kind?: 'visual' }
 export type Clip = {
   id: string
   src: string       // absolute path of the source audio file (key into Project.sources and the buffer map)
@@ -20,7 +22,16 @@ export type Clip = {
   loop?: string                                       // id of the Loop this clip is a repeat of (see Project.loops)
   fadeInCurve?: FadeCurve; fadeOutCurve?: FadeCurve   // default 'pow' (equal power)
   env?: EnvPoint[]                                    // volume envelope (Fairlight-style rubber band). t = seconds from clip START on the timeline, g = linear gain multiplier on top of clip gain. Sorted by t, within [0, clipDur].
+  // Visual clips only (Clips tab). gain = opacity (capped at 1), env = opacity line, fades = fade from/to black (or a dissolve over what is underneath).
+  fit?: VisualFit                                     // how the picture fills the stage (default 'cover')
+  zoom?: number                                       // slow push-in over the clip: 0 = none, 0.1 = ends 10% bigger
+  audio?: boolean                                     // video clips: also play the video's own sound (default off: the song is the soundtrack)
 }
+export type VisualFit = 'cover' | 'contain'
+export type MediaKind = 'image' | 'video'
+/** What the edit knows about a source file. kind absent = audio. Stills get a long nominal duration so they can be stretched freely. */
+export type SourceInfo = { duration: number; kind?: MediaKind; w?: number; h?: number }
+export type Aspect = '16:9' | '9:16' | '1:1' | '4:3'
 /** A loop of one source slice, repeated `count` times on ONE track, each repeat overlapping the next by `xfade` seconds (equal-power
  *  crossfade). Timeline length = count * (len - xfade) + xfade where len = srcOut - srcIn. Edit the numbers, the clips follow. */
 export type Loop = { id: string; track: string; src: string; srcIn: number; srcOut: number; start: number; count: number; xfade: number; gain: number; tail?: number /* seconds added to (or taken off) the LAST repeat's end, so the end can be extended like a normal clip while every other repeat stays a live loop repeat */ }
@@ -32,7 +43,7 @@ export type Project = {
   id: string
   name: string                                   // version name, e.g. "Extended"
   song: string                                   // path of the song this edit belongs to
-  sources: Record<string, { duration: number }>  // by path
+  sources: Record<string, SourceInfo>            // by path
   tracks: Track[]
   clips: Clip[]
   markers: Marker[]
@@ -43,6 +54,7 @@ export type Project = {
   autoDeleteEmpty?: boolean                      // remove a track as soon as its last clip leaves it (off by default)
   syncLock?: boolean                             // ripple edits also shift non-targeted tracks (default true)
   master: Fx | null                              // speed/reverb applied to the whole mix (phase 3)
+  stage?: { aspect: Aspect }                     // Clips tab preview shape (default 16:9)
 }
 export type Tool = 'select' | 'razor' | 'ripple' | 'slip' | 'hand' | 'zoom' | 'roll' | 'rate' | 'trackfwd' | 'range'
 

@@ -19,7 +19,8 @@ export function autoActions({ get, toast, edit, targets }: Ctx): Pick<S, AutoKey
       if (!p || !buf) return toast('Song audio is not loaded yet')
       toast('Detecting sections...')
       await new Promise((r) => setTimeout(r, 0))   // let the toast paint before the analysis blocks the thread
-      const times = detectSections(buf).map((s) => srcToTimeline(p, p.song, s.t)).filter((t): t is number => t !== null)
+      const heard = get().sound() ?? p   // map through the AUDIO clips (the Clips tab's slice holds none)
+      const times = detectSections(buf).map((s) => srcToTimeline(heard, p.song, s.t)).filter((t): t is number => t !== null)
       if (!times.length) return toast('No clear sections found')
       let n = 0
       edit((q) => times.reduce((acc, t, i) => {
