@@ -29,7 +29,8 @@ describe('downloader command lines', () => {
   it('video mode asks for single-file formats only (no ffmpeg on this Mac), one item, into the folder', () => {
     const a = ytVideoArgs('https://youtu.be/x', '/V/Videos', { retries: '3', socketTimeout: '15' })
     expect(a).toContain('--no-playlist'); expect(a[a.indexOf('-f') + 1]).toBe(VIDEO_FORMAT)
-    expect(VIDEO_FORMAT.split('/').every((f) => f.startsWith('b'))).toBe(true)   // never bv+ba (needs a merge)
+    expect(VIDEO_FORMAT.includes('+')).toBe(false)   // never bv+ba: joining needs ffmpeg
+    expect(VIDEO_FORMAT.indexOf('b[')).toBeLessThan(VIDEO_FORMAT.indexOf('bv['))   // picture + sound in one file preferred
     expect(a[a.indexOf('-o') + 1].startsWith('/V/Videos/')).toBe(true); expect(a.at(-1)).toBe('https://youtu.be/x')
     expect(videoError('ERROR: [youtube] x: Requested format is not available')).toMatch(/ffmpeg/)
     expect(videoError('ERROR: Sign in to confirm your age')).toMatch(/login/)
@@ -40,7 +41,8 @@ describe('downloader command lines', () => {
     const priv = galleryArgs('https://www.pinterest.com/a/b/', { dest: '/V', archive: '/V/.arc', cookies: true })
     expect(priv.slice(priv.indexOf('--cookies-from-browser'), priv.indexOf('--cookies-from-browser') + 2)).toEqual(['--cookies-from-browser', 'chrome'])
     expect(priv.at(-1)).toBe('https://www.pinterest.com/a/b/'); expect(priv.at(-2)).toBe('--')
-    expect(galleryFile('/V/pinterest/a/b/1.jpg')).toBe('/V/pinterest/a/b/1.jpg'); expect(galleryFile('# /V/pinterest/a/b/1.jpg')).toBeNull()
+    expect(galleryFile('/V/pinterest/a/b/1.jpg', '/V')).toBe('/V/pinterest/a/b/1.jpg'); expect(galleryFile('# /V/pinterest/a/b/1.jpg', '/V')).toBeNull()
+    expect(galleryFile('/x/venv/urllib3/__init__.py:35: NotOpenSSLWarning: ...', '/V')).toBeNull()   // a warning is not a download
   })
   it('turns failures into plain English', () => {
     expect(galleryError('[pinterest][error] HttpError: 401 Unauthorized', false)).toMatch(/PRIVATE BOARDS/)

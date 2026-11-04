@@ -56,7 +56,7 @@ export async function syncLink(d: Deps, input: string, o: { cookies: boolean }, 
     const paths: string[] = []
     report({ stage: `Syncing ${link.label}`, pct: null })
     const r = await d.run(bin, galleryArgs(link.url, { dest: d.visuals, archive: archive(d), cookies: o.cookies }), (l) => {
-      const f = galleryFile(l); if (f) { paths.push(f); report({ stage: `Syncing ${link.label}: ${paths.length} new`, pct: null }) }
+      const f = galleryFile(l, d.visuals); if (f) { paths.push(f); report({ stage: `Syncing ${link.label}: ${paths.length} new`, pct: null }) }
     }, signal)
     return { ...r, paths }
   }

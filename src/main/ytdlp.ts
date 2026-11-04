@@ -4,7 +4,7 @@ import { chmod, mkdir, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
 import type { DlProgress } from '../shared/types'
 import { libraryRoot } from './paths'
-import { videoError, ytVideoArgs } from './dlArgs'
+import { NO_SOUND, videoError, ytVideoArgs } from './dlArgs'
 
 // yt-dlp (open source, https://github.com/yt-dlp/yt-dlp) does the actual download. Standalone macOS binary,
 // fetched once into app data, self-updates when a site changes things.
@@ -105,7 +105,7 @@ export async function downloadAudio(input: string, report: Report, toRel = ''): 
 
 /** VIDEO mode for the Clips tab: one video (single-file format, no ffmpeg needed) into `dir` (Visuals/Videos). Same lock,
  *  progress and cancel as audio downloads; a failed run updates yt-dlp once and retries. */
-export async function downloadVideo(url: string, report: Report, dir: string, signal: AbortSignal): Promise<string[]> {
+export async function downloadVideo(url: string, report: Report, dir: string, signal: AbortSignal): Promise<{ paths: string[]; silent: boolean }> {
   if (current) throw new Error('A download is already running')
   current = { abort: new AbortController() }
   const own = current.abort, stop = () => cancelDownload(); signal.addEventListener('abort', stop)
@@ -114,14 +114,15 @@ export async function downloadVideo(url: string, report: Report, dir: string, si
     report({ stage: 'Starting', pct: null })
     await ensureBinary(report, own.signal)
     const attempt = async () => {
-      const files: string[] = []
+      const files: string[] = []; let silent = false
       const r = await run(ytVideoArgs(url, dir, KNOBS), (l) => {
+        if (l.startsWith(NO_SOUND)) silent = true
         const m = l.match(/\[download\]\s+([\d.]+)%/)
         if (m) report({ stage: 'Downloading video', pct: parseFloat(m[1]) })
         else if (/^\[(youtube|info|generic)/i.test(l)) report({ stage: 'Finding the video', pct: null })
         else if (l.startsWith('/')) files.push(l.trim())
       }, own.signal)
-      return { ...r, files }
+      return { ...r, files, silent }
     }
     let r = await attempt()
     if (!r.files.length && !own.signal.aborted && !r.stalled && !/format is not available|unsupported url/i.test(r.err)) {
@@ -131,6 +132,6 @@ export async function downloadVideo(url: string, report: Report, dir: string, si
     if (r.stalled) throw new Error('Stopped: no response for 45 seconds. Check your connection and try again.')
     if (!r.files.length) throw new Error(videoError(r.err))
     report({ stage: 'Done', pct: 100 })
-    return r.files
+    return { paths: r.files, silent: r.silent }
   } finally { current = null; signal.removeEventListener('abort', stop) }
 }

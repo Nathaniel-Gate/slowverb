@@ -65,7 +65,8 @@ export async function mediaFetch(input: string, opts: { privateBoards: boolean }
     const root = await ensureVisuals()
     if (link.kind === 'pinterest') return await syncLink(pinDeps(), input, { cookies: opts.privateBoards }, report, signal)
     if (link.kind === 'image' || link.kind === 'video') return { paths: [await fetchFile(link.url, link.kind, root, report, signal)] }
-    return { paths: await downloadVideo(link.url, report, join(root, 'Videos'), signal) }
+    const v = await downloadVideo(link.url, report, join(root, 'Videos'), signal)
+    return { paths: v.paths, note: v.silent ? 'Saved the picture only: this site keeps the sound in a separate file (joining needs ffmpeg). Fine for clips, which are silent by default.' : undefined }
   } catch (e) {
     return { paths: [], error: e instanceof Error ? e.message : String(e) }
   } finally { active = null }

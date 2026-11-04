@@ -12,7 +12,7 @@ const exists = (p: string) => stat(p).then(() => true, () => false)
 
 function run(cmd: string, args: string[], onLine: Line, signal: AbortSignal): Promise<RunResult> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { env: { ...process.env, PYTHONUNBUFFERED: '1' } })
+    const child = spawn(cmd, args, { env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONWARNINGS: 'ignore' } })
     try { if (child.pid) setPriority(child.pid, 10) } catch { /* lower priority is a nicety */ }
     let err = '', buf = '', stalled = false, timer = setTimeout(stall, STALL_MS)
     function stall() { stalled = true; child.kill('SIGTERM') }
