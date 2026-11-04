@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { categoryOf } from '../../../../shared/libraryModel'
 import type { Track } from '../../../../shared/types'
 import { useEditor } from '../../editor/editor.store'
@@ -26,7 +26,13 @@ export function Playlist() {
   const { lists, mode, listSel } = useLists()
   const list = useFlip<HTMLDivElement>()
   const [q, setQ] = useState(''), [sort, setSort] = useState<SortKey>('added')
-  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [menu, setMenuRaw] = useState<{ id: string; x: number; y: number; open: boolean } | null>(null)
+  const closeT = useRef(0)
+  const setMenu = (m: { id: string; x: number; y: number } | null) => {   // null closes with an exit animation; a new song while open just slides the same menu over
+    window.clearTimeout(closeT.current)
+    if (m) setMenuRaw({ ...m, open: true })
+    else { setMenuRaw((c) => (c ? { ...c, open: false } : c)); closeT.current = window.setTimeout(() => setMenuRaw(null), 180) }
+  }
   useEffect(() => { const close = () => setMenu(null); window.addEventListener('click', close); return () => window.removeEventListener('click', close) }, [])
 
   const pl = mode === 'lists' && listSel ? lists.find((l) => l.id === listSel) ?? null : null
@@ -75,7 +81,7 @@ export function Playlist() {
                 )}
               </div>
               <span className="n">{fmt(t.duration)}</span>
-              <button className="more" title="Move, add to playlist, delete" aria-label="Song options" onClick={(e) => { e.stopPropagation(); const b = e.currentTarget.getBoundingClientRect(); setMenu({ id: t.id, x: b.right - 230, y: b.bottom + 4 }) }} onDoubleClick={(e) => e.stopPropagation()}>
+              <button className="more" title="Move, add to playlist, delete" aria-label="Song options" onClick={(e) => { e.stopPropagation(); const b = e.currentTarget.getBoundingClientRect(); if (menu?.open && menu.id === t.id) setMenu(null); else setMenu({ id: t.id, x: b.right - 230, y: b.top }) }} onDoubleClick={(e) => e.stopPropagation()}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="2.5" cy="7" r="1.15" /><circle cx="7" cy="7" r="1.15" /><circle cx="11.5" cy="7" r="1.15" /></svg>
               </button>
             </div>
@@ -83,7 +89,7 @@ export function Playlist() {
         })}
       </div>
       <div className="side-head"><span className="mono">Double-click edits · ⋯ for options · drag to a folder to move, to a playlist to add</span></div>
-      {menu && <SongMenu id={menu.id} x={menu.x} y={menu.y} inList={pl?.id ?? null} onClose={() => setMenu(null)} />}
+      {menu && <SongMenu id={menu.id} x={menu.x} y={menu.y} open={menu.open} inList={pl?.id ?? null} onClose={() => setMenu(null)} />}
     </aside>
   )
 }

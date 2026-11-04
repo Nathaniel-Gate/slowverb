@@ -55,3 +55,12 @@
 .pl-sec { margin-top: 10px; } .pl-sechead { display: flex; justify-content: space-between; align-items: center; padding: 4px 14px; font-size: 10px; letter-spacing: .1em; color: var(--steel-500); }
 
 .menu-done { text-align: center; letter-spacing: 0.12em; font-size: 11px; color: var(--accent); }
+
+/* song menu motion: slides out from the song list, glides to another song's dots, swaps its rows with a short fade */
+.song-menu { opacity: 0; transform: translateX(10px) scale(0.97); transform-origin: right top; pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.song-menu.on { opacity: 1; transform: none; pointer-events: auto; }
+.song-menu.placed { transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sm-body { animation: sm-swap 0.18s ease both; }
+@keyframes sm-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .song-menu, .song-menu.placed { transition: opacity 0.1s; } .sm-body { animation: none; } }
