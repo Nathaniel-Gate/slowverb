@@ -99,7 +99,7 @@ export const LABELS: { key: string; name: string; color: string }[] = [
 ]
 export const labelColor = (key?: string): string => LABELS.find(l => l.key === key)?.color ?? ''
 // Track stripe colours, picked by track index.
-export const TRACK_COLORS = ['#00e5ff', '#ff2bd6', '#b6ff00', '#ffe600', '#ff6a00', '#a64dff', '#ff3d6e']   // neon: always lit, picked by track index
+export const TRACK_COLORS = ['#00f0ff', '#ff2d95', '#00ffa3', '#2db7ff', '#ff7a1a', '#3d7bff', '#19ffd5']   // neon: always lit, picked by track index
 export const trackColor = (i: number) => TRACK_COLORS[((i % TRACK_COLORS.length) + TRACK_COLORS.length) % TRACK_COLORS.length]
 
 // Ruler tick table: [step in seconds, subdivisions drawn between labelled ticks]
