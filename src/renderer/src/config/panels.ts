@@ -1,7 +1,7 @@
 // Docked panels (Inspector, Source bin, Markers, Mix, BPM, Auto) and the master meter. Every tunable lives here.
 export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto'
 export const DOCK_TABS: { id: DockTab; label: string; short: string }[] = [
-  { id: 'inspector', label: 'INSPECT', short: 'I' }, { id: 'source', label: 'SOURCE', short: 'S' }, { id: 'markers', label: 'MARKS', short: 'M' },
+  { id: 'inspector', label: 'INSPECT', short: 'I' }, { id: 'source', label: 'SONGS', short: 'S' }, { id: 'markers', label: 'MARKS', short: 'M' },
   { id: 'mix', label: 'MIX', short: 'X' }, { id: 'bpm', label: 'BPM', short: 'B' }, { id: 'auto', label: 'AUTO', short: 'A' }
 ]
 // Label / marker colour keys (Clip.label, Marker.color). The only colour in an otherwise greyscale app, kept muted.

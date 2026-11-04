@@ -582,6 +582,15 @@ export function runShot(win: BrowserWindow) {
       const img = await win.webContents.capturePage(); writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
       console.log('EDUI_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
+    if (process.env.SLOWVERB_SRCBIN) {
+      // Editor library browser: open a song in the editor, show the LIBRARY tab, add another song as a new track, screenshot. Needs SLOWVERB_ROOT with >= 2 songs.
+      const js3 = (code: string) => win.webContents.executeJavaScript(`(async () => { const sv = window.__sv, w = (ms) => new Promise(r => setTimeout(r, ms)); ${code} })()`)
+      await js3(`await sv.usePlaylists.getState().refresh(); await w(800); const ts = sv.useLibrary.getState().tracks; await sv.useEditor.getState().openSong(ts[0].path); await w(1500); sv.useEditor.getState().setDock('source'); await w(700)`)
+      writeFileSync(process.env.SLOWVERB_SHOT!.replace('.png', '-1.png'), (await win.webContents.capturePage()).toPNG())
+      const r = await js3(`const ed = sv.useEditor.getState(), ts = sv.useLibrary.getState().tracks; document.querySelectorAll('.dk-song')[1].click(); await w(900); const before = ed.project.tracks.length; [...document.querySelectorAll('.dk-btns .chip')].find(b => b.textContent === 'NEW TRACK').click(); await w(1500); const p = sv.useEditor.getState().project; return { before, after: p.tracks.length, clips: p.clips.map(c => c.src.split('/').pop() + '@' + c.track) }`)
+      writeFileSync(process.env.SLOWVERB_SHOT!.replace('.png', '-2.png'), (await win.webContents.capturePage()).toPNG())
+      console.log('SRCBIN_RESULT ' + JSON.stringify(r)); app.quit(); return
+    }
     if (process.env.SLOWVERB_LIB) {
       // Library redesign: migration result, the add popup (real clicks on the real DOM), playlists, move-keeps-membership. SLOWVERB_DIR = folder with new1.wav new2.wav to add.
       const { readdirSync, statSync } = await import('fs'), { join, relative } = await import('path')

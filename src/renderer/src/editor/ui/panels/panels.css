@@ -101,3 +101,11 @@
 .dk-hl { position: absolute; top: 12px; left: 12px; padding: 1px 5px; font-size: 10px; color: var(--ink-950); background: var(--white); border-radius: var(--radius-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
 .dk-hl.r { left: auto; right: 12px; }
 .dk-lz { display: flex; align-items: center; gap: 5px; } .dk-lz .chip { font-size: 10px; padding: 4px 8px; min-width: 24px; cursor: pointer; } .dk-lz-gap { flex: 1; } .dk-lz-w { min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* library browser (source tab) */
+.dk-find { width: 100%; }
+.dk-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dk-filters .dk-seg { flex: none; }
+.dk-filters .find-sel { flex: 1; min-width: 0; max-width: none; }
+.dk-song .dk-add { flex: none; width: 22px; height: 22px; border: 1px solid var(--hairline-strong); border-radius: 50%; color: var(--steel-300); opacity: 0; transition: opacity var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
+.dk-song:hover .dk-add, .dk-song.on .dk-add { opacity: 1; } .dk-song .dk-add:hover:not(:disabled) { color: var(--white); border-color: var(--white); } .dk-song .dk-add:disabled { opacity: 0; }

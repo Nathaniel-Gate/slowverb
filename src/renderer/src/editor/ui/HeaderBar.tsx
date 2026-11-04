@@ -88,6 +88,7 @@ export function HeaderBar() {
         <VersionMenu anchor={verRef} open={verOpen} onClose={() => setVerOpen(false)} onRename={() => setRenameVer(true)} />
       </div>
       <div className="ed-grow" />
+      <button className="ghost ed-mini" onClick={() => useEditor.getState().setDock('source')} title="Bring songs from your library into this edit, on their own tracks, to make a mix">+ SONG</button>
       <button className={`ghost ed-mini ${loop ? 'on' : ''}`} onClick={toggleLoop} title={tip('Loop In to Out, or the whole edit', 'loop')}>LOOP</button>
       <button className="ghost ed-mini" onClick={() => useOverlay.getState().set({ palette: true })} title={tip('Command palette', 'palette')}>COMMANDS</button>
       <span className="ed-sep" />
