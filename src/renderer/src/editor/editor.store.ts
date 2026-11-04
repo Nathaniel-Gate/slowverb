@@ -229,7 +229,8 @@ export const useEditor = create<S>((set, get) => {
     setViewWidth: (viewWidth) => set({ viewWidth }),
     fitToView(w) {
       const p = get().project; if (!p) return
-      set({ pxPerSec: clamp((w - EDITOR.fitPadPx) / Math.max(projectEnd(p), 1), EDITOR.zoomMin, EDITOR.zoomMax), scrollX: 0 })
+      const end = Math.max(projectEnd(p), projectEnd(sound() ?? p))   // the Clips tab fits the song too, not just the pictures
+      set({ pxPerSec: clamp((w - EDITOR.fitPadPx) / Math.max(end, 1), EDITOR.zoomMin, EDITOR.zoomMax), scrollX: 0 })
     },
 
     now: () => (get().playing ? editorTransport.position() : get().playhead),

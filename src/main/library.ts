@@ -2,7 +2,7 @@ import { shell } from 'electron'
 import { copyFile, mkdir, readdir, readFile, rename, rmdir, stat, unlink, writeFile } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import { basename, dirname, join, relative } from 'path'
-import { CATEGORIES, LISTS_DIR } from '../shared/config'
+import { CATEGORIES, LISTS_DIR, VISUALS_DIR_NAME } from '../shared/config'
 import { makeList, addSongs, planMigration } from '../shared/libraryModel'
 import type { Playlist } from '../shared/types'
 import { editsDir } from './editorPaths'
@@ -82,7 +82,7 @@ export async function migrate(libraryJson: string, confirm: (moves: number) => P
   await writeLists(lists)
   await writeFile(join(bk, 'moves.json'), JSON.stringify(done, null, 1))
   for (const e of await readdir(root, { withFileTypes: true }))   // old folder-playlists are empty now: tidy them away (only if truly empty)
-    if (e.isDirectory() && !e.name.startsWith('.') && !(CATEGORIES as readonly string[]).includes(e.name)) await pruneEmpty(join(root, e.name))
+    if (e.isDirectory() && !e.name.startsWith('.') && !(CATEGORIES as readonly string[]).includes(e.name) && e.name !== VISUALS_DIR_NAME) await pruneEmpty(join(root, e.name))
   await writeFile(marker, JSON.stringify({ moved: done.length, at: Date.now(), backup: basename(bk) }))
   return done
 }

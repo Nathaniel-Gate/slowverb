@@ -8,6 +8,7 @@ import { InspectorLoop } from './InspectorLoop'
 import { EnvSection, FadeCurves, RangeSection, SmoothCuts } from './InspectorExtras'
 import { usePanels } from './panels.store'
 import { clamp, dbOf, fmtTime, gainOf, parseNum, parseTime } from './timecode'
+import { InspectorVisual } from '../../../clips/ui/InspectorVisual'
 
 /** Value shared by every selected clip, or null when they disagree. */
 const common = <T,>(cs: Clip[], f: (c: Clip) => T): T | null => (cs.every((c) => f(c) === f(cs[0])) ? f(cs[0]) : null)
@@ -32,6 +33,7 @@ export function Inspector() {
   }
   const speed = clipSpeed(one ?? clips[0])
   const gdb = gain === null ? 0 : clamp(dbOf(gain), PANELS.gainMinDb, PANELS.gainMaxDb)
+  const kinds = clips.map((c) => project?.sources[c.src]?.kind), visual = kinds.every(Boolean), videos = kinds.filter((k) => k === 'video').length   // Clips tab: opacity/fit/push-in instead of gain
   return (
     <div className="dk-stack">
       <RangeSection />
@@ -45,7 +47,7 @@ export function Inspector() {
         </div>
       </div>
 
-      <div className="dk-sec">
+      {visual ? <InspectorVisual clips={clips} videos={videos} /> : <div className="dk-sec">
         <div className="row"><span className="mono">GAIN dB</span>
           <Field value={gain === null ? null : dbOf(gain)} fmt={(d) => (d === -Infinity ? '-inf' : (d > 0 ? '+' : '') + d.toFixed(1))} parse={(s) => (/^-?inf/i.test(s.trim()) ? PANELS.gainMinDb : parseNum(s))}
             step={0.5} onCommit={(d) => patch({ gain: d <= PANELS.gainMinDb ? 0 : gainOf(clamp(d, PANELS.gainMinDb, PANELS.gainMaxDb)) })} /></div>
@@ -58,7 +60,7 @@ export function Inspector() {
           <button className={`chip ${mode === 'rms' ? 'on' : ''}`} onClick={() => usePanels.getState().set({ normMode: 'rms' })}>RMS</button>
         </div>
         {norm && <p className="dk-note mono">last read: peak {norm.peakDb.toFixed(1)} / rms {norm.rmsDb.toFixed(1)} / ~{norm.lufsApprox.toFixed(1)} LUFS</p>}
-      </div>
+      </div>}
 
       <div className="dk-sec">
         <div className="row"><span className="mono">SPEED %</span>
@@ -84,11 +86,11 @@ export function Inspector() {
           onCommit={(v) => one && ed.apply((p) => ops.trimClip(p, one.id, 'out', one.start + (v - one.srcIn) / speed))} />
       </div>
 
-      <SmoothCuts />
+      {!visual && <SmoothCuts />}
 
       <div className="dk-btns dk-end">
-        <button className={`chip ${allOff ? 'on' : ''}`} onClick={() => patch({ disabled: !allOff })} title="Silence the clip without deleting it">{allOff ? 'DISABLED' : 'DISABLE'}</button>
-        <button className="chip" onClick={() => useEditor.getState().crossfadeSelection()} title="Crossfade across the cut between two adjacent clips (⌘D)">CROSSFADE</button>
+        <button className={`chip ${allOff ? 'on' : ''}`} onClick={() => patch({ disabled: !allOff })} title={visual ? 'Hide the clip without deleting it' : 'Silence the clip without deleting it'}>{allOff ? 'DISABLED' : 'DISABLE'}</button>
+        <button className="chip" onClick={() => useEditor.getState().crossfadeSelection()} title={visual ? 'Dissolve across the cut between two adjacent clips (⌘D)' : 'Crossfade across the cut between two adjacent clips (⌘D)'}>{visual ? 'DISSOLVE' : 'CROSSFADE'}</button>
       </div>
       {ids.length > 1 && <p className="dk-note mono">Start and source times need a single clip.</p>}
     </div>

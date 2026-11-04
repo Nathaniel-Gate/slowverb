@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { DOCK_TABS, PANELS, type DockTab } from '../../../config/panels'
+import { CLIPS_DOCK_TABS, DOCK_TABS as AUDIO_TABS, PANELS, type DockTab } from '../../../config/panels'
+import { MediaBin } from '../../../clips/ui/MediaBin'
 import { useEditor } from '../../editor.store'
 import { Auto } from './Auto'
 import { Bpm } from './Bpm'
@@ -9,7 +10,7 @@ import { Mix } from './Mix'
 import { SourceBin } from './SourceBin'
 import './panels.css'
 
-const VIEWS: Record<DockTab, () => React.ReactNode> = { inspector: Inspector, source: SourceBin, markers: Markers, mix: Mix, bpm: Bpm, auto: Auto }
+const VIEWS: Record<DockTab, () => React.ReactNode> = { inspector: Inspector, source: SourceBin, markers: Markers, mix: Mix, bpm: Bpm, auto: Auto, media: MediaBin }
 
 /** Keep the panel mounted while its exit animation plays, so the dock keeps its width until the slide-out is done. */
 function useExit(open: boolean) {
@@ -23,7 +24,9 @@ function useExit(open: boolean) {
 
 /** Right-hand dock: sliding-pill tab strip over one panel. Collapsed = a slim rail of tab letters. Width snaps, content slides (no per-frame layout). */
 export function Dock() {
-  const open = useEditor((s) => s.dockOpen), tab = useEditor((s) => s.dockTab), setDock = useEditor((s) => s.setDock)
+  const open = useEditor((s) => s.dockOpen), want = useEditor((s) => s.dockTab), setDock = useEditor((s) => s.setDock), visual = useEditor((s) => s.view === 'visual')
+  const DOCK_TABS = visual ? CLIPS_DOCK_TABS : AUDIO_TABS   // Clips tab: MEDIA instead of SONGS, no MIX
+  const tab: DockTab = DOCK_TABS.some((t) => t.id === want) ? want : visual ? 'media' : 'inspector'
   const mounted = useExit(open), View = VIEWS[tab] ?? Inspector, idx = Math.max(0, DOCK_TABS.findIndex((t) => t.id === tab))
   return (
     <aside className={`ed-dock ${mounted ? 'open' : 'rail'}`} aria-label="Panels">

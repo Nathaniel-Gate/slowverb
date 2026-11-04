@@ -1,0 +1,10 @@
+// Debug handle for DevTools and the hidden-window Clips harness (src/main/clipshot.ts): window.__sv.clips.
+export { useClips } from './clips.store'
+export { insertMedia } from './insertMedia'
+export { layersAt, fitRect } from './compose'
+export { videoPool } from './videoPool'
+export { drawFrame } from './ui/Stage'
+export { patchVisual, placeMedia, setAspect } from './opsVisual'
+export { slice, merge, audioOf } from '../editor/kinds'
+export { probe } from './probe'
+export { frameTimes } from './filmstrip'

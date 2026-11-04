@@ -13,22 +13,28 @@ import type { ListRef } from '../shared/phoneModel'
 import { migrate, readLists, revealSong, trashSong, writeLists } from './library'
 import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, watchLibrary } from './playlists'
 import { runShot } from './devshot'
+import { runClipsShot } from './clipshot'
+import { ensureVisuals, frameFor, importVisuals, listVisuals, saveFrame, thumbFor } from './visuals'
 
 // media://local/<abs path> streams a file from disk with range support (seeking) and CORS (Web Audio needs it).
 protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true, bypassCSP: true, corsEnabled: true } }
 ])
 
-const MIME: Record<string, string> = { '.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.aac': 'audio/aac', '.webm': 'audio/webm', '.aiff': 'audio/aiff' }
+const MIME: Record<string, string> = { '.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.aac': 'audio/aac', '.webm': 'audio/webm', '.aiff': 'audio/aiff',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.bmp': 'image/bmp', '.avif': 'image/avif', '.heic': 'image/heic', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime' }
+// Hidden test runs (Clips harness): no window on screen, no sound, no Dock icon, nothing that can take focus from the person using the Mac.
+const HIDDEN = !!(process.env.SLOWVERB_CLIPS || process.env.SLOWVERB_HIDDEN)
+if (HIDDEN) { if (process.platform === 'darwin') app.dock?.hide(); app.commandLine.appendSwitch('mute-audio'); app.commandLine.appendSwitch('disable-renderer-backgrounding') }
 // Test runs (SLOWVERB_ROOT set) must never touch the real app data: a harness once wrote its test songs into the real library.json.
 if (process.env.SLOWVERB_ROOT) app.setPath('userData', join(process.env.SLOWVERB_ROOT, '.userdata'))
 const libraryFile = () => join(app.getPath('userData'), 'library.json')
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1100, height: 720, minWidth: 720, minHeight: 480,
+    width: 1100, height: 720, minWidth: 720, minHeight: 480, show: !HIDDEN, focusable: !HIDDEN,
     backgroundColor: '#0a0a0a', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 18 },
-    webPreferences: { autoplayPolicy: process.env.SLOWVERB_SHOT ? 'no-user-gesture-required' : 'document-user-activation-required', preload: join(__dirname, '../preload/index.js'), sandbox: false }
+    webPreferences: { backgroundThrottling: !HIDDEN, autoplayPolicy: process.env.SLOWVERB_SHOT || HIDDEN ? 'no-user-gesture-required' : 'document-user-activation-required', preload: join(__dirname, '../preload/index.js'), sandbox: false }
   })
   let quitting = false
 app.on('before-quit', () => { quitting = true })
@@ -54,7 +60,7 @@ app.on('second-instance', () => { const w = BrowserWindow.getAllWindows()[0]; if
 app.whenReady().then(() => {
   // The live dev window runs inside Electron's own app bundle, so give it our icon in the Dock too (the packaged app already has it).
   // Test runs (SLOWVERB_ROOT) must not add Dock icons; the live dev window gets our icon.
-  if (process.platform === 'darwin') { if (process.env.SLOWVERB_ROOT) app.dock?.hide(); else if (!app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png')) }
+  if (process.platform === 'darwin') { if (process.env.SLOWVERB_ROOT || HIDDEN) app.dock?.hide(); else if (!app.isPackaged) app.dock?.setIcon(join(__dirname, '../../build/icon.png')) }
   // Serve the file ourselves with proper Range support: without 206 + Content-Range + Content-Length, Chromium cannot seek inside
   // m4a/mp3 (a seek jumps back to the start and the duration reads as Infinity).
   protocol.handle('media', async (req) => {
@@ -105,12 +111,19 @@ app.whenReady().then(() => {
   ipcMain.handle('peaks:put', (_e, key: string, data: ArrayBuffer) => peaksPut(key, data))
   ipcMain.handle('peaks:stat', (_e, path: string) => peaksStat(path))
   ipcMain.handle('dl:cancel', () => cancelDownload())
+  ipcMain.handle('visuals:list', () => listVisuals())
+  ipcMain.handle('visuals:root', () => ensureVisuals())
+  ipcMain.handle('visuals:import', (_e, paths: string[], group?: string) => importVisuals(paths, group))
+  ipcMain.handle('visuals:thumb', (_e, path: string) => thumbFor(path))
+  ipcMain.handle('visuals:frameGet', (_e, key: string) => frameFor(key))
+  ipcMain.handle('visuals:framePut', (_e, key: string, jpeg: ArrayBuffer) => saveFrame(key, jpeg))
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))
   ipcMain.handle('library:load', async () => { try { return JSON.parse(await readFile(libraryFile(), 'utf8')) } catch { return null } })
   ipcMain.handle('library:save', (_e, data) => writeFile(libraryFile(), JSON.stringify(data)))
   const win = createWindow()
   watchLibrary(win)
   if (process.env.SLOWVERB_SHOT) runShot(win)
+  if (process.env.SLOWVERB_CLIPS) runClipsShot(win)
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow() })
 })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

@@ -1,7 +1,7 @@
 import { BrowserWindow, shell } from 'electron'
 import { watch } from 'fs'
 import { copyFile, mkdir, readdir, rename, stat } from 'fs/promises'
-import { CATEGORIES } from '../shared/config'
+import { CATEGORIES, VISUALS_DIR_NAME } from '../shared/config'
 import { editsDir } from './editorPaths'
 import { basename, dirname, extname, join, relative, sep } from 'path'
 import { AUDIO_EXTS } from '../shared/types'
@@ -19,7 +19,7 @@ export async function sync(): Promise<{ root: string; folders: string[]; files: 
   const folders: string[] = [], files: string[] = []
   const walk = async (dir: string) => {
     for (const e of (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (e.name.startsWith('.')) continue
+      if (e.name.startsWith('.') || (dir === root && e.name === VISUALS_DIR_NAME)) continue   // Visuals/ = the Clips tab's pictures, never audio
       const p = join(dir, e.name)
       if (e.isDirectory()) { folders.push(relative(root, p)); await walk(p) } else if (isAudio(p)) files.push(p)
     }
@@ -64,6 +64,8 @@ export async function importInto(paths: string[], toRel: string): Promise<string
 /** Tell the UI when the library folder changes on disk (Finder edits, downloads). */
 export function watchLibrary(win: BrowserWindow) {
   let t: NodeJS.Timeout | undefined
+  let tv: NodeJS.Timeout | undefined
   try { watch(libraryRoot(), { recursive: true }, (_ev, name) => { if (name && name.split(sep).some((s) => s.startsWith('.'))) return   // our own bookkeeping (.slowverb, .edits) is not a library change
+     if (name && name.split(sep)[0] === VISUALS_DIR_NAME) { clearTimeout(tv); tv = setTimeout(() => !win.isDestroyed() && win.webContents.send('visuals:changed'), 500); return }   // pictures: the Clips tab's media list, not the audio library
      clearTimeout(t); t = setTimeout(() => !win.isDestroyed() && win.webContents.send('fs:changed'), 500) }) } catch { /* root missing: created on first sync */ }
 }

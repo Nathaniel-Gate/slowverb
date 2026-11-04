@@ -6,16 +6,18 @@ import { drawWave } from './drawWave'
 import { cachedVars, clipTitle, fmtDb } from './timelineMath'
 import { EnvLayer } from './EnvLayer'
 import { FadeHandles } from './FadeHandles'
+import ClipThumbs, { type ClipMedia } from '../../clips/ui/ClipThumbs'
 
 type Props = {
   clip: Clip; y: number; h: number; selected: boolean; locked: boolean; dim: boolean; ghost: boolean; stripe: string
   peaks: Peaks | undefined; pxPerSec: number; scrollX: number; viewW: number
   rep?: number   // index of this repeat inside its loop (alternate tint); only for clips with clip.loop
+  media?: ClipMedia   // visual clips (Clips tab): thumbnail strip instead of a waveform
 }
 const VARS = ['--tl-wave', '--tl-wave-sel', '--tl-fade-shade', '--tl-fade-line']
 
 // One clip: a DOM box (hover, outline, label, handles) with a canvas that draws only the visible slice.
-function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxPerSec: pps, scrollX, viewW, rep }: Props) {
+function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxPerSec: pps, scrollX, viewW, rep, media }: Props) {
   const cv = useRef<HTMLCanvasElement>(null)
   const dur = clipDur(clip), speed = clipSpeed(clip)
   const xL = Math.round(clip.start * pps - scrollX), xR = Math.round((clip.start + dur) * pps - scrollX)
@@ -44,8 +46,9 @@ function ClipView({ clip, y, h, selected, locked, dim, ghost, stripe, peaks, pxP
   return (
     <div className="tl-clip" data-clip={clip.id} data-selected={selected || undefined} data-locked={locked || undefined}
       data-dim={dim || undefined} data-ghost={ghost || undefined} data-disabled={clip.disabled || undefined} data-label={lbl ? '' : undefined}
-      data-tiny={tiny || undefined} data-loop={inLoop ? clip.loop : undefined} data-rep={inLoop ? ((rep ?? 0) % 2 ? 'odd' : 'even') : undefined}
+      data-tiny={tiny || undefined} data-visual={media ? media.kind : undefined} data-loop={inLoop ? clip.loop : undefined} data-rep={inLoop ? ((rep ?? 0) % 2 ? 'odd' : 'even') : undefined}
       style={{ width: w, height: h, transform: `translate(${xL}px, ${y}px)`, '--lbl': lbl || undefined, '--stripe': stripe, '--hit-pad': tiny ? `${(TL.minHitPx - w) / 2}px` : undefined } as React.CSSProperties}>
+      {media && <ClipThumbs media={media} xL={xL} w={w} h={h} viewW={viewW} pps={pps} srcIn={clip.srcIn} speed={speed} />}
       <canvas ref={cv} style={{ left: cl, width: cw, height: h }} />
       <span className="tl-clip-label" style={{ transform: `translateX(${off}px)` }}>
         {clipTitle(clip)}

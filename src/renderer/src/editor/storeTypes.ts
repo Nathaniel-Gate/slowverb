@@ -4,7 +4,7 @@ import type { History } from './history'
 import type { Buffers } from './schedule'
 import type { Peaks } from './peaks'
 
-export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto'
+export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto' | 'media'
 export type Gap = { track: string; start: number; end: number }
 export type ClipPatch = Partial<Pick<Clip, 'gain' | 'fadeIn' | 'fadeOut' | 'name' | 'label' | 'disabled' | 'speed'>>
 export type RenderOpts = { bitDepth: 16 | 24 | 32; normalize: boolean; range: boolean }

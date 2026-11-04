@@ -17,19 +17,24 @@ const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+
 /** Tooltip text with the command's current shortcut, so rebinds show up. */
 const tip = (text: string, id: string) => { const k = keysOf(id)[0]; return k ? `${text} (${formatKey(k)})` : text }
 
-/** PLAYER | EDITOR switch for the top drag area. The pill slides between the two halves with a transform. */
+/** PLAYER | EDITOR | CLIPS switch for the top drag area. The pill slides between the thirds with a transform.
+ *  EDITOR and CLIPS are the same edit (one project, one history) showing its audio or its visual tracks. */
 export function ModeSwitch() {
-  const open = useEditor((s) => s.open), cur = usePlayer((s) => s.cur)
+  const open = useEditor((s) => s.open), view = useEditor((s) => s.view), cur = usePlayer((s) => s.cur)
   // With no song selected in the player, the Editor tab opens the first song in the library instead of staying dead.
   const path = useLibrary((s) => (s.tracks.find((t) => t.id === cur) ?? s.tracks[0])?.path)
   const hasProject = useEditor((s) => !!s.project)
-  const goEditor = () => { const s = useEditor.getState(); if (s.open) return; if (s.project && (!path || s.project.song === path)) s.show(); else if (path) void s.openSong(path) }
-  const canEdit = open || hasProject || !!path
+  const go = (v: 'audio' | 'visual') => {
+    const s = useEditor.getState(); s.setView(v); if (s.open) return
+    if (s.project && (!path || s.project.song === path)) s.show(); else if (path) void s.openSong(path)
+  }
+  const canEdit = open || hasProject || !!path, on = !open ? 'player' : view === 'visual' ? 'clips' : 'editor'
   return (
-    <div className="mode" data-on={open ? 'editor' : 'player'}>
+    <div className="mode" data-on={on}>
       <div className="mode-pill" />
-      <button className={!open ? 'on' : ''} onClick={() => useEditor.getState().close()}>PLAYER</button>
-      <button className={open ? 'on' : ''} disabled={!canEdit} onClick={goEditor}>EDITOR</button>
+      <button className={on === 'player' ? 'on' : ''} onClick={() => useEditor.getState().close()}>PLAYER</button>
+      <button className={on === 'editor' ? 'on' : ''} disabled={!canEdit} onClick={() => go('audio')}>EDITOR</button>
+      <button className={on === 'clips' ? 'on' : ''} disabled={!canEdit} onClick={() => go('visual')} title="Pictures and video cut to the song">CLIPS</button>
     </div>
   )
 }
@@ -67,7 +72,7 @@ const SAVE_LABEL = { saved: 'Saved', saving: 'Saving', dirty: 'Unsaved' } as con
 
 export function HeaderBar() {
   const project = useEditor((s) => s.project), hist = useEditor((s) => s.hist), saveState = useEditor((s) => s.saveState), busy = useEditor((s) => s.busy)
-  const playing = useEditor((s) => s.playing), loop = useEditor((s) => s.loop), dockOpen = useEditor((s) => s.dockOpen)
+  const playing = useEditor((s) => s.playing), loop = useEditor((s) => s.loop), dockOpen = useEditor((s) => s.dockOpen), visual = useEditor((s) => s.view === 'visual')
   const { close, undo, redo, togglePlay, renderToLibrary, renameSong, renameVersion, toggleLoop, setDock } = useEditor.getState()
   const [verOpen, setVerOpen] = useState(false), [renOpen, setRenOpen] = useState(false), [renameVer, setRenameVer] = useState(false), [renameSongOn, setRenameSongOn] = useState(false)
   const verRef = useRef<HTMLDivElement>(null), renRef = useRef<HTMLButtonElement>(null), histRef = useRef<HTMLButtonElement>(null)
@@ -88,7 +93,9 @@ export function HeaderBar() {
         <VersionMenu anchor={verRef} open={verOpen} onClose={() => setVerOpen(false)} onRename={() => setRenameVer(true)} />
       </div>
       <div className="ed-grow" />
-      <button className="ghost ed-mini" onClick={() => useEditor.getState().setDock('source')} title="Bring songs from your library into this edit, on their own tracks, to make a mix">+ SONG</button>
+      {visual
+        ? <button className="ghost ed-mini" onClick={() => useEditor.getState().setDock('media')} title="Pictures and videos: your Visuals folder, links and Pinterest boards">+ MEDIA</button>
+        : <button className="ghost ed-mini" onClick={() => useEditor.getState().setDock('source')} title="Bring songs from your library into this edit, on their own tracks, to make a mix">+ SONG</button>}
       <button className={`ghost ed-mini ${loop ? 'on' : ''}`} onClick={toggleLoop} title={tip('Loop In to Out, or the whole edit', 'loop')}>LOOP</button>
       <button className="ghost ed-mini" onClick={() => useOverlay.getState().set({ palette: true })} title={tip('Command palette', 'palette')}>COMMANDS</button>
       <span className="ed-sep" />
@@ -103,12 +110,12 @@ export function HeaderBar() {
       <button className={`ghost ed-caret ${histOpen ? 'on' : ''}`} ref={histRef} onClick={() => useOverlay.getState().set({ history: !histOpen })} title={tip('Undo history', 'history')}>
         <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 3.2V6l2 1.3M1.6 6a4.4 4.4 0 108.8 0 4.4 4.4 0 00-8.8 0" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
-      <span className="ed-render-group">
+      {!visual && <span className="ed-render-group">
         <button className="ed-render" disabled={!!busy} onClick={() => void renderToLibrary()} title={tip('Render this edit to a new song in the library', 'render')}>RENDER</button>
         <button className={`ed-render ed-render-opt ${renOpen ? 'on' : ''}`} ref={renRef} disabled={!!busy} onClick={() => setRenOpen((o) => !o)} title="Render options">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-      </span>
+      </span>}
       <button className={`ghost ed-mini ${dockOpen ? 'on' : ''}`} onClick={() => setDock(dockOpen ? null : useEditor.getState().dockTab)} title="Show or hide the side panels (⌥0 hides)">PANELS</button>
       <div className={`ed-busy ${busy ? 'on' : ''}`}><div className="bar-ind" /></div>
       <RenderOptions anchor={renRef} open={renOpen} onClose={() => setRenOpen(false)} />

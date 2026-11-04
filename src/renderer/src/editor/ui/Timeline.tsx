@@ -22,6 +22,8 @@ import { LoopLayer } from './LoopLayer'
 import { expandLoopSelection, groupLoops, memberIndex, selectedLoopId } from './loopMath'
 import { useLoopInput } from './useLoopInput'
 import './timeline3.css'
+import AudioLane from '../../clips/ui/AudioLane'
+import { useClipMedia } from '../../clips/ui/useClipMedia'
 
 type Flash = { id: number; t: number; y: number; h: number }
 let flashId = 0
@@ -40,6 +42,7 @@ export function Timeline() {
   const showBeats = useEditor(s => s.showBeats)
   const hasRange = useEditor(s => !!s.range)
   const live = useLaneLive(s => s.live)
+  const visual = useEditor(s => s.view === 'visual')
 
   const root = useRef<HTMLDivElement>(null), lanes = useRef<HTMLDivElement>(null), head = useRef<HTMLDivElement>(null)
   const razor = useRef<HTMLDivElement>(null), hot = useRef<HTMLDivElement>(null), ghost = useRef<HTMLDivElement>(null), hud = useRef<HTMLDivElement>(null)
@@ -68,6 +71,7 @@ export function Timeline() {
   const loopIn = useLoopInput(view, { root, lanes }, guides, ui)
   const groups = useMemo(() => groupLoops((preview ?? project)?.clips ?? []), [preview?.clips, project?.clips])   // eslint-disable-line react-hooks/exhaustive-deps -- preview/project identity is enough
   const members = useMemo(() => memberIndex(groups), [groups])
+  const mediaOf = useClipMedia((preview ?? project)?.sources)   // visual clips: thumbnails / filmstrip instead of a waveform
 
   // Selecting any repeat selects the whole loop (also after a click that narrowed a multi-selection).
   useEffect(() => {
@@ -149,6 +153,7 @@ export function Timeline() {
       style={{ '--tl-ruler-h': `${TL.rulerH}px`, '--tl-edge': `${TL.edgePx}px`, '--tl-handle': `${TL.fadeHandlePx}px`, '--tl-gain-hit': `${TL.gainHitPx}px`, '--tl-fadezone': `${TL.fadeZoneFrac * 100}%`, '--tl-fadeside': `${TL.fadeSidePx}px`, '--tl-dot': `${TL.fadeDotPx}px`, '--tl-dot-y': `${TL.fadeDotY}px`, '--tl-dim': TL.dimMuted, '--tl-flash': `${TL.flashMs}ms` } as CSSProperties}>
       <Ruler width={viewW} pxPerSec={pps} scrollX={scrollX} markers={shown.markers} markIn={rIn} markOut={rOut} loop={loop}
         onDown={ruler.onRulerDown} onMarker={ruler.onMarker} onRange={ruler.onRange} onContext={ruler.onRulerContext} />
+      {visual && <AudioLane pps={pps} scrollX={scrollX} viewW={viewW} />}
       <div className="tl-lanes" ref={lanes} onPointerDown={input.onLanesDown} onPointerMove={hover.onLanesMove} onPointerLeave={hover.onLanesLeave}
         onDoubleClick={input.onLanesDoubleClick} onContextMenu={input.onLanesContext} onPointerDownCapture={loopIn.onSelectCapture}>
         <div className="tl-content" style={{ height: L.total, backgroundSize: `${stepPx}px 100%`, backgroundPosition: `${-scrollX}px 0` }}>
@@ -168,7 +173,7 @@ export function Timeline() {
             return (
               <ClipView key={c.id} clip={c} y={b.y} h={b.h} selected={sel.has(c.id) || (!!c.loop && c.loop === selLoop)} rep={members.get(c.id)?.rep} locked={!!tr?.lock} stripe={trackColor(lane)}
                 dim={!!tr && (tr.mute || (anySolo && !tr.solo))} ghost={!!preview && !c.loop && baseById.get(c.id) !== c}
-                peaks={peaks.get(c.src)} pxPerSec={pps} scrollX={scrollX} viewW={viewW} />
+                peaks={peaks.get(c.src)} pxPerSec={pps} scrollX={scrollX} viewW={viewW} media={mediaOf.get(c.src)} />
             )
           })}
           {xfades.map(o => {

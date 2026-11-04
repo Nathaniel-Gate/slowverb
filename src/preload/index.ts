@@ -36,5 +36,13 @@ contextBridge.exposeInMainWorld('api', {
   onDownloadProgress: (cb: (p: unknown) => void) => {
     const h = (_e: unknown, p: unknown) => cb(p); ipcRenderer.on('dl:progress', h); return () => ipcRenderer.removeListener('dl:progress', h)
   },
-  exportAudio: (name: string, data: ArrayBuffer) => ipcRenderer.invoke('export:save', name, data)
+  exportAudio: (name: string, data: ArrayBuffer) => ipcRenderer.invoke('export:save', name, data),
+  // Clips tab: the Visuals library, thumbnails, downloads (see main/visuals.ts, main/mediaDl.ts, main/pinterest.ts)
+  visualsList: () => ipcRenderer.invoke('visuals:list'),
+  visualsRoot: () => ipcRenderer.invoke('visuals:root'),
+  visualsImport: (paths: string[], group?: string) => ipcRenderer.invoke('visuals:import', paths, group),
+  visualsThumb: (path: string) => ipcRenderer.invoke('visuals:thumb', path),
+  frameGet: (key: string) => ipcRenderer.invoke('visuals:frameGet', key),
+  framePut: (key: string, jpeg: ArrayBuffer) => ipcRenderer.invoke('visuals:framePut', key, jpeg),
+  onVisualsChanged: (cb: () => void) => { ipcRenderer.on('visuals:changed', cb); return () => ipcRenderer.removeListener('visuals:changed', cb) }
 })

@@ -1,8 +1,13 @@
 // Docked panels (Inspector, Source bin, Markers, Mix, BPM, Auto) and the master meter. Every tunable lives here.
-export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto'
+export type DockTab = 'inspector' | 'source' | 'markers' | 'mix' | 'bpm' | 'auto' | 'media'
 export const DOCK_TABS: { id: DockTab; label: string; short: string }[] = [
   { id: 'inspector', label: 'INSPECT', short: 'I' }, { id: 'source', label: 'SONGS', short: 'S' }, { id: 'markers', label: 'MARKS', short: 'M' },
   { id: 'mix', label: 'MIX', short: 'X' }, { id: 'bpm', label: 'BPM', short: 'B' }, { id: 'auto', label: 'AUTO', short: 'A' }
+]
+/** Clips tab dock: MEDIA instead of SONGS, no MIX (the song's sound is set in the Editor tab). */
+export const CLIPS_DOCK_TABS: { id: DockTab; label: string; short: string }[] = [
+  { id: 'media', label: 'MEDIA', short: 'P' }, { id: 'inspector', label: 'INSPECT', short: 'I' }, { id: 'markers', label: 'MARKS', short: 'M' },
+  { id: 'bpm', label: 'BPM', short: 'B' }, { id: 'auto', label: 'AUTO', short: 'A' }
 ]
 // Label / marker colour keys (Clip.label, Marker.color). The only colour in an otherwise greyscale app, kept muted.
 import { LABELS as TL_LABELS } from './timeline'

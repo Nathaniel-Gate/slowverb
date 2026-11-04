@@ -9,6 +9,7 @@ import { TrackFxButton } from './TrackFx'
 import { useLaneLive } from './laneLive'
 import { clamp, laneHeight } from './timelineMath'
 import { trackMenu } from './timelineMenus'
+import { CLIPS } from '../../config/clips'
 
 const blurOnUp = (e: RPointerEvent<HTMLElement>) => e.currentTarget.blur()   // keep Space/Enter for the editor keys, not the last button
 
@@ -16,7 +17,8 @@ function Gain({ track }: { track: Track }) {
   const [v, setV] = useState(track.gain), apply = useEditor.getState().apply
   useEffect(() => setV(track.gain), [track.gain])
   const commit = () => { if (v !== track.gain) apply((p) => ops.setTrack(p, track.id, { gain: v })) }   // one history step per drag, not per tick
-  return <input type="range" min={0} max={1.5} step={0.01} value={v} title={`Track gain ${Math.round(v * 100)}%`} style={{ '--p': `${(v / 1.5) * 100}%` } as CSSProperties}
+  const max = track.kind === 'visual' ? 1 : 1.5   // a visual track's gain is its opacity: 100% at most
+  return <input type="range" min={0} max={max} step={0.01} value={v} title={`${track.kind === 'visual' ? 'Track opacity' : 'Track gain'} ${Math.round(v * 100)}%`} style={{ '--p': `${(v / max) * 100}%` } as CSSProperties}
     onChange={(e) => setV(+e.target.value)} onPointerUp={commit} onKeyUp={commit} onBlur={commit} onDoubleClick={() => { setV(1); apply((p) => ops.setTrack(p, track.id, { gain: 1 })) }} />
 }
 
@@ -80,7 +82,7 @@ export function TrackHeaders() {
   const { ghost, down } = useGhostTracks()
   const tracks = useEditor((s) => s.project?.tracks ?? []), syncLock = useEditor((s) => s.project?.syncLock !== false), _tidy = useEditor((s) => !!s.project?.autoDeleteEmpty)   // subscribed so the footer icon re-renders when the option flips
   const live = useLaneLive(s => s.live)
-  const apply = useEditor.getState().apply
+  const apply = useEditor.getState().apply, visual = useEditor((s) => s.view === 'visual'), song = useEditor((s) => s.project?.song ?? '')
   const flag = (t: Track, k: 'mute' | 'solo' | 'lock', label: string, tip: string) =>
     <button className={`ed-flag mono ${t[k] ? 'on ' + k : ''}`} title={tip} onPointerUp={blurOnUp} onClick={() => apply((p) => ops.setTrack(p, t.id, { [k]: !t[k] }))}>{label}</button>
   return (
@@ -90,6 +92,7 @@ export function TrackHeaders() {
         <button className={`ed-flag mono tl-sync ${syncLock ? 'on' : ''}`} title="Sync lock: ripple edits also shift the other tracks" onPointerUp={blurOnUp} onClick={() => useEditor.getState().toggleSyncLock()}>SYNC</button>
         <button className="ghost" title="Add a track" onPointerUp={blurOnUp} onClick={() => apply((p) => ops.addTrack(p))}>+</button>
       </div>
+      {visual && <div className="cl-audio-head mono" style={{ height: CLIPS.audioLaneH }} title="The song. Edit it in the EDITOR tab."><span>SONG</span><span className="cl-audio-name">{song.slice(song.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '')}</span></div>}
       <div className="ed-th-scroll" {...{ [TL.syncAttr]: '' }}>
         {tracks.map((t, i) => {
           const h = laneHeight(t, live[t.id]), tight = h < TL.detailMinH + 6
@@ -107,7 +110,7 @@ export function TrackHeaders() {
               <div className="ed-flags">
                 <button className={`ed-flag mono ${t.target ? 'on target' : ''}`} title="Target track for inserts and ripple (Option-click: only this track)" onPointerUp={blurOnUp}
                   onClick={(e) => useEditor.getState().targetTrack(t.id, e.altKey)}>T</button>
-                {flag(t, 'mute', 'M', 'Mute')}{flag(t, 'solo', 'S', 'Solo')}{flag(t, 'lock', 'L', 'Lock')}<TrackFxButton track={t} />
+                {t.kind === 'visual' ? flag(t, 'mute', 'H', 'Hide this track') : flag(t, 'mute', 'M', 'Mute')}{flag(t, 'solo', 'S', t.kind === 'visual' ? 'Solo: show only soloed tracks' : 'Solo')}{flag(t, 'lock', 'L', 'Lock')}{t.kind !== 'visual' && <TrackFxButton track={t} />}
               </div>
               {!tight && <Gain track={t} />}
               <Grip track={t} />

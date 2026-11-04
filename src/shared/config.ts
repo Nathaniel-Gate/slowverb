@@ -8,3 +8,4 @@ export const CATEGORIES = ['Songs', 'Sound bites', 'White noise'] as const   // 
 export const DEFAULT_CATEGORY = 'Songs'
 export const LISTS_DIR = '.slowverb'                          // hidden folder in the library root: playlists.json (virtual playlists) + migration log
 export const PHONE_LISTS_FILE = 'playlists.json'   // inside the Slowverb Phone folder (visible in Files, so the phone's picker can select it): the playlists + the list of sent files
+export const VISUALS_DIR_NAME = 'Visuals'                    // <library root>/Visuals: pictures and videos for the Clips tab (never part of the audio library)

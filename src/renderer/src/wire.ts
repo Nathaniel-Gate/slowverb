@@ -20,6 +20,8 @@ import { useAmbience } from './features/ambience/ambience.store'
 import { bindAmbience } from './features/ambience/bind'
 import { bindSongColor } from './features/settings/songColor'
 import { ambienceEngine } from './audio/ambienceEngine'
+import { useClips } from './clips/clips.store'
+import * as clipsDebug from './clips/debug'
 
 export async function wire() {
   const saved = await window.api.load()
@@ -35,6 +37,7 @@ export async function wire() {
   try { useLists.getState().replace(await window.api.listsLoad()) } catch (e) { console.error('[lists] could not read playlists; not saving over them', e) }   // loaded stays false = nothing is written
   await usePlaylists.getState().refresh()                       // library folder is the source of truth for what exists
   window.api.onLibraryChanged(() => usePlaylists.getState().refresh())   // Finder edits, downloads
+  window.api.onVisualsChanged(() => { if (useClips.getState().loaded) void useClips.getState().refresh() })   // Clips tab media list: Finder edits, downloads, Pinterest
   // fx -> engine; user edits also stamp the current track (per-track memory)
   let touched = useFx.getState().touched
   useFx.subscribe((s) => {
@@ -80,7 +83,7 @@ export async function wire() {
 }
 
 // Debug handle for DevTools and the screenshot harness.
-;(window as any).__sv = { buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, useLists, placeFiles, useAmbience, ambienceEngine, exportCheck: async () => {
+;(window as any).__sv = { clips: clipsDebug, buildGraph, useSettings, ops, renderProject, loadBuffers, editorTransport, engine, useEditor, useLibrary, useFx, usePlayer, usePlaylists, useLists, placeFiles, useAmbience, ambienceEngine, exportCheck: async () => {
   const { renderVersion } = await import('./audio/offline')
   const { DEFAULT_FX } = await import('./config/fx')
   const t = useLibrary.getState().tracks[0], bytes = await (await fetch(mediaUrl(t.path))).arrayBuffer()

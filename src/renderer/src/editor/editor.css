@@ -1,11 +1,11 @@
 /* Editor shell: header, tool strip, track headers, mode switch. Timeline visuals live in ui/timeline.css. */
 
 /* PLAYER | EDITOR switch, sits in the drag strip */
-.mode { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); -webkit-app-region: no-drag; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; width: 176px; height: 26px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); background: var(--ink-900); }
+.mode { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); -webkit-app-region: no-drag; display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 2px; width: 264px; height: 26px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); background: var(--ink-900); }
 .mode button { position: relative; z-index: 1; font: 11px var(--font-mono); letter-spacing: .08em; color: var(--steel-400); border-radius: var(--radius-sm); }
 .mode button.on { color: var(--neon, var(--white)); } .mode button:hover:not(.on):not(:disabled) { color: var(--white); } .mode button:disabled { opacity: .4; cursor: default; }
-.mode-pill { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); background: color-mix(in srgb, var(--neon, #fff) 14%, var(--ink-800)); outline: 1px solid var(--neon, var(--white)); border-radius: var(--radius-sm); transition: transform var(--t) var(--ease); }
-.mode[data-on='editor'] .mode-pill { transform: translateX(100%); }
+.mode-pill { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3); background: color-mix(in srgb, var(--neon, #fff) 14%, var(--ink-800)); outline: 1px solid var(--neon, var(--white)); border-radius: var(--radius-sm); transition: transform var(--t) var(--ease); }
+.mode[data-on='editor'] .mode-pill { transform: translateX(100%); } .mode[data-on='clips'] .mode-pill { transform: translateX(200%); }
 
 /* surface: covers the player, same blueprint grid, fades in on mount and out when closing */
 @keyframes ed-in { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }

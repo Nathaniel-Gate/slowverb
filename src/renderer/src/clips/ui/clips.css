@@ -1,0 +1,59 @@
+/* Clips tab. Same surfaces as the editor; every margin, gap and padding is 12px (0.5u), 24px (1u) or 48px (2u). */
+
+/* stage column: preview on top, timeline below (also wraps the plain editor's timeline, where it is a no-op) */
+.cl-col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--u); }
+.cl-col > .ed-main { flex: 1; min-height: 0; }
+.cl-stage { flex: none; height: calc(var(--u) * 12); display: flex; gap: calc(var(--u) / 2); padding: calc(var(--u) / 2); box-sizing: border-box;
+  border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: rgb(15 15 15 / .85); animation: rise var(--t-slow) var(--ease) 80ms both; }
+@media (min-height: 900px) { .cl-stage { height: calc(var(--u) * 16); } }
+@media (min-height: 1100px) { .cl-stage { height: calc(var(--u) * 20); } }
+.cl-stage-box { position: relative; flex: 1; min-width: 0; display: grid; place-items: center; overflow: hidden; }
+.cl-canvas { display: block; background: #000; border-radius: var(--radius-sm); box-shadow: 0 0 0 1px var(--hairline-strong); }
+.cl-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; font-size: 11px; letter-spacing: .06em; color: var(--steel-400); text-align: center; pointer-events: none; }
+.cl-aspect { flex: none; width: calc(var(--u) * 3); display: flex; flex-direction: column; gap: calc(var(--u) / 2); }
+.cl-aspect > .mono { height: var(--u); line-height: var(--u); font-size: 10px; letter-spacing: .08em; color: var(--steel-500); text-align: center; }
+.cl-aspect button { height: var(--u); padding: 0; font: 11px var(--font-mono); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); color: var(--steel-400); }
+.cl-aspect button.on { background: var(--white); color: var(--ink-950); border-color: var(--white); }
+.cl-aspect button:hover:not(.on) { color: var(--white); border-color: var(--white); }
+
+/* the song lane on top of the Clips timeline, and its header cell */
+.cl-audio { position: relative; flex: none; overflow: hidden; background: var(--ink-900); border-bottom: 1px solid var(--hairline-strong); cursor: pointer; }
+.cl-audio .tl-clip { pointer-events: none; background: color-mix(in srgb, var(--white) 4%, var(--ink-800)); }
+.cl-audio .tl-beats { position: absolute; left: 0; top: 0; pointer-events: none; }
+.cl-audio-head { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 0; padding: 0 calc(var(--u) / 2); box-sizing: border-box; border-bottom: 1px solid var(--hairline-strong); background: var(--ink-900); }
+.cl-audio-head > span:first-child { font-size: 10px; letter-spacing: .08em; color: var(--steel-500); }
+.cl-audio-name { font: 12px var(--font-sans); color: var(--steel-300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* picture strip inside visual clips (under the fade/opacity canvas) */
+.tl-thumbs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .62; }
+.tl-thumbs img { position: absolute; left: 0; top: 0; object-fit: cover; border-right: 1px solid rgb(0 0 0 / .35); }
+.tl-clip[data-visual][data-selected] .tl-thumbs { opacity: .85; }
+.tl-clip[data-visual] .tl-clip-label { background: rgb(10 10 10 / .55); padding: 0 4px; border-radius: 3px; }
+
+/* media dock */
+.cl-media { min-height: 100%; }
+.cl-link-row { display: flex; gap: calc(var(--u) / 2); } .cl-link-row .find-in { flex: 1; min-width: 0; }
+.cl-dl { display: flex; flex-direction: column; gap: calc(var(--u) / 2); font-size: 10px; color: var(--steel-300); }
+.cl-dl.bad .mono { color: var(--white); }
+.cl-dl-bar { height: 2px; background: var(--hairline); overflow: hidden; border-radius: 1px; }
+.cl-dl-bar i { display: block; height: 100%; background: var(--white); transform-origin: 0 50%; transition: transform var(--t) var(--ease); }
+.cl-dl-bar i[data-indeterminate] { animation: cl-ind 1.2s ease-in-out infinite; }
+@keyframes cl-ind { 0% { transform: translateX(-30%) scaleX(.3); } 100% { transform: translateX(110%) scaleX(.3); } }
+.cl-pin-row { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) / 2); } .cl-pin-row .chip { flex: none; white-space: nowrap; }
+.cl-switch { display: inline-flex; align-items: center; gap: calc(var(--u) / 4); font-size: 10px; letter-spacing: .06em; color: var(--steel-300); cursor: pointer; white-space: nowrap; }
+.cl-boards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(var(--u) / 4); }
+.cl-boards li { display: flex; align-items: center; gap: calc(var(--u) / 2); font-size: 12px; }
+.cl-board-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--steel-300); }
+.cl-boards .mono { font-size: 10px; } .cl-forget { padding: 0 6px; font-size: 14px; color: var(--steel-500); } .cl-forget:hover { color: var(--white); }
+.cl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 4), 1fr)); gap: calc(var(--u) / 2); max-height: calc(var(--u) * 15); overflow-y: auto; align-content: start; }
+.cl-grid-empty { grid-column: 1 / -1; }
+.cl-tile { position: relative; aspect-ratio: 1; border: 1px solid var(--hairline); border-radius: var(--radius-sm); overflow: hidden; background: var(--ink-900); cursor: grab; }
+.cl-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cl-tile:hover { border-color: var(--steel-500); } .cl-tile.on { border-color: var(--white); outline: 1px solid var(--white); outline-offset: -2px; }
+.cl-tile-ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: var(--steel-500); }
+.cl-tile-kind { position: absolute; left: 6px; bottom: 6px; font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgb(10 10 10 / .7); color: var(--stone-100); }
+.cl-tile-add { position: absolute; right: 6px; top: 6px; width: var(--u); height: var(--u); border: 1px solid var(--hairline-strong); border-radius: 50%; background: rgb(10 10 10 / .7); color: var(--white); opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+.cl-tile:hover .cl-tile-add, .cl-tile.on .cl-tile-add { opacity: 1; } .cl-tile-add:disabled { opacity: 0 !important; }
+.cl-peek { aspect-ratio: 16 / 9; border-radius: var(--radius-sm); overflow: hidden; background: #000; }
+.cl-peek img, .cl-peek video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cl-peek-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
