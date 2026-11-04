@@ -25,4 +25,4 @@ export type ScanResult = Omit<Track, 'id' | 'fx'>
 export type DlProgress = { stage: string; pct: number | null; item?: { i: number; n: number } }
 
 /** A virtual playlist: an ordered list of songs by path relative to the library root. A song can be in many; deleting a playlist never touches files. */
-export type Playlist = { id: string; name: string; created: number; songs: string[] }
+export type Playlist = { id: string; name: string; created: number; songs: string[]; category?: string }   // category = which home it belongs to (Songs / Sound bites / White noise); unset = worked out from its songs

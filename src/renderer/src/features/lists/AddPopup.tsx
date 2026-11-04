@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CATEGORIES } from '../../../../shared/config'
 import { useAddPopup } from './addPopup.store'
-import { useLists } from './lists.store'
+import { catOfList, useLists } from './lists.store'
 
 /** "Where does this go?" Asked on every drop/import/download: the song's ONE home (Songs or Sound bites) + any playlists to join. Enter adds, Esc cancels. */
 export function AddPopup() {
@@ -10,7 +10,7 @@ export function AddPopup() {
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => { if (req) { setCat(req.category); setPick(req.preLists); setName(''); requestAnimationFrame(() => box.current?.focus()) } }, [req])
   if (!req) return null
-  const ok = () => close({ category: cat, listIds: pick, newList: name })
+  const ok = () => close({ category: cat, listIds: pick.filter((id) => lists.some((l) => l.id === id && catOfList(l) === cat)), newList: name })
   const key = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); close(null) }
     else if (e.key === 'Enter') { e.preventDefault(); ok() }
@@ -25,9 +25,9 @@ export function AddPopup() {
           <i className="ap-pill" />
           {CATEGORIES.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
         </div>
-        <div className="ap-sub mono">ALSO ADD TO PLAYLISTS <span>optional</span></div>
+        <div className="ap-sub mono">ALSO ADD TO {cat.toUpperCase()} PLAYLISTS <span>optional</span></div>
         <div className="ap-lists">
-          {lists.map((l) => (
+          {lists.filter((l) => catOfList(l) === cat).map((l) => (
             <button key={l.id} className={`ap-list ${pick.includes(l.id) ? 'on' : ''}`} role="checkbox" aria-checked={pick.includes(l.id)}
               onClick={() => setPick(pick.includes(l.id) ? pick.filter((x) => x !== l.id) : [...pick, l.id])}>
               <span className="ap-box"><i /></span><span className="ap-nm">{l.name}</span>

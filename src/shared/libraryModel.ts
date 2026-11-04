@@ -60,3 +60,10 @@ export function healLists(lists: Playlist[], existing: string[]): { lists: Playl
   })
   return { lists: changed ? out : lists, dropped, repointed }
 }
+
+/** Which category a playlist belongs to: its saved one, else the home of its first song, else Songs. */
+export function listCategory(l: { category?: string; songs: string[] }, categories: readonly string[], fallback: string): string {
+  if (l.category && categories.includes(l.category)) return l.category
+  const c = l.songs.length ? categoryOf(l.songs[0]) : null
+  return c && categories.includes(c) ? c : fallback
+}

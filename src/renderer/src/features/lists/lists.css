@@ -51,3 +51,5 @@
 .menu-confirm { padding: 8px 10px 6px; display: grid; gap: 10px; } .menu-confirm .mono { font-size: 11px; line-height: 1.5; color: var(--steel-300); word-break: break-word; }
 .menu-confirm > div:last-child { display: flex; gap: 8px; } .menu-confirm button { flex: 1; text-align: center !important; border: 1px solid var(--hairline-strong); }
 .menu-confirm .solid { background: #8f3b33; border-color: #8f3b33; color: var(--white); } .menu-confirm .solid:hover { background: #a8453c; color: var(--white); }
+
+.pl-sec { margin-top: 10px; } .pl-sechead { display: flex; justify-content: space-between; align-items: center; padding: 4px 14px; font-size: 10px; letter-spacing: .1em; color: var(--steel-500); }

@@ -3,7 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLibrary } from '../library/library.store'
 import { fileRel, usePlaylists } from '../playlists/playlists.store'
 import { Seg } from './Seg'
-import { useLists } from './lists.store'
+import { CATEGORIES } from '../../../../shared/config'
+import { catOfList, useLists } from './lists.store'
 import { placeFiles } from './place'
 
 const TRACK_MIME = 'application/x-slowverb-track'
@@ -12,7 +13,7 @@ const TRACK_MIME = 'application/x-slowverb-track'
 export function ListsPane() {
   const { lists, listSel, selectList, create, rename, remove, add } = useLists()
   const tracks = useLibrary((s) => s.tracks), root = usePlaylists((s) => s.root)
-  const [editing, setEditing] = useState<{ kind: 'new' } | { kind: 'rename'; id: string } | null>(null)
+  const [editing, setEditing] = useState<{ kind: 'new'; cat: string } | { kind: 'rename'; id: string } | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null)
   const [over, setOver] = useState<string | null>(null)
   const box = useRef<HTMLDivElement>(null), pill = useRef<HTMLDivElement>(null)
@@ -39,21 +40,26 @@ export function ListsPane() {
   )
   return (
     <div className="pl">
-      <div className="side-head row"><Seg /><button className="ghost" title="New playlist" onClick={() => setEditing({ kind: 'new' })}>+ NEW</button></div>
+      <div className="side-head row"><Seg /></div>
       <div className="pl-list" ref={box}>
         <div className="pl-pill" ref={pill} />
         <div data-sel={listSel === null ? 1 : 0} className={`pl-row ${listSel === null ? 'on' : ''}`} onClick={() => selectList(null)}><span className="pl-name">All songs</span><span className="n">{tracks.length}</span></div>
-        {lists.map((l) => editing?.kind === 'rename' && editing.id === l.id
-          ? <div key={l.id} className="pl-row">{input(l.name, (v) => rename(l.id, v))}</div>
-          : (
-            <div key={l.id} data-sel={listSel === l.id ? 1 : 0} className={`pl-row ${listSel === l.id ? 'on' : ''} ${over === l.id ? 'over' : ''}`}
-              onClick={() => selectList(l.id)} onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, id: l.id }) }}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setOver(l.id) }} onDragLeave={() => setOver(null)} onDrop={(e) => drop(e, l.id)}>
-              <span className="pl-name">{l.name}</span><span className="n">{count(l.songs)}</span>
-            </div>
-          ))}
-        {editing?.kind === 'new' && <div className="pl-row">{input('', (v) => { if (v.trim()) selectList(create(v)) })}</div>}
-        {!lists.length && !editing && <div className="pl-hint mono">No playlists yet. + NEW, or tick one when you add a song.</div>}
+        {CATEGORIES.map((c) => (
+          <div key={c} className="pl-sec">
+            <div className="pl-sechead"><span className="mono">{c.toUpperCase()}</span><button className="ghost" title={`New ${c} playlist`} onClick={() => setEditing({ kind: 'new', cat: c })}>+ NEW</button></div>
+        {lists.filter((l) => catOfList(l) === c).map((l) => editing?.kind === 'rename' && editing.id === l.id
+            ? <div key={l.id} className="pl-row">{input(l.name, (v) => rename(l.id, v))}</div>
+            : (
+              <div key={l.id} data-sel={listSel === l.id ? 1 : 0} className={`pl-row ${listSel === l.id ? 'on' : ''} ${over === l.id ? 'over' : ''}`}
+                onClick={() => selectList(l.id)} onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, id: l.id }) }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setOver(l.id) }} onDragLeave={() => setOver(null)} onDrop={(e) => drop(e, l.id)}>
+                <span className="pl-name">{l.name}</span><span className="n">{count(l.songs)}</span>
+              </div>
+            ))}
+          {editing?.kind === 'new' && editing.cat === c && <div className="pl-row">{input('', (v) => { if (v.trim()) selectList(create(v, c)) })}</div>}
+          {!lists.some((l) => catOfList(l) === c) && !(editing?.kind === 'new' && editing.cat === c) && <div className="pl-hint mono">No {c} playlists yet.</div>}
+          </div>
+        ))}
       </div>
       {menu && createPortal(
         <div className="menu" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>

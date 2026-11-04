@@ -5,7 +5,7 @@ import { categoryOf } from '../../../../shared/libraryModel'
 import { useLibrary } from '../library/library.store'
 import { usePlayer } from '../player/player.store'
 import { fileRel, usePlaylists } from '../playlists/playlists.store'
-import { useLists } from './lists.store'
+import { catOfList, useLists } from './lists.store'
 
 /** Right-click on a song: join/leave playlists (menu stays open so several can be ticked), change its home, reveal, trash. */
 export function SongMenu({ id, x, y, inList, onClose }: { id: string; x: number; y: number; inList: string | null; onClose(): void }) {
@@ -20,7 +20,7 @@ export function SongMenu({ id, x, y, inList, onClose }: { id: string; x: number;
   return createPortal(   // to <body>: the sidebar card creates its own containing block, which would shift a fixed menu off-screen
     <div className="menu song-menu" style={{ left: Math.min(x, innerWidth - 230), top: Math.min(y, Math.max(8, innerHeight - 60 - 34 * (lists.length + CATEGORIES.length + 4))) }} onClick={(e) => e.stopPropagation()}>
       {lists.length > 0 && <div className="menu-h mono">PLAYLISTS</div>}
-      {rel && lists.map((l) => (
+      {rel && lists.filter((l) => !home || catOfList(l) === home || l.songs.includes(rel)).map((l) => (
         <button key={l.id} className="menu-check" onClick={() => toggle(l.id, rel)}><span className={`ap-box ${l.songs.includes(rel) ? 'on' : ''}`}><i /></span>{l.name}</button>
       ))}
       <div className="menu-h mono">HOME</div>

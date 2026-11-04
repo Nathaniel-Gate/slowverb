@@ -6,7 +6,7 @@ import { useLists } from './lists.store'
 /** After files are in the library: join the chosen playlists (creating the new one if named). `paths` are absolute. */
 export function joinLists(paths: string[], p: Placement) {
   const L = useLists.getState(), root = usePlaylists.getState().root
-  const ids = [...p.listIds]; if (p.newList.trim()) ids.push(L.create(p.newList))
+  const ids = [...p.listIds]; if (p.newList.trim()) ids.push(L.create(p.newList, p.category))
   const rels = paths.map((x) => fileRel(root, x)).filter((r): r is string => !!r)
   if (ids.length && rels.length) L.add(ids, rels)
 }
