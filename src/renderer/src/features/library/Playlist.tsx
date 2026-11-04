@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { MISC_ARTIST } from '../../../../shared/config'
+import { artistCounts } from '../lists/artists'
 import { categoryOf } from '../../../../shared/libraryModel'
 import type { Track } from '../../../../shared/types'
 import { useEditor } from '../../editor/editor.store'
@@ -25,6 +27,7 @@ export function Playlist() {
   const { root, sel } = usePlaylists()
   const { lists, mode, listSel } = useLists()
   const list = useFlip<HTMLDivElement>()
+  const [artistF, setArtistF] = useState('')   // '' = all artists
   const [q, setQ] = useState(''), [sort, setSort] = useState<SortKey>('added')
   const [menu, setMenuRaw] = useState<{ id: string; x: number; y: number; open: boolean } | null>(null)
   const closeT = useRef(0)
@@ -42,9 +45,12 @@ export function Playlist() {
   }, [tracks, root, sel, mode, pl])
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const f = needle ? base.filter((t) => `${t.title} ${t.artist}`.toLowerCase().includes(needle)) : base
+    const byArtist = artistF ? base.filter((t) => (t.artist.trim() || MISC_ARTIST).toLowerCase() === artistF.toLowerCase()) : base
+    const f = needle ? byArtist.filter((t) => `${t.title} ${t.artist}`.toLowerCase().includes(needle)) : byArtist
     return sort === 'title' ? [...f].sort((a, b) => a.title.localeCompare(b.title)) : sort === 'length' ? [...f].sort((a, b) => a.duration - b.duration) : f
-  }, [base, q, sort])
+  }, [base, q, sort, artistF])
+  const artists = useMemo(() => artistCounts(base), [base])   // what the filter offers: artists present in the current view
+  useEffect(() => { if (artistF && !artists.some((a) => a.name.toLowerCase() === artistF.toLowerCase())) setArtistF('') }, [artists, artistF])
   const title = pl ? pl.name : mode === 'lists' || sel === null ? 'All songs' : sel === '' ? 'Unsorted' : sel.slice(sel.lastIndexOf('/') + 1)
   const chips = (t: Track) => { const r = fileRel(root, t.path); return r ? lists.filter((l) => l.songs.includes(r)).map((l) => l.name) : [] }
   const canReorder = sort === 'added' && !q && !pl
@@ -56,10 +62,11 @@ export function Playlist() {
       <div className="side-head row"><span className="mono">{title} · {shown.length}</span><SettingsButton /></div>
       <div className="find">
         <input className="find-in" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" spellCheck={false} onKeyDown={(e) => e.key === 'Escape' && setQ('')} />
+        {artists.length > 1 && <select className="find-sel" value={artistF} onChange={(e) => setArtistF(e.target.value)} title="Filter by artist"><option value="">All artists</option>{artists.map((a) => <option key={a.name} value={a.name}>{a.name} ({a.n})</option>)}</select>}
         <button className="ghost" title="Sort order" onClick={() => setSort(SORTS[(SORTS.findIndex((s) => s.k === sort) + 1) % SORTS.length].k)}>{SORTS.find((s) => s.k === sort)!.label}</button>
       </div>
       <div className="list" ref={list}>
-        {!shown.length && <div className="empty mono">{q ? 'No match.' : <>Empty.<br />Drag audio files here, or paste a link above.</>}</div>}
+        {!shown.length && <div className="empty mono">{q || artistF ? 'No match.' : <>Empty.<br />Drag audio files here, or paste a link above.</>}</div>}
         {shown.map((t, i) => {
           const c = chips(t), r = fileRel(root, t.path), home = r ? categoryOf(r) : null
           return (

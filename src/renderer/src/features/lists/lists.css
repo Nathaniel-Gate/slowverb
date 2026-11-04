@@ -64,3 +64,17 @@
 .sm-body { animation: sm-swap 0.18s ease both; }
 @keyframes sm-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .song-menu, .song-menu.placed { transition: opacity 0.1s; } .sm-body { animation: none; } }
+
+/* add popup: artist picker */
+.ap-chosen { color: var(--neon, var(--white)); letter-spacing: .04em; margin-left: 6px; }
+.ap-artist { display: grid; gap: 4px; }
+.ap-q { margin-top: 0; }
+.ap-alist { max-height: 120px; margin: 0; }
+.ap-list .ap-n { margin-left: auto; font-size: 10px; }
+.ap-list .ap-dot { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--hairline-strong); position: relative; }
+.ap-list.on .ap-dot { border-color: var(--white); } .ap-list.on .ap-dot::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--white); }
+.ap-go:disabled { opacity: .35; cursor: default; transform: none; }
+
+/* artist filter next to the song search */
+.find-sel { flex: none; max-width: 112px; background: var(--ink-950); color: var(--steel-300); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 5px 6px; font: 11px var(--font-mono); outline: none; text-overflow: ellipsis; }
+.find-sel:hover, .find-sel:focus { border-color: var(--hairline-strong); color: var(--white); }

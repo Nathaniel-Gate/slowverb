@@ -8,6 +8,7 @@ type S = {
   remove(id: string): void
   moveBefore(dragId: string, targetId: string): void
   setPath(id: string, path: string): void
+  setArtist(paths: string[], artist: string): void   // the artist chosen in the add popup, applied to the files just added
   setTrackFx(id: string, fx: Fx): void
   replace(tracks: Track[]): void
 }
@@ -35,6 +36,7 @@ export const useLibrary = create<S>((set, get) => {
       const [x] = t.splice(from, 1); t.splice(t.findIndex((y) => y.id === targetId), 0, x); set({ tracks: t })
     },
     setPath: (id, path) => set({ tracks: get().tracks.map((t) => (t.id === id ? { ...t, path } : t)) }),
+    setArtist: (paths, artist) => set({ tracks: get().tracks.map((t) => (paths.includes(t.path) ? { ...t, artist } : t)) }),
     setTrackFx: (id, fx) => set({ tracks: get().tracks.map((t) => (t.id === id ? { ...t, fx } : t)) }),
     replace: (tracks) => set({ tracks })
   }

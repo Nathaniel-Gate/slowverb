@@ -602,6 +602,8 @@ export function runShot(win: BrowserWindow) {
         const inp = document.querySelector('.ap-new'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(inp, 'Rain'); inp.dispatchEvent(new Event('input', { bubbles: true }))
         await new Promise(r => setTimeout(r, 150)); return { cats, lists } `)
       await shot('4-popup-filled')
+      await js2(`const q = document.querySelector('.ap-q'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(q, 'Skepta'); q.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 150))`); await shot('3b-artist')
+      await js2(`document.querySelectorAll('.ap-alist .ap-list')[1].click(); await new Promise(r => setTimeout(r, 150))`)
       await js2(`document.querySelector('.ap-go').click(); await window.__pop; await new Promise(r => setTimeout(r, 700))`)
       out.afterAdd = await js2(`return { tracks: sv.useLibrary.getState().tracks.map(t => t.path.slice(sv.usePlaylists.getState().root.length + 1)), lists: sv.useLists.getState().lists.map(l => [l.name, l.songs]) }`)
       // move a song that is in a playlist to the other home: membership must follow
