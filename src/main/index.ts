@@ -89,7 +89,7 @@ app.whenReady().then(() => {
     return r.response === 0
   }))
   ipcMain.handle('lists:load', () => readLists())
-  ipcMain.handle('lists:save', (_e, lists) => writeLists(lists))
+  ipcMain.handle('lists:save', (_e, lists, cleared) => writeLists(lists, cleared === true))
   ipcMain.handle('lib:reveal', (_e, path: string) => revealSong(path))
   ipcMain.handle('lib:trash', (_e, path: string) => trashSong(path))
   ipcMain.handle('editor:list', (_e, song: string) => editorList(song))

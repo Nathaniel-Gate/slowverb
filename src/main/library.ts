@@ -20,8 +20,10 @@ export async function readLists(): Promise<Playlist[]> {
   const j = JSON.parse(text)   // a corrupt file throws too, so the app never saves over it
   return Array.isArray(j.playlists) ? j.playlists : []
 }
-export async function writeLists(playlists: Playlist[]) {
+/** `cleared` = the user themselves deleted the last playlist. Without it, an empty list never replaces a non-empty file (whatever the cause: bad read, test harness, race), so playlists cannot be wiped by accident. */
+export async function writeLists(playlists: Playlist[], cleared = false) {
   await mkdir(dir(), { recursive: true })
+  if (!playlists.length && !cleared && (await readLists().catch(() => [{}])).length) return
   if (await exists(listsFile())) {
     await copyFile(listsFile(), listsFile() + '.bak')
     const had = await readLists().catch(() => [] as Playlist[])

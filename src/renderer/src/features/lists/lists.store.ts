@@ -7,6 +7,7 @@ import type { Playlist } from '../../../../shared/types'
  *  Folders are a song's ONE home (see playlists.store); these lists never move or copy a file. Saved to <root>/.slowverb/playlists.json. */
 type S = {
   loaded: boolean   // true once the saved playlists have been read; nothing is written back before that (an early quit must never save an empty list over the real one)
+  cleared: boolean   // true only when the user deleted the last playlist (the one case where saving an empty list is allowed)
   lists: Playlist[]; mode: 'files' | 'lists'; listSel: string | null   // listSel null = all songs
   setMode(m: 'files' | 'lists'): void
   selectList(id: string | null): void
@@ -21,13 +22,13 @@ type S = {
   heal(existing: string[]): void
 }
 export const useLists = create<S>((set, get) => ({
-  loaded: false, lists: [], mode: 'files', listSel: null,
+  loaded: false, cleared: false, lists: [], mode: 'files', listSel: null,
   setMode: (mode) => set({ mode }),
   selectList: (listSel) => set({ listSel }),
   replace: (lists) => set({ lists, loaded: true }),
   create(name, category) { const id = crypto.randomUUID(); set({ lists: [...get().lists, { ...makeList(id, name.trim(), Date.now()), ...(category ? { category } : {}) }] }); return id },
   rename: (id, name) => name.trim() && set({ lists: get().lists.map((l) => (l.id === id ? { ...l, name: name.trim() } : l)) }),
-  remove: (id) => set({ lists: get().lists.filter((l) => l.id !== id), listSel: get().listSel === id ? null : get().listSel }),
+  remove: (id) => set({ cleared: get().lists.every((l) => l.id === id), lists: get().lists.filter((l) => l.id !== id), listSel: get().listSel === id ? null : get().listSel }),
   add: (ids, rels) => set({ lists: get().lists.map((l) => (ids.includes(l.id) ? addSongs(l, rels) : l)) }),
   toggle(id, rel) { set({ lists: get().lists.map((l) => (l.id !== id ? l : l.songs.includes(rel) ? removeSong(l, rel) : addSongs(l, [rel]))) }) },
   removeSong: (id, rel) => set({ lists: get().lists.map((l) => (l.id === id ? removeSong(l, rel) : l)) }),

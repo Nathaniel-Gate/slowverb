@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   moveTrack: (path: string, toRel: string) => ipcRenderer.invoke('pl:move', path, toRel),
   migrate: () => ipcRenderer.invoke('lib:migrate'),
   listsLoad: () => ipcRenderer.invoke('lists:load'),
-  listsSave: (lists: unknown) => ipcRenderer.invoke('lists:save', lists),
+  listsSave: (lists: unknown, cleared?: boolean) => ipcRenderer.invoke('lists:save', lists, cleared),
   reveal: (path: string) => ipcRenderer.invoke('lib:reveal', path),
   trashSong: (path: string) => ipcRenderer.invoke('lib:trash', path),
   importInto: (paths: string[], toRel: string) => ipcRenderer.invoke('pl:import', paths, toRel),

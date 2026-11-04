@@ -68,10 +68,10 @@ export async function wire() {
   let timer: number | undefined
   const save = () => { clearTimeout(timer); timer = window.setTimeout(() => void saveLibraryNow(), 250) }
   let ltimer: number | undefined
-  const saveLists = () => { clearTimeout(ltimer); ltimer = window.setTimeout(() => { if (useLists.getState().loaded) void window.api.listsSave(useLists.getState().lists) }, 250) }
+  const saveLists = () => { clearTimeout(ltimer); ltimer = window.setTimeout(() => { if (useLists.getState().loaded) void window.api.listsSave(useLists.getState().lists, useLists.getState().cleared) }, 250) }
   useLists.subscribe((s, prev) => { if (s.lists !== prev.lists) saveLists() })
   useLibrary.subscribe(save); useFx.subscribe(save); usePlayer.subscribe(save); useSettings.subscribe(save)
-  const saveEverything = async () => { clearTimeout(timer); clearTimeout(ltimer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow(), useLists.getState().loaded ? window.api.listsSave(useLists.getState().lists) : Promise.resolve()]) }
+  const saveEverything = async () => { clearTimeout(timer); clearTimeout(ltimer); await Promise.allSettled([useEditor.getState().flush(), saveLibraryNow(), useLists.getState().loaded ? window.api.listsSave(useLists.getState().lists, useLists.getState().cleared) : Promise.resolve()]) }
   window.addEventListener('beforeunload', () => void saveEverything())                      // belt
   window.addEventListener('blur', () => void saveEverything())                              // switching to another app
   document.addEventListener('visibilitychange', () => { if (document.hidden) void saveEverything() })
