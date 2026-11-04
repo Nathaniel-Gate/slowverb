@@ -20,6 +20,7 @@ describe('visuals model', () => {
     expect(classifyLink('https://www.pinterest.co.uk/pin/123456/')).toMatchObject({ kind: 'pinterest', target: 'pin' })
     expect(classifyLink('https://pin.it/abc')).toMatchObject({ kind: 'pinterest', target: 'pin' })
     expect(classifyLink('pinterest.com/ng/moodboard/section')).toMatchObject({ kind: 'pinterest', target: 'section' })
+    expect(classifyLink('youtu.be/abc', true)).toMatchObject({ kind: 'site' })
     expect(classifyLink('ng/moodboard', true)).toMatchObject({ kind: 'pinterest', target: 'board', url: 'https://www.pinterest.com/ng/moodboard/' })
     expect(classifyLink('https://x.com/a/pic.PNG?x=1')).toMatchObject({ kind: 'image' })
     expect(classifyLink('https://cdn.site/v/clip.mp4')).toMatchObject({ kind: 'video' })

@@ -15,6 +15,7 @@ import { createFolder, importInto, moveFile, renameFolder, sync, trashFolder, wa
 import { runShot } from './devshot'
 import { runClipsShot } from './clipshot'
 import { ensureVisuals, frameFor, importVisuals, listVisuals, saveFrame, thumbFor } from './visuals'
+import { mediaCancel, mediaFetch, pinForget, pinState, pinSyncAll } from './mediaDl'
 
 // media://local/<abs path> streams a file from disk with range support (seeking) and CORS (Web Audio needs it).
 protocol.registerSchemesAsPrivileged([
@@ -117,6 +118,11 @@ app.whenReady().then(() => {
   ipcMain.handle('visuals:thumb', (_e, path: string) => thumbFor(path))
   ipcMain.handle('visuals:frameGet', (_e, key: string) => frameFor(key))
   ipcMain.handle('visuals:framePut', (_e, key: string, jpeg: ArrayBuffer) => saveFrame(key, jpeg))
+  ipcMain.handle('media:fetch', (e, input: string, opts: { privateBoards: boolean }) => mediaFetch(input, { privateBoards: opts?.privateBoards === true }, (p) => e.sender.send('media:progress', p)))
+  ipcMain.handle('media:cancel', () => mediaCancel())
+  ipcMain.handle('pin:state', () => pinState())
+  ipcMain.handle('pin:syncAll', (e, opts: { privateBoards: boolean }) => pinSyncAll({ privateBoards: opts?.privateBoards === true }, (p) => e.sender.send('media:progress', p)))
+  ipcMain.handle('pin:forget', (_e, url: string) => pinForget(url))
   ipcMain.handle('export:save', (e, name: string, data: ArrayBuffer) => exportSave(BrowserWindow.fromWebContents(e.sender)!, name, data))
   ipcMain.handle('library:load', async () => { try { return JSON.parse(await readFile(libraryFile(), 'utf8')) } catch { return null } })
   ipcMain.handle('library:save', (_e, data) => writeFile(libraryFile(), JSON.stringify(data)))

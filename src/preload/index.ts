@@ -44,5 +44,11 @@ contextBridge.exposeInMainWorld('api', {
   visualsThumb: (path: string) => ipcRenderer.invoke('visuals:thumb', path),
   frameGet: (key: string) => ipcRenderer.invoke('visuals:frameGet', key),
   framePut: (key: string, jpeg: ArrayBuffer) => ipcRenderer.invoke('visuals:framePut', key, jpeg),
-  onVisualsChanged: (cb: () => void) => { ipcRenderer.on('visuals:changed', cb); return () => ipcRenderer.removeListener('visuals:changed', cb) }
+  onVisualsChanged: (cb: () => void) => { ipcRenderer.on('visuals:changed', cb); return () => ipcRenderer.removeListener('visuals:changed', cb) },
+  mediaFetch: (input: string, opts: unknown) => ipcRenderer.invoke('media:fetch', input, opts),
+  mediaCancel: () => ipcRenderer.invoke('media:cancel'),
+  onMediaProgress: (cb: (p: unknown) => void) => { const h = (_e: unknown, p: unknown) => cb(p); ipcRenderer.on('media:progress', h); return () => ipcRenderer.removeListener('media:progress', h) },
+  pinState: () => ipcRenderer.invoke('pin:state'),
+  pinSyncAll: (opts: unknown) => ipcRenderer.invoke('pin:syncAll', opts),
+  pinForget: (url: string) => ipcRenderer.invoke('pin:forget', url)
 })

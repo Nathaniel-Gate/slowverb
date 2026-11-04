@@ -35,7 +35,7 @@ const PIN_HOST = /^(?:[a-z]{2,3}\.)?pinterest\.[a-z.]+$|^pin\.it$/i
 export function classifyLink(input: string, pinterestShort = false): LinkKind {
   const raw = input.trim()
   if (!raw) return { kind: 'bad', reason: 'Paste a link first' }
-  if (pinterestShort && /^@?[\w.-]+(\/[\w%.-]+){0,2}\/?$/.test(raw) && !raw.includes('.com')) {
+  if (pinterestShort && /^@?[\w-]+(\/[\w%.-]+){0,2}\/?$/.test(raw)) {   // "user/board": the first part has no dot, so it is never a website
     const parts = raw.replace(/^@/, '').replace(/\/$/, '').split('/')
     return pinterestOf(`https://www.pinterest.com/${parts.join('/')}/`, parts)
   }
