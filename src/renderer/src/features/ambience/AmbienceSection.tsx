@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { AMBIENCE, soundName } from '../../audio/ambience'
 import { Knob } from '../fx/Knob'
 import { useLibrary } from '../library/library.store'
@@ -16,6 +16,14 @@ export function AmbienceSection() {
     if (paths.length) await usePlaylists.getState().importFiles(paths, AMBIENCE.category)
     if (pick.current) pick.current.value = ''
   }
+  const [link, setLink] = useState(''), [msg, setMsg] = useState('')
+  const fetchLink = async () => {
+    const l = link.trim(); if (!l || msg === 'Downloading…') return
+    setMsg('Downloading…')
+    const r = await window.api.download(l, AMBIENCE.category)
+    if (r.paths?.length) { await usePlaylists.getState().refresh(); setLink(''); setMsg('Added to Sound bites') }
+    else setMsg(r.error ?? 'Failed')
+  }
   const bites = soundBites(tracks, root), chosen = sounds.filter((s) => bites.some((b) => b.rel === s.rel))
   return (
     <div className="amb" data-on={on || undefined}>
@@ -26,7 +34,12 @@ export function AmbienceSection() {
         </button>
       </div>
       <input ref={pick} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg" multiple hidden onChange={(e) => void addFiles(e.target.files)} />
-      <button className="chip amb-add" onClick={() => pick.current?.click()} title="Choose audio files to add to Sound bites">+ ADD SOUND</button>
+      <div className="amb-addrow">
+        <input className="amb-link" value={link} placeholder="Paste a link to a rain / white noise sound" spellCheck={false} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void fetchLink()} />
+        <button className="amb-add" disabled={!link.trim() || msg === 'Downloading…'} onClick={() => void fetchLink()}>ADD</button>
+        <button className="amb-add" onClick={() => pick.current?.click()} title="Choose audio files from your Mac">FILE…</button>
+      </div>
+      {msg && <p className="amb-empty">{msg}</p>}
       {bites.length === 0
         ? <p className="amb-empty">No sounds yet. Add a rain, birdsong or white noise file.</p>
         : <>
