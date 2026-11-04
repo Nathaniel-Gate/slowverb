@@ -21,8 +21,8 @@
 .menu-sep { height: 1px; margin: 5px 4px; background: var(--hairline); }
 .menu-check { display: flex !important; align-items: center; gap: 10px; }
 .ap-box { flex: none; width: 14px; height: 14px; border: 1px solid var(--hairline-strong); border-radius: 4px; display: grid; place-items: center; transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
-.ap-box i { width: 6px; height: 6px; border-radius: 2px; background: var(--ink-950); transform: scale(0); transition: transform var(--t-fast) var(--ease); }
-.ap-box.on, .ap-list.on .ap-box { background: var(--neon, var(--white)); border-color: var(--neon, var(--white)); } .ap-box.on i, .ap-list.on .ap-box i { transform: scale(1); }
+.ap-box i { width: 6px; height: 6px; border-radius: 2px; background: var(--neon, var(--white)); transform: scale(0); transition: transform var(--t-fast) var(--ease); }
+.ap-box.on, .ap-list.on .ap-box { background: transparent; border-color: var(--neon, var(--white)); } .ap-box.on i, .ap-list.on .ap-box i { transform: scale(1); }
 .ap-dot { flex: none; width: 14px; height: 14px; border: 1px solid var(--hairline-strong); border-radius: 50%; position: relative; }
 .ap-dot.on { border-color: var(--white); } .ap-dot.on::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--white); }
 
@@ -33,7 +33,7 @@
 .ap-cats { position: relative; display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); padding: 3px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--ink-950); }
 .ap-cats button { position: relative; z-index: 1; padding: 10px 8px; font-size: 13px; color: var(--steel-400); border-radius: var(--radius-sm); transition: color var(--t-fast) var(--ease); }
 .ap-cats button.on, .ap-cats button:hover { color: var(--white); }
-.ap-pill { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n, 2)); border-radius: var(--radius-sm); background: var(--ink-800); outline: 1px solid var(--neon, var(--white)); box-shadow: 0 0 10px color-mix(in srgb, var(--neon, #fff) 40%, transparent); transition: transform var(--t) var(--ease); }
+.ap-pill { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n, 2)); border-radius: var(--radius-sm); background: var(--ink-800); outline: 1px solid var(--neon, var(--white)); box-shadow: 0 0 5px color-mix(in srgb, var(--neon, #fff) 30%, transparent); transition: transform var(--t) var(--ease); }
 .ap-cats[data-i="1"] .ap-pill { transform: translateX(100%); } .ap-cats[data-i="2"] .ap-pill { transform: translateX(200%); }
 .ap-sub { font-size: 10px; letter-spacing: .1em; color: var(--steel-500); display: flex; justify-content: space-between; } .ap-sub span { opacity: .6; }
 .ap-lists { display: grid; gap: 2px; max-height: 190px; overflow-y: auto; margin: -4px -6px; padding: 4px 6px; }
