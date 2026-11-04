@@ -33,7 +33,8 @@ export async function writeLists(playlists: Playlist[], cleared = false) {
       const old = (await readdir(bk)).sort(); for (const f of old.slice(0, Math.max(0, old.length - 20))) await unlink(join(bk, f))
     }
   }
-  const tmp = listsFile() + '.tmp'; await writeFile(tmp, JSON.stringify({ version: 1, playlists }, null, 1)); await rename(tmp, listsFile())   // atomic: never a half-written file
+  const tmp = `${listsFile()}.${randomUUID()}.tmp`;   // unique per write: two saves at once (timer + quit) must not fight over one temp file
+   await writeFile(tmp, JSON.stringify({ version: 1, playlists }, null, 1)); await rename(tmp, listsFile())   // atomic: never a half-written file
 }
 
 export async function revealSong(path: string) { shell.showItemInFolder(path) }

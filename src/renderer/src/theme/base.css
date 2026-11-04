@@ -6,13 +6,17 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 :focus { outline: none; }
 button:focus-visible, [role="tab"]:focus-visible, [role="checkbox"]:focus-visible { outline: 1px solid var(--steel-300); outline-offset: 2px; }
 button:focus:not(:focus-visible) { outline: none; }
-.app { height: 100%; display: grid; grid-template-columns: 1fr var(--sidebar-w); position: relative; }
+#root { display: grid; place-items: center; }
+/* the page is a whole number of grid squares wide and tall (centred; the <1u leftover is plain background), so card edges land exactly on lines at any window size */
+.app { width: round(down, 100vw, var(--u)); height: round(down, 100vh, var(--u)); display: grid; grid-template-columns: 1fr var(--sidebar-w); position: relative; }
 .drag { -webkit-app-region: drag; height: 38px; position: absolute; inset: 0 0 auto 0; z-index: 5; }
-.main { overflow-y: auto; gap: 24px; padding: 56px var(--pad) 32px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--hairline); min-width: 0; }
+.main { overflow-y: auto; gap: var(--u); padding: calc(var(--u) * 2) var(--pad) var(--u); display: flex; flex-direction: column; justify-content: flex-start; border-right: 1px solid var(--hairline); min-width: 0; }
 .title { font-size: var(--title-size); font-weight: 500; letter-spacing: -.02em; line-height: 1.1; margin-top: 10px; }
 .artist { color: var(--steel-400); margin-top: 8px; min-height: 1.4em; }
 .tag { display: inline-block; border: 1px solid var(--hairline-strong); padding: 3px 8px; margin: 14px 8px 0 0; border-radius: var(--radius-sm); }
 .item { align-items: center; }
 .row { display: flex; justify-content: space-between; align-items: center; }
-.stack > * + * { margin-top: 12px; }
-.drop { position: absolute; inset: 0; z-index: 9; background: rgb(10 10 10 / .92); border: 1px dashed var(--white); margin: 14px; display: grid; place-items: center; pointer-events: none; border-radius: var(--radius-lg); }
+.stack > * + * { margin-top: var(--u); }
+.now, .main .stack { flex: none; }
+.now { min-height: calc(var(--u) * 6); }
+.drop { position: absolute; inset: 0; z-index: 9; background: rgb(10 10 10 / .92); border: 1px dashed var(--white); margin: var(--u); display: grid; place-items: center; pointer-events: none; border-radius: var(--radius-lg); }

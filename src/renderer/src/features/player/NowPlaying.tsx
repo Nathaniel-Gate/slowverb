@@ -9,7 +9,7 @@ export function NowPlaying() {
   const track = useLibrary((s) => s.tracks.find((x) => x.id === cur)) ?? t
   const { fx, bypass } = useFx(), viaEdit = usePlayer((s) => s.viaEdit), editName = useEditor((s) => s.project?.name)
   return (
-    <div>
+    <div className="now">
       <span className="mono">01 / Now playing</span>
       <h1 className="title" key={track?.id ?? 'none'}>{track?.title ?? 'Drop a song anywhere'}</h1>
       <div className="artist" key={(track?.id ?? 'none') + 'a'}>{track ? track.artist : 'mp3 · m4a · wav · flac · ogg · folders too'}</div>

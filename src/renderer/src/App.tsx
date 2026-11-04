@@ -21,7 +21,23 @@ function useOverlay(open: boolean) {
   return open || mounted
 }
 
+/** Player cards are always a whole number of grid squares tall, so their top and bottom edges sit on the blueprint lines whatever is inside them. */
+function useSnapPanels() {
+  useEffect(() => {
+    const unit = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--u')) || 24
+    const snap = (el: HTMLElement) => { el.style.minHeight = '0'; el.style.minHeight = `${Math.ceil(el.offsetHeight / unit()) * unit()}px` }
+    const ro = new ResizeObserver((es) => es.forEach((e) => snap(e.target.parentElement as HTMLElement))), seen = new Set<Element>()
+    const watch = () => document.querySelectorAll<HTMLElement>('.main .stack > .panel').forEach((p) => {
+      if (!seen.has(p)) { seen.add(p); snap(p) }
+      Array.from(p.children).forEach((c) => ro.observe(c))
+    })
+    watch(); const mo = new MutationObserver(watch); mo.observe(document.querySelector('.main')!, { childList: true, subtree: true })
+    return () => { ro.disconnect(); mo.disconnect() }
+  }, [])
+}
+
 export function App() {
+  useSnapPanels()
   const { over, handlers } = useDrop()
   useShortcuts()
   const open = useEditor((s) => s.open), editorMounted = useOverlay(open)

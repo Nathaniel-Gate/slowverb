@@ -13,14 +13,14 @@
 @keyframes ed-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes ed-left { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 @keyframes ed-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-.editor { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding-top: 38px; animation: ed-in var(--t-slow) var(--ease) both;
+.editor { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding-top: calc(var(--u) * 2); animation: ed-in var(--t-slow) var(--ease) both;
   /* one flat tone from the very top (behind the PLAYER/EDITOR switch) down through the header bar, no blueprint grid showing in the strip */
   background-color: var(--ink-900); }
 .editor.leaving { animation: ed-out var(--t) var(--ease) both; pointer-events: none; }
 .ed-loading { margin: auto; animation: ed-pulse 1.2s ease-in-out infinite; }
 
 /* header */
-.ed-head { position: relative; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-bottom: 1px solid var(--hairline); background: rgb(15 15 15 / .85); animation: ed-drop var(--t-slow) var(--ease) both; flex: none; }
+.ed-head { position: relative; display: flex; align-items: center; gap: 12px; height: calc(var(--u) * 2); padding: 0 var(--u); border-bottom: 1px solid var(--hairline); background: rgb(15 15 15 / .85); animation: ed-drop var(--t-slow) var(--ease) both; flex: none; }
 .ed-grow { flex: 1; } .ed-sep { width: 1px; height: 20px; background: var(--hairline-strong); flex: none; }
 .ed-names { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ed-name { font-size: 15px; font-weight: 500; color: var(--white); padding: 4px 8px; border-radius: var(--radius-sm); max-width: 30vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -38,8 +38,8 @@
 .ed-busy { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; opacity: 0; transition: opacity var(--t) var(--ease); pointer-events: none; } .ed-busy.on { opacity: 1; }
 
 /* body */
-.ed-body { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px; }
-.ed-tools { width: 52px; flex: none; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; padding: 6px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: rgb(15 15 15 / .85); animation: ed-left var(--t-slow) var(--ease) 60ms both; }
+.ed-body { flex: 1; min-height: 0; display: flex; gap: var(--u); padding: var(--u); }
+.ed-tools { width: calc(var(--u) * 2); flex: none; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; padding: 6px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: rgb(15 15 15 / .85); animation: ed-left var(--t-slow) var(--ease) 60ms both; }
 .ed-tool-list { position: relative; }
 .ed-tool-pill { position: absolute; left: 0; right: 0; top: 0; height: 38px; border-radius: var(--radius); background: var(--ink-800); outline: 1px solid var(--hairline-strong); pointer-events: none; transition: transform var(--t) var(--ease); }
 .ed-tool { position: relative; width: 100%; height: 38px; display: grid; place-items: center; color: var(--steel-400); border-radius: var(--radius); }

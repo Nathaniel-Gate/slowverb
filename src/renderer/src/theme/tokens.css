@@ -11,7 +11,7 @@
   --accent: #fbfbfa; /* greyscale: plain white. Put a colour here to add a single accent. */
   --hairline: rgb(255 255 255 / 0.09); --hairline-strong: rgb(255 255 255 / 0.18);
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif; --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-  --grid-major: 120px; --grid-minor: 24px; --grid-major-a: 0.045; --grid-minor-a: 0.018;
+  --u: 24px; /* THE unit: every gap, margin and padding is 0.5u, 1u or 2u, and the grid lines are 1u / 5u, so box edges sit on grid lines */ --grid-major: calc(var(--u) * 5); --grid-minor: var(--u); --grid-major-a: 0.045; --grid-minor-a: 0.018;
   --radius-sm: 5px; --radius: 10px; --radius-lg: 14px; /* corner softness: set all to 0 for fully sharp */
-  --sidebar-w: 352px; --pad: 40px; --title-size: 34px;
+  --sidebar-w: calc(var(--u) * 15); --pad: var(--u); --title-size: 34px;
 }

@@ -1,5 +1,5 @@
 /* Docked panels. Greyscale blueprint look; only transform/opacity animate. Width of the dock = one token. */
-:root { --dock-w: 320px; --dock-rail-w: 36px; }
+:root { --dock-w: calc(var(--u) * 13); --dock-rail-w: calc(var(--u) * 2); }
 
 .ed-dock { flex: none; width: var(--dock-rail-w); min-height: 0; display: flex; }
 .ed-dock.open { width: var(--dock-w); }

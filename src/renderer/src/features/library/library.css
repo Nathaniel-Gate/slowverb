@@ -10,7 +10,7 @@
 .empty { padding: 40px 20px; text-align: center; line-height: 1.8; }
 
 /* Soft UI pass: floating sidebar card, inset rounded rows */
-.side { margin: 12px 12px 12px 0; padding-top: 0; border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; background: rgb(15 15 15 / .92); }
+.side { margin: var(--u) var(--u) var(--u) 0; padding-top: 0; border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; background: rgb(15 15 15 / .92); }
 .main { border-right: 0; }
 .list { padding: 8px; }
 .item { border-bottom: 0; border-radius: var(--radius); padding: 10px 12px; margin-bottom: 2px; }

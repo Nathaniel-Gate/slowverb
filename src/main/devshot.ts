@@ -633,6 +633,7 @@ export function runShot(win: BrowserWindow) {
     }
     const result = await win.webContents.executeJavaScript(js)
     if (process.env.SLOWVERB_FAKE_PROGRESS) { win.webContents.send('dl:progress', { stage: 'Downloading', pct: 42, item: { i: 2, n: 5 } }); await new Promise((r) => setTimeout(r, 1500)) }
+    if (process.env.SLOWVERB_RECTS) console.log('RECTS ' + JSON.stringify(await win.webContents.executeJavaScript(`(() => { const o = { win: [innerWidth, innerHeight, devicePixelRatio] }; for (const s of ['.app', '.main', '.main .panel', '.side', '.drag']) o[s] = [...document.querySelectorAll(s)].map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom].map((v) => +v.toFixed(1)) }); return o })()`)))
     const img = await win.webContents.capturePage()
     writeFileSync(process.env.SLOWVERB_SHOT!, img.toPNG())
     console.log('SHOT_RESULT ' + JSON.stringify(result))

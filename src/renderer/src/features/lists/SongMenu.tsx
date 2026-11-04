@@ -16,14 +16,14 @@ export function SongMenu({ id, x, y, open, inList, onClose }: { id: string; x: n
   useEffect(() => setAsk(false), [id])
   useLayoutEffect(() => { const h = box.current?.offsetHeight ?? 0; setTop(Math.max(8, Math.min(y, innerHeight - h - 8))) }, [y, id, lists.length, ask])   // follows the clicked song's dots, always fully on screen
   if (!t) return null
-  const sideLeft = document.querySelector('.side')?.getBoundingClientRect().left ?? x   // opens to the LEFT of the song list so it never covers other songs
+  const sideLeft = document.querySelector('.side')?.getBoundingClientRect().left ?? innerWidth - 360   // opens to the LEFT of the song list so it never covers other songs
   const rel = fileRel(root, t.path), home = rel ? categoryOf(rel) : null
   const trash = async () => {
     onClose(); if (usePlayer.getState().cur === id) usePlayer.getState().stop()
     await window.api.trashSong(t.path); await usePlaylists.getState().refresh()
   }
   return createPortal(   // to <body>: the sidebar card creates its own containing block, which would shift a fixed menu off-screen
-    <div ref={box} className={`menu song-menu ${on ? 'on' : ''} ${top !== null && on ? 'placed' : ''}`} style={{ left: Math.max(8, sideLeft - 250), top: top ?? y }} onClick={(e) => e.stopPropagation()}>
+    <div ref={box} className={`menu song-menu ${on ? 'on' : ''} ${top !== null && on ? 'placed' : ''}`} style={{ right: innerWidth - sideLeft + 24, width: 240, top: top ?? y }} onClick={(e) => e.stopPropagation()}>
       <div key={id} className="sm-body">
       {lists.length > 0 && <div className="menu-h mono">PLAYLISTS</div>}
       {rel && lists.filter((l) => !home || catOfList(l) === home || l.songs.includes(rel)).map((l) => (
