@@ -21,6 +21,14 @@ export function SettingsButton() {
             <span className="set-txt"><b>{r.label}</b><small>{r.hint}</small></span>
           </button>
         ))}
+        <div className="set-row set-gap" role="group" aria-label="Silence between songs">
+          <span className="set-txt"><b>Silence between songs</b><small>The reverb carries on through it. 0 = straight into the next song</small></span>
+          <span className="set-step">
+            <button className="ghost" aria-label="Shorter" disabled={s.gapSec <= 0} onClick={() => s.set({ gapSec: Math.max(0, s.gapSec - 1) })}>−</button>
+            <span className="mono set-val">{s.gapSec}s</span>
+            <button className="ghost" aria-label="Longer" disabled={s.gapSec >= 20} onClick={() => s.set({ gapSec: Math.min(20, s.gapSec + 1) })}>+</button>
+          </span>
+        </div>
       </Popover>
     </>
   )

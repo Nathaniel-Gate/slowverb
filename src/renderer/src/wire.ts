@@ -52,11 +52,11 @@ export async function wire() {
     if (usePlayer.getState().viaEdit && s.playing !== prev.playing) {
       usePlayer.setState({ playing: s.playing })
       const end = s.project ? s.project.clips.reduce((m, c) => Math.max(m, c.start + (c.srcOut - c.srcIn) / (c.speed || 1)), 0) : 0
-      if (!s.playing && !s.open && end > 0 && s.playhead >= end - 0.1 && useSettings.getState().autoAdvance) usePlayer.getState().next(1)   // the edit played to its end in the PLAYER view: next song (never from the editor view)
+      if (!s.playing && !s.open && end > 0 && s.playhead >= end - 0.1 && useSettings.getState().autoAdvance) usePlayer.getState().advanceAfterGap()   // the edit played to its end in the PLAYER view: next song (never from the editor view)
     }
   })   // and the player's stream sleeps while the editor plays
-  engine.el.addEventListener('pause', () => usePlayer.setState({ playing: false }))
-  engine.el.addEventListener('ended', () => { if (useSettings.getState().autoAdvance && !useEditor.getState().open) usePlayer.getState().next(1) })   // only in the player view, and only if switched on
+  engine.el.addEventListener('pause', () => { if (engine.el.ended && useSettings.getState().autoAdvance && !useEditor.getState().open) return; usePlayer.setState({ playing: false }) })   // a song that just ENDED still counts as playing while the silence before the next one runs (layers keep going)
+  engine.el.addEventListener('ended', () => { if (useSettings.getState().autoAdvance && !useEditor.getState().open) usePlayer.getState().advanceAfterGap() })   // only in the player view, and only if switched on
   bindSongColor()
   bindAmbience()                                                // background sound: follows usePlayer.playing, saved via useSettings
   // persist (debounced)

@@ -135,8 +135,16 @@ export function runShot(win: BrowserWindow) {
           sv.engine.el.currentTime = 18.2; await sv.engine.ctx.resume(); await sv.engine.el.play(); await wait(3500)
           return { cur: P.getState().cur, playing: P.getState().playing }
         }
+        S.getState().set({ gapSec: 0 })
         out.playerEndAdvanceOn = await endRun(true)
         out.playerEndAdvanceOff = await endRun(false)
+        // silence between songs: after the end the same song stays current and still "playing" (layers go on) until the gap is over, then the next starts; pausing in the gap cancels it
+        S.getState().set({ autoAdvance: true, gapSec: 3 }); P.getState().select('t0'); await wait(1200)
+        sv.engine.el.currentTime = sv.engine.el.duration - 0.6; await sv.engine.ctx.resume(); await sv.engine.el.play(); await wait(1500)
+        out.gapDuring = { cur: P.getState().cur, playing: P.getState().playing }
+        await wait(3000); out.gapAfter = { cur: P.getState().cur, playing: P.getState().playing }
+        P.getState().select('t0'); await wait(1200); sv.engine.el.currentTime = sv.engine.el.duration - 0.6; await sv.engine.el.play(); await wait(1500)
+        P.getState().toggle(); await wait(3500); out.gapCancelled = { cur: P.getState().cur, playing: P.getState().playing }
         return out })()`)
       console.log('AUTOPLAY_RESULT ' + JSON.stringify(r)); app.quit(); return
     }
