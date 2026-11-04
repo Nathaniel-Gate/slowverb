@@ -53,3 +53,5 @@
 .menu-confirm .solid { background: #8f3b33; border-color: #8f3b33; color: var(--white); } .menu-confirm .solid:hover { background: #a8453c; color: var(--white); }
 
 .pl-sec { margin-top: 10px; } .pl-sechead { display: flex; justify-content: space-between; align-items: center; padding: 4px 14px; font-size: 10px; letter-spacing: .1em; color: var(--steel-500); }
+
+.menu-done { text-align: center; letter-spacing: 0.12em; font-size: 11px; color: var(--accent); }
