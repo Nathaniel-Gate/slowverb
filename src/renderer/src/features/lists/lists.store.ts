@@ -6,6 +6,7 @@ import type { Playlist } from '../../../../shared/types'
 /** Virtual playlists (many-to-many, by path relative to the library root) + which sidebar view is showing.
  *  Folders are a song's ONE home (see playlists.store); these lists never move or copy a file. Saved to <root>/.slowverb/playlists.json. */
 type S = {
+  loaded: boolean   // true once the saved playlists have been read; nothing is written back before that (an early quit must never save an empty list over the real one)
   lists: Playlist[]; mode: 'files' | 'lists'; listSel: string | null   // listSel null = all songs
   setMode(m: 'files' | 'lists'): void
   selectList(id: string | null): void
@@ -20,10 +21,10 @@ type S = {
   heal(existing: string[]): void
 }
 export const useLists = create<S>((set, get) => ({
-  lists: [], mode: 'files', listSel: null,
+  loaded: false, lists: [], mode: 'files', listSel: null,
   setMode: (mode) => set({ mode }),
   selectList: (listSel) => set({ listSel }),
-  replace: (lists) => set({ lists }),
+  replace: (lists) => set({ lists, loaded: true }),
   create(name, category) { const id = crypto.randomUUID(); set({ lists: [...get().lists, { ...makeList(id, name.trim(), Date.now()), ...(category ? { category } : {}) }] }); return id },
   rename: (id, name) => name.trim() && set({ lists: get().lists.map((l) => (l.id === id ? { ...l, name: name.trim() } : l)) }),
   remove: (id) => set({ lists: get().lists.filter((l) => l.id !== id), listSel: get().listSel === id ? null : get().listSel }),
