@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { CATEGORIES, DEFAULT_CATEGORY } from '../../../../shared/config'
 
 /** What the "Where does this go?" popup returns: the home folder, existing playlists to join, and an optional new playlist to create. */
-export type Placement = { category: string; listIds: string[]; newList: string; background: boolean }   // background = also layer it under the music (Sound bites only)
+export type Placement = { category: string; listIds: string[]; newList: string }
 type Req = { what: string; preLists: string[]; category: string; resolve(p: Placement | null): void }
 type S = { req: Req | null; ask(what: string, preLists?: string[], category?: string): Promise<Placement | null>; close(p: Placement | null): void }
 

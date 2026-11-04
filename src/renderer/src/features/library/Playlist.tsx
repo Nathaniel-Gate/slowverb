@@ -67,9 +67,9 @@ export function Playlist() {
               <div style={{ minWidth: 0 }}>
                 <div className="t">{t.title}</div>
                 <div className="a">{[t.artist, t.fx && t.fx.speed !== 1 ? `${t.fx.speed.toFixed(2)}x` : ''].filter(Boolean).join(' · ')}</div>
-                {(c.length > 0 || home === 'Sound bites') && (
+                {(c.length > 0 || home === 'Sound bites' || home === 'White noise') && (
                   <div className="chips">
-                    {home === 'Sound bites' && <span className="chip home">SOUND BITE</span>}
+                    {home === 'Sound bites' && <span className="chip home">SOUND BITE</span>}{home === 'White noise' && <span className="chip home">WHITE NOISE</span>}
                     {c.slice(0, 2).map((n) => <span key={n} className="chip">{n}</span>)}{c.length > 2 && <span className="chip">+{c.length - 2}</span>}
                   </div>
                 )}

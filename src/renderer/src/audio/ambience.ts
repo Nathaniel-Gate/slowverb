@@ -8,7 +8,7 @@ export const AMBIENCE = {
   loopFadeSec: 1.5,                       // crossfade at the loop point (capped to a quarter of a short sound)
   maxSeconds: 300,                        // longer recordings are cut to this before looping (memory)
   fadeInSec: 0.6, fadeOutSec: 0.8, switchSec: 0.4,
-  category: 'Sound bites'
+  category: 'White noise'
 } as const
 
 const clamp = (v: number, lo: number, hi: number, fallback: number) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback)

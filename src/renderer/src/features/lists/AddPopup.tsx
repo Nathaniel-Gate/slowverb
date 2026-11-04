@@ -6,11 +6,11 @@ import { useLists } from './lists.store'
 /** "Where does this go?" Asked on every drop/import/download: the song's ONE home (Songs or Sound bites) + any playlists to join. Enter adds, Esc cancels. */
 export function AddPopup() {
   const req = useAddPopup((s) => s.req), close = useAddPopup((s) => s.close), lists = useLists((s) => s.lists)
-  const [cat, setCat] = useState<string>(CATEGORIES[0]), [pick, setPick] = useState<string[]>([]), [name, setName] = useState(''), [bg, setBg] = useState(true)
+  const [cat, setCat] = useState<string>(CATEGORIES[0]), [pick, setPick] = useState<string[]>([]), [name, setName] = useState('')
   const box = useRef<HTMLDivElement>(null)
-  useEffect(() => { if (req) { setCat(req.category); setPick(req.preLists); setName(''); setBg(true); requestAnimationFrame(() => box.current?.focus()) } }, [req])
+  useEffect(() => { if (req) { setCat(req.category); setPick(req.preLists); setName(''); requestAnimationFrame(() => box.current?.focus()) } }, [req])
   if (!req) return null
-  const ok = () => close({ category: cat, listIds: pick, newList: name, background: bg && cat === 'Sound bites' })
+  const ok = () => close({ category: cat, listIds: pick, newList: name })
   const key = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); close(null) }
     else if (e.key === 'Enter') { e.preventDefault(); ok() }
@@ -21,15 +21,10 @@ export function AddPopup() {
       <div className="ap" ref={box} tabIndex={-1} onKeyDown={key} role="dialog" aria-label="Where does this go?">
         <div className="ap-title">Where does this go?</div>
         <div className="ap-what mono">{req.what}</div>
-        <div className="ap-cats" data-i={Math.max(0, CATEGORIES.indexOf(cat as never))}>
+        <div className="ap-cats" style={{ '--n': CATEGORIES.length } as React.CSSProperties} data-i={Math.max(0, CATEGORIES.indexOf(cat as never))}>
           <i className="ap-pill" />
           {CATEGORIES.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
         </div>
-        {cat === 'Sound bites' && (
-          <button className={`ap-list ${bg ? 'on' : ''}`} role="checkbox" aria-checked={bg} onClick={() => setBg(!bg)}>
-            <span className="ap-box"><i /></span><span className="ap-nm">Play as background sound (white noise layer)</span>
-          </button>
-        )}
         <div className="ap-sub mono">ALSO ADD TO PLAYLISTS <span>optional</span></div>
         <div className="ap-lists">
           {lists.map((l) => (
