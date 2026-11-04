@@ -15,11 +15,22 @@ const listsFile = () => join(dir(), 'playlists.json')
 const exists = (p: string) => stat(p).then(() => true, () => false)
 
 export async function readLists(): Promise<Playlist[]> {
-  try { const j = JSON.parse(await readFile(listsFile(), 'utf8')); return Array.isArray(j.playlists) ? j.playlists : [] } catch { return [] }
+  let text: string
+  try { text = await readFile(listsFile(), 'utf8') } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return []; throw e }   // no file yet = no playlists; any OTHER failure must not look like "empty"
+  const j = JSON.parse(text)   // a corrupt file throws too, so the app never saves over it
+  return Array.isArray(j.playlists) ? j.playlists : []
 }
 export async function writeLists(playlists: Playlist[]) {
   await mkdir(dir(), { recursive: true })
-  if (await exists(listsFile())) await copyFile(listsFile(), listsFile() + '.bak')   // one step back if a bad read ever blanked the list
+  if (await exists(listsFile())) {
+    await copyFile(listsFile(), listsFile() + '.bak')
+    const had = await readLists().catch(() => [] as Playlist[])
+    if (had.length) {   // a dated copy whenever real playlists are about to be replaced; the last 20 are kept, so one bad save can never erase them
+      const bk = join(dir(), 'playlists-backups'); await mkdir(bk, { recursive: true })
+      await copyFile(listsFile(), join(bk, `playlists-${new Date().toISOString().replace(/[:.]/g, '-')}.json`))
+      const old = (await readdir(bk)).sort(); for (const f of old.slice(0, Math.max(0, old.length - 20))) await unlink(join(bk, f))
+    }
+  }
   const tmp = listsFile() + '.tmp'; await writeFile(tmp, JSON.stringify({ version: 1, playlists }, null, 1)); await rename(tmp, listsFile())   // atomic: never a half-written file
 }
 

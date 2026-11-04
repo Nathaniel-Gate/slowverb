@@ -32,7 +32,7 @@ export async function wire() {
   }
   // one-time move into Songs/ + Sound bites/ (asks first; backs up; deletes nothing): repoint saved tracks, then load the playlists it created
   for (const m of await window.api.migrate()) { const t = useLibrary.getState().tracks.find((x) => x.path === m.from); if (t) useLibrary.getState().setPath(t.id, m.to) }
-  useLists.getState().replace(await window.api.listsLoad())
+  try { useLists.getState().replace(await window.api.listsLoad()) } catch (e) { console.error('[lists] could not read playlists; not saving over them', e) }   // loaded stays false = nothing is written
   await usePlaylists.getState().refresh()                       // library folder is the source of truth for what exists
   window.api.onLibraryChanged(() => usePlaylists.getState().refresh())   // Finder edits, downloads
   // fx -> engine; user edits also stamp the current track (per-track memory)
