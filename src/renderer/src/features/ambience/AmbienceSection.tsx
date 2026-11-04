@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { AMBIENCE, soundName } from '../../audio/ambience'
 import { Knob } from '../fx/Knob'
 import { useLibrary } from '../library/library.store'
@@ -9,6 +10,12 @@ import { soundBites } from './soundBites'
 export function AmbienceSection() {
   const { on, level, sounds, setOn, setLevel, toggleSound, setSoundLevel } = useAmbience()
   const tracks = useLibrary((s) => s.tracks), root = usePlaylists((s) => s.root)
+  const pick = useRef<HTMLInputElement>(null)
+  const addFiles = async (fs: FileList | null) => {
+    const paths = [...(fs ?? [])].map((f) => window.api.pathFor(f)).filter(Boolean)
+    if (paths.length) await usePlaylists.getState().importFiles(paths, AMBIENCE.category)
+    if (pick.current) pick.current.value = ''
+  }
   const bites = soundBites(tracks, root), chosen = sounds.filter((s) => bites.some((b) => b.rel === s.rel))
   return (
     <div className="amb" data-on={on || undefined}>
@@ -18,8 +25,10 @@ export function AmbienceSection() {
           <span className="set-sw" data-on={on || undefined}><i /></span>
         </button>
       </div>
+      <input ref={pick} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg" multiple hidden onChange={(e) => void addFiles(e.target.files)} />
+      <button className="chip amb-add" onClick={() => pick.current?.click()} title="Choose audio files to add to Sound bites">+ ADD SOUND</button>
       {bites.length === 0
-        ? <p className="amb-empty">Drop sounds into Sound bites to use them here.</p>
+        ? <p className="amb-empty">No sounds yet. Add a rain, birdsong or white noise file.</p>
         : <>
           <div className="presets amb-types" role="group" aria-label="Sound bites">
             {bites.map((b) => {
